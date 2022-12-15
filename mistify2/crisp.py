@@ -4,6 +4,7 @@ import torch.nn as nn
 import typing
 from abc import abstractmethod
 from .base import ISet
+from utils import reduce, get_comp_weight_size
 
 
 class CrispSet(ISet):
@@ -51,7 +52,12 @@ class CrispSet(ISet):
 
     def inclusion(self, other: 'CrispSet') -> 'CrispSet':
         return CrispSet(
-            torch.clamp(self.data - torch.min(self.data, other.data), 0, 1)
+            (1 - self.data) + torch.min(self.data, other.data), self._is_batch, self._multiple_variables
+        )
+
+    def exclusion(self, other: 'CrispSet') -> 'CrispSet':
+        return CrispSet(
+            (1 - other.data) + torch.min(self.data, other.data), self._is_batch, self._multiple_variables
         )
 
     def exclusion(self, other: 'CrispSet') -> 'CrispSet':
@@ -106,6 +112,39 @@ class CrispSet(ISet):
             (torch.rand(*size, device=device) > 0.5).type(dtype), 
             batch_size is not None, n_variables is not None
         )
+
+class CrispComposition(nn.Module):
+
+    def __init__(
+        self, in_features: int, out_features: int, 
+        complement_inputs: bool=False, in_variables: int=None
+    ):
+        super().__init__()
+        self._in_features = in_features
+        self._out_features = out_features
+        self._in
+        self._complement_inputs = complement_inputs
+        if complement_inputs:
+            in_features *= 2
+        self._multiple_variables = in_variables is not None
+        # store weights as values between 0 and 1
+        self.weight = nn.parameter.Parameter(
+            torch.ones(get_comp_weight_size(in_features, out_features, in_variables))
+        )
+
+    @property
+    def to_complement(self) -> bool:
+        return self._complement_inputs
+
+    def forward(self, m: torch.Tensor):
+        # assume inputs are binary
+        # binarize the weights
+        if self._complement_inputs:
+            m = torch.cat([m, 1 - m], dim=1)
+        return CrispSet(torch.max(
+            torch.min(m[:,:,None], self.weight[None]), dim=-2
+        )[0], True, self._multiple_variables)
+
 
 class CrispSetParam(nn.parameter.Parameter):
 
