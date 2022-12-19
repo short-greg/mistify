@@ -6,6 +6,7 @@ from .crisp import CrispSet
 from abc import abstractmethod
 from dataclasses import dataclass
 import typing
+import membership as memb
 
 
 @dataclass
@@ -180,3 +181,219 @@ class SigmoidDefuzzifier(Defuzzifier):
         return SigmoidDefuzzifier(
             SigmoidFuzzyConverter(out_variables, out_features, eps)
         )
+
+
+
+from .membership import Shape
+
+class ShapeConverter(FuzzyConverter):
+
+    def __init__(self, left_edge: Shape, middle: Shape, right_edge: Shape):
+
+        super().__init__([left_edge, middle, right_edge])
+        self._left_edge = left_edge
+        self._middle = middle
+        self._right_edge = right_edge
+    
+    @property
+    def left_edge(self) -> Shape:
+        return self._left_edge
+
+    @property
+    def middle(self) -> Shape:
+        return self._middle
+    
+    @property
+    def right_edge(self) -> Shape:
+        return self._right_edge
+
+    def truncate(self, m: torch.Tensor) -> 'ShapeConverter':
+        return self.__class__(
+            self._left_edge.truncate(m[:,:,0:1]),
+            self._middle.truncate(m[:,:,1:-1]),
+            self._right_edge.truncate(m[:,:,-1:]),
+        )
+
+    def scale(self, m: torch.Tensor) -> 'ShapeConverter':
+        return self.__class__(
+            self._left_edge.scale(m[:,:,0:1]),
+            self._middle.scale(m[:,:,1:-1]),
+            self._right_edge.scale(m[:,:,-1:]),
+        )
+
+    def join(self, x: torch.Tensor) -> torch.Tensor:
+
+        return torch.cat(
+            [self._left_edge.join(x), self._middle.join(x), self._right_edge.join(x)],
+            dim=2
+        )
+    
+import typing
+
+class ShapeAggregator(nn.Module):
+
+    @abstractmethod
+    def forward(self, *shapes: memb.Shape):
+        pass
+
+
+class AreaAggregator(nn.Module):
+
+    def forward(self, *shapes: memb.Shape):
+        return torch.cat(
+            [shape.areas for shape in shapes], dim=2
+        )
+
+
+class MeanCoreAggregator(nn.Module):
+
+    def forward(self, *shapes: memb.Shape):
+        return torch.cat(
+            [shape.mean_cores for shape in shapes], dim=2
+        )
+
+
+class CentroidAggregator(nn.Module):
+
+    def forward(self, *shapes: memb.Shape):
+        return torch.cat(
+            [shape.centroids for shape in shapes], dim=2
+        )
+
+# Not sure why i have strides
+# def get_strided_indices(n_points: int, stride: int, step: int=1):
+#     initial_indices = torch.arange(0, n_points).as_strided((n_points - stride + 1, stride), (1, 1))
+#     return initial_indices[torch.arange(0, len(initial_indices), step)]
+
+
+# def stride_coordinates(coordinates: torch.Tensor, stride: int, step: int=1):
+
+#     dim2_index = get_strided_indices(coordinates.size(2), stride, step)
+#     return coordinates[:, :, dim2_index]
+
+
+def get_strided_indices(n_points: int, stride: int, step: int=1):
+    initial_indices = torch.arange(0, n_points).as_strided((n_points - stride + 1, stride), (1, 1))
+    return initial_indices[torch.arange(0, len(initial_indices), step)]
+
+def stride_coordinates(coordinates: torch.Tensor, stride: int, step: int=1):
+
+    dim2_index = get_strided_indices(coordinates.size(1), stride, step)
+    return coordinates[:, dim2_index]
+
+
+class IsoscelesFuzzyConverter(FuzzyConverter):
+
+    def __init__(self, n_variables: int, n_values: int, accumulator: Accumulator=None, flat_edges: bool=False, truncate: bool=True, fixed: bool=False):
+
+        super().__init__()
+        self._aggregator = AreaAggregator()
+
+        self._n_variables = n_variables
+        self._n_values = n_values
+        
+        self._step = 1
+        if flat_edges:
+            self._left_cls = memb.DecreasingRightTrapezoid
+            self._right_cls = memb.IncreasingRightTrapezoid
+            self._n_side_points = 3
+            self._n_points = n_values + 2
+            self._side_step = 1
+        else:
+            self._side_step = 1
+            self._side_points = 2
+            self._n_points = n_values
+            self._left_cls = memb.DecreasingRightTriangle
+            self._right_cls = memb.IncreasingRightTriangle
+
+        self._middle_cls = memb.IsoscelesTriangle
+        self._accumulator = accumulator
+        self._truncate = truncate
+        self._side_points = 3
+        self._middle_points = n_values
+
+        self._params = torch.linspace(0.0, 1.0, self._n_points)
+        self._params = self._params[None]
+        self._params = self._params.repeat(n_variables, 1)
+
+        if not fixed:
+            self._params = nn.parameter.Parameter(self._params)
+
+    def generate_params(self):
+        positive_params = torch.nn.functional.softplus(self._params)
+        cumulated_params = torch.cumsum(positive_params, dim=1)
+        min_val = cumulated_params[:,:1]
+        max_val = cumulated_params[:,-1:]
+        scaled_params  = (cumulated_params - min_val) / (max_val - min_val)
+        return scaled_params
+
+    def create_shapes(self) -> typing.Tuple[Shape, Shape, Shape]:
+        left = self._params[:,:self._params].view(self._n_variables, 1, -1)
+        right = self._params[:,-self._side_points:].view(self._n_values, 1, -1)
+        middle = stride_coordinates(
+            self._params[:,self._side_step:self._side_step + self._middle_points],
+            self._n_points, self._step
+        )
+        return self._left_cls(left), self._middle_cls(middle), self._right_cls(right)
+
+    def _join(self, x: torch.Tensor):
+        return torch.cat(
+            [shape.join(x) for shape in self.create_shapes() ],dim=2
+        )
+    
+    def _aggregate(self, m: torch.Tensor):
+        xs = []
+        for shape in self.create_shapes():
+            if self._truncate:
+                xs.append(shape.truncate(m) )
+            else:
+                xs.append(shape.scale(m))
+        return self._aggregator(*xs)
+
+    def fuzzify(self, x: torch.Tensor) -> FuzzySet:
+        return self._join(x)
+
+    def accumulate(self, value_weight: ValueWeight) -> FuzzySet:
+        return self._accumulator(value_weight)
+
+    def imply(self, m: FuzzySet) -> ValueWeight:
+        return ValueWeight(m, self._aggregate(m))
+
+
+# class LogisticParams(ShapeParams):
+    
+#     def __init__(self, n_features: int, n_categories: int, fixed_biases: bool=True, scale_multiplier: float=2.):
+        
+#         super().__init__(n_features, n_categories)
+
+#         if scale_multiplier <= 0.:
+#             raise ValueError("Scale multiplier must be greater than 0.")
+#         self._fixed_biases = fixed_biases
+#         self._scale_multiplier = scale_multiplier
+        
+#         if self._fixed_biases:
+#             self._bias_gen = FixedIntervalGenerator(self._n_features, self._n_categories)
+#         else:
+#             self._bias_gen = FreeIntervalGenerator(self._n_features, self._n_categories)
+
+#     def forward(self) -> typing.Tuple[typing.Tuple, typing.Tuple, typing.Tuple]:
+
+#         biases = self._bias_gen()
+
+#         left_scales = self._scale_multiplier / (biases[:,1:2] - biases[:,:1])
+#         middle_scales = self._scale_multiplier / (biases[:,1:-1] - biases[:,0:-2])
+#         right_scales = self._scale_multiplier / (biases[:,-1:] - biases[:,-2:-1])
+
+#         biases = biases.unsqueeze(2)
+#         left = torch.cat(
+#             [biases[:,0:1], left_scales.unsqueeze(2)], dim=2
+#         )
+#         middle = torch.cat(
+#             [biases[:,1:-1], middle_scales.unsqueeze(2)], dim=2
+#         )
+#         right = torch.cat(
+#             [biases[:,-1:], right_scales.unsqueeze(2)], dim=2
+#         )
+#         return left, middle, right
+
+
