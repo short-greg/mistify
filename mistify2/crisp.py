@@ -51,10 +51,10 @@ class CrispSet(ISet):
             (1 - self.data) + torch.min(self.data, other.data), self._is_batch
         )
 
-    def exclusion(self, other: 'CrispSet') -> 'CrispSet':
-        return CrispSet(
-            (1 - other.data) + torch.min(self.data, other.data), self._is_batch
-        )
+    # def exclusion(self, other: 'CrispSet') -> 'CrispSet':
+    #     return CrispSet(
+    #         (1 - other.data) + torch.min(self.data, other.data), self._is_batch
+    #     )
 
     def exclusion(self, other: 'CrispSet') -> 'CrispSet':
         # TODO: WRITE
@@ -62,13 +62,13 @@ class CrispSet(ISet):
             torch.clamp((1 - self.data) - torch.min(self.data, other.data), 0, 1)
         )
 
-    def __sub__(self, other: 'CrispSet'):
+    def __sub__(self, other: 'CrispSet') -> 'CrispSet':
         return self.differ(other)
 
-    def __mul__(self, other: 'CrispSet'):
-        return self.intersect(self, other)
+    def __mul__(self, other: 'CrispSet') -> 'CrispSet':
+        return self.intersect(other)
 
-    def __add__(self, other: 'CrispSet'):
+    def __add__(self, other: 'CrispSet') -> 'CrispSet':
         return self.unify(other)
     
     def __getitem__(self, idx):

@@ -34,6 +34,21 @@ class TestCrispSet(object):
         ones = crisp.CrispSet.rand(4, 2, (3, 2))
         assert ones.data.dim() == 4
 
+    def test_intersect_results_in_all_values_being_less_or_same(self):
+        torch.manual_seed(1)
+        c1 = crisp.CrispSet.rand(4, 2, (3, 2))
+        c2 = crisp.CrispSet.rand(4, 2, (3, 2))
+        c3 = c1 * c2
+        assert (c3.data <= c2.data).all()
+
+    def test_uion_results_in_all_values_being_greater_or_same(self):
+        
+        torch.manual_seed(1)
+        c1 = crisp.CrispSet.rand(4, 2, (3, 2))
+        c2 = crisp.CrispSet.rand(4, 2, (3, 2))
+        c3 = c1 + c2
+        assert (c3.data >= c2.data).all()
+    
     def test_ones_with_batch_and_variables_is_1_or_zero(self):
         
         ones = crisp.CrispSet.rand(4, 2, (3, 2))
