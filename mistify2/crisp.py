@@ -3,41 +3,11 @@ import torch
 import torch.nn as nn
 import typing
 from abc import abstractmethod
-from .base import ISet
+from .base import Set, SetParam
 from .utils import reduce, get_comp_weight_size
 
 
-class CrispSet(ISet):
-
-    def __init__(self, data: torch.Tensor, is_batch: bool=None):
-
-        if is_batch is None:
-            is_batch = False if data.dim() <= 1 else True
-
-        self._data = data
-        self._n_samples = None
-        self._n_variables = None
-        if is_batch and data.dim() == 1:
-            raise ValueError(f'Is batch cannot be set to true if data dimensionality is 1')
-        
-        if is_batch: 
-            self._value_size = None if data.dim() == 2 else data.shape[1:-1]
-        else:
-            self._value_size = None if data.dim() == 1 else data.shape[1:-1]
-
-        self._is_batch = is_batch
-        self._n_values = data.shape[-1]
-    
-    @property
-    def data(self) -> torch.Tensor:
-        return self._data
-
-    def dim(self) -> int:
-        return self.data.dim()
-
-    def transpose(self, first_dim, second_dim) -> 'CrispSet':
-        assert self._value_size is not None
-        return CrispSet(self._data.transpose(first_dim, second_dim), self._is_batch)
+class CrispSet(Set):
 
     def differ(self, other: 'CrispSet') -> 'CrispSet':
         return CrispSet((self.data - other._data).clamp(0.0, 1.0))
@@ -70,13 +40,23 @@ class CrispSet(ISet):
     def __getitem__(self, idx):
         return self.data[idx]
     
+    def convert_variables(self, *size_after: int):
+        
+        if self._is_batch:
+            return CrispSet(
+                self._data.view(self._data.size(0), *size_after, -1), True
+            )
+        return self.__class__(
+            self._data.view(*size_after, -1), False
+        )
+
     @classmethod
     def zeros(cls, *size: int, is_batch: bool=None, dtype=torch.float32, device='cpu'):
 
         return CrispSet(
             torch.zeros(*size, dtype=dtype, device=device), is_batch
         )
-
+    
     @classmethod
     def ones(cls, *size: int, dtype=torch.float32, is_batch: bool=None, device='cpu'):
 
@@ -92,6 +72,10 @@ class CrispSet(ISet):
             (torch.rand(*size, device=device) > 0.5).type(dtype), 
             is_batch
         )
+
+    def transpose(self, first_dim, second_dim) -> 'Set':
+        assert self._value_size is not None
+        return CrispSet(self._data.transpose(first_dim, second_dim), self._is_batch)
 
 
 class CrispComposition(nn.Module):
@@ -113,49 +97,27 @@ class CrispComposition(nn.Module):
         #     torch.ones(get_comp_weight_size(in_features, out_features, in_variables))
         # )
 
+    def prepare_inputs(self, m: CrispSet) -> torch.Tensor:
+        if self._complement_inputs:
+            return torch.cat([m.data, 1 - m.data], dim=-1).unsqueeze(-1)
+        return m.data.unsqueeze(-1)
+    
     @property
     def to_complement(self) -> bool:
         return self._complement_inputs
 
     def forward(self, m: CrispSet):
-        if self._complement_inputs:
-            m = torch.cat([m.data, 1 - m.data], dim=-1)
-
+        print(self.prepare_inputs(m).unsqueeze(-1).size())
+        print(self.weight.data[None].size())
         return CrispSet(torch.max(
-            torch.min(m.data.unsqueeze(-1), self.weight.data[None]), dim=-1
+            torch.min(self.prepare_inputs(m), self.weight.data[None]), dim=-2
         )[0], True)
 
 
-class CrispSetParam(nn.Module):
+class CrispSetParam(SetParam):
 
-    def __init__(self, crisp_set: typing.Union[CrispSet, torch.Tensor], requires_grad: bool=True):
-        super().__init__()
-        if isinstance(crisp_set, torch.Tensor):
-            crisp_set= CrispSet(crisp_set, False)
-        self._crisp_set = crisp_set
-        self._data = nn.parameter.Parameter(
-            crisp_set.data, requires_grad=requires_grad
-        )
+    def __init__(self, set_: typing.Union[CrispSet, torch.Tensor], requires_grad: bool=True):
 
-    @property
-    def data(self) -> torch.Tensor:
-        return self._data
-
-    @data.setter
-    def data(self, data: torch.Tensor):
-        self._crisp_set.data = data
-        self._data = nn.parameter.Parameter(
-            self._crisp_set.data.data, 
-            requires_grad=self._data.requires_grad
-        )
-
-    @property
-    def crisp_set(self) -> CrispSet:
-        return self._crisp_set
-    
-    @crisp_set.setter
-    def crisp_set(self, crisp_set: 'CrispSet'):
-        self.data = crisp_set.data
-        # self._crisp_set = crisp_set
-        # self.data = crisp_set.data
-    
+        if isinstance(set_, torch.Tensor):
+            set_ = CrispSet(set_)
+        super().__init__(set_, requires_grad=requires_grad)

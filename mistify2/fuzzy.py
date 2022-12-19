@@ -1,88 +1,42 @@
 import typing
 import torch
 import torch.nn as nn
-from utils import reduce, get_comp_weight_size
+from .utils import reduce, get_comp_weight_size
 from abc import abstractmethod
-from .base import ISet
+from .base import Set, SetParam
 
 
-class FuzzySet(ISet):
+class FuzzySet(Set):
 
-    def __init__(self, data: torch.Tensor, is_batch: bool=False, multiple_variables: bool=False):
-
-        self._data = data
-        self._n_samples = None
-        self._n_variables = None
-        self._multiple_variables = multiple_variables
-        self._is_batch = is_batch
-        if is_batch and multiple_variables:
-            assert data.dim() == 3
-            self._n_variables = data.size(1)
-            self._batch_size = data.size(0)
-        elif multiple_variables:
-            assert data.dim() == 2
-            self._n_samples = data.size(0)
-        elif is_batch:
-            assert data.dim() == 2
-            self._batch_size = data.size(0)
-        else:
-            assert data.dim() == 1
-    
-    @property
-    def is_batch(self) -> bool:
-        return self._is_batch
-
-    @property
-    def multiple_variables(self) -> bool:
-        return self._multiple_variables
-    
-    @property
-    def data(self) -> torch.Tensor:
-        return self._data
-
-    def swap_variables(self) -> 'FuzzySet':
-        assert self._multiple_variables
-        if self._is_batch:
-            dim1, dim2 = 1, 2
-        else:
-            dim1, dim2 = 0, 1
-        return FuzzySet(self._data.transpose(dim2, dim1), self._is_batch, True)
-
-    def convert_variables(self, n_after: int) -> 'FuzzySet':
-        
-        if self._is_batch:
-            return FuzzySet(
-                self._data.view(self._data.size(0), n_after, -1), True, True
-            )
-        return FuzzySet(
-            self._data.view(n_after, -1), False, True
-        )
+    def transpose(self, first_dim, second_dim) -> 'FuzzySet':
+        assert self._value_size is not None
+        return FuzzySet(self._data.transpose(first_dim, second_dim), self._is_batch)
 
     def intersect_on(self, dim: int=-1):
-        return FuzzySet(torch.min(self.data, dim=dim)[0], self.is_batch, self.multiple_variables)
+        return FuzzySet(torch.min(self.data, dim=dim)[0], self.is_batch)
 
     def unify_on(self, dim: int=-1):
-        return FuzzySet(torch.max(self.data, dim=dim)[0], self.is_batch, self.multiple_variables)
+        return FuzzySet(torch.max(self.data, dim=dim)[0], self.is_batch)
 
     def differ(self, other: 'FuzzySet'):
-        return FuzzySet(torch.clamp(self.data - other.data, 0, 1), self.is_batch, self.multiple_variables)
+        return FuzzySet(torch.clamp(self.data - other.data, 0, 1), self.is_batch)
     
     def unify(self, other: 'FuzzySet'):
-        return FuzzySet(torch.max(self.data, other.data), self.is_batch, self.multiple_variables)
+        return FuzzySet(torch.max(self.data, other.data), self.is_batch)
 
     def intersect(self, other: 'FuzzySet'):
-        return FuzzySet(torch.min(self.data, other.data), self._is_batch, self._multiple_variables)
+        return FuzzySet(torch.min(self.data, other.data), self._is_batch)
 
     def inclusion(self, other: 'FuzzySet') -> 'FuzzySet':
         return FuzzySet(
-            (1 - self.data) + torch.min(self.data, other.data), self._is_batch, self._multiple_variables
+            (1 - other.data) + torch.min(self.data, other.data), self._is_batch
         )
 
     def exclusion(self, other: 'FuzzySet') -> 'FuzzySet':
         return FuzzySet(
-            (1 - other.data) + torch.min(self.data, other.data), self._is_batch, self._multiple_variables
+            (1 - self.data) + torch.min(self.data, other.data), self._is_batch
         )
-
+    
     def __sub__(self, other: 'FuzzySet'):
         return self.differ(other)
 
@@ -91,44 +45,43 @@ class FuzzySet(ISet):
 
     def __add__(self, other: 'FuzzySet'):
         return self.unify(other)
+    
+    def convert_variables(self, *size_after: int):
+        
+        if self._is_batch:
+            return FuzzySet(
+                self._data.view(self._data.size(0), *size_after, -1), True
+            )
+        return self.__class__(
+            self._data.view(*size_after, -1), False
+        )
 
     @classmethod
-    def get_size(cls, n_features: int, batch_size: int=None, n_variables: int=None):
+    def zeros(cls, *size: int, is_batch: bool=None, dtype=torch.float32, device='cpu'):
 
-        if batch_size is not None and n_variables is not None:
-            return (batch_size, n_variables, n_features)
-        elif batch_size is not None:
-            return (batch_size, n_features)
-        elif n_variables is not None:
-            return (n_variables, n_features)
-        return (n_features,)
+        return FuzzySet(
+            torch.zeros(*size, dtype=dtype, device=device), is_batch
+        )
     
     @classmethod
-    def zeros(cls, n_features: int, batch_size: int=None, n_variables: int=None, dtype=torch.float32, device='cpu'):
+    def ones(cls, *size: int, dtype=torch.float32, is_batch: bool=None, device='cpu'):
 
-        size = cls.get_size(n_features, batch_size, n_variables)
-        return FuzzySet(
-            torch.zeros(*size, dtype=dtype, device=device), 
-            batch_size is not None, n_variables is not None
-        )
-
-    @classmethod
-    def ones(cls, n_features: int, batch_size: int=None, n_variables: int=None, dtype=torch.float32, device='cpu'):
-
-        size = cls.get_size(n_features, batch_size, n_variables)
         return FuzzySet(
             torch.ones(*size, dtype=dtype, device=device), 
-            batch_size is not None, n_variables is not None
+            is_batch
         )
 
     @classmethod
-    def rand(cls, n_features: int, batch_size: int=None, n_variables: int=None, dtype=torch.float32, device='cpu'):
+    def rand(cls, *size: int, is_batch: bool=None, dtype=torch.float32, device='cpu'):
 
-        size = cls.get_size(n_features, batch_size, n_variables)
         return FuzzySet(
-            torch.rand(*size, dtype=dtype, device=device), 
-            batch_size is not None, n_variables is not None
+            (torch.rand(*size, device=device)).type(dtype), 
+            is_batch
         )
+
+    def transpose(self, first_dim, second_dim) -> 'Set':
+        assert self._value_size is not None
+        return FuzzySet(self._data.transpose(first_dim, second_dim), self._is_batch)
 
 
 class FuzzyCalcApprox(object):
@@ -152,32 +105,14 @@ def differ(m: FuzzySet, m2: FuzzySet):
     return FuzzySet((m.data - m2._data).clamp(0.0, 1.0))
 
 
-class FuzzySetParam(nn.parameter.Parameter):
+class FuzzySetParam(SetParam):
 
-    def __init__(self, fuzzy_set: FuzzySet, requires_grad: bool=True):
+    def __init__(self, set_: typing.Union[FuzzySet, torch.Tensor], requires_grad: bool=True):
 
-        super().__init__(fuzzy_set.data, requires_grad=True)
-        self._fuzzy_set = fuzzy_set
+        if isinstance(set_, torch.Tensor):
+            set_ = FuzzySet(set_)
+        super().__init__(set_, requires_grad=requires_grad)
 
-    @property
-    def data(self) -> torch.Tensor:
-        return self._fuzzy_set.data
-
-    @data.setter
-    def data(self, data: torch.Tensor):
-        assert data.size() == self._fuzzy_set.data.size()
-        super().data = data
-        self._fuzzy_set.data = data
-
-    @property
-    def fuzzy_set(self) -> FuzzySet:
-        return self._fuzzy_set
-    
-    @fuzzy_set.setter
-    def fuzzy_set(self, fuzzy_set: 'FuzzySet'):
-        self._fuzzy_set = fuzzy_set
-        self.data = fuzzy_set.data
-    
 
 class FuzzyCompositionBase(nn.Module):
 
@@ -188,19 +123,23 @@ class FuzzyCompositionBase(nn.Module):
         super().__init__()
         self._in_features = in_features
         self._out_features = out_features
-        self._in
         self._complement_inputs = complement_inputs
         if complement_inputs:
             in_features *= 2
         self._multiple_variables = in_variables is not None
         # store weights as values between 0 and 1
-        self.weight = nn.parameter.Parameter(
-            torch.ones(get_comp_weight_size(in_features, out_features, in_variables))
+        self.weight = FuzzySetParam(
+            FuzzySet.ones(get_comp_weight_size(in_features, out_features, in_variables))
         )
 
     @property
     def to_complement(self) -> bool:
         return self._complement_inputs
+
+    def prepare_inputs(self, m: FuzzySet) -> torch.Tensor:
+        if self._complement_inputs:
+            return torch.cat([m.data, 1 - m.data], dim=-1).unsqueeze(-1)
+        return m.data.unsqueeze(-1)
     
     @abstractmethod
     def forward(self, m: FuzzySet):
@@ -209,41 +148,22 @@ class FuzzyCompositionBase(nn.Module):
 
 class MaxMin(FuzzyCompositionBase):
 
-    def forward(self, m: torch.Tensor):
+    def forward(self, m: FuzzySet):
         # assume inputs are binary
         # binarize the weights
-        if self._complement_inputs:
-            m = torch.cat([m, 1 - m], dim=1)
         return FuzzySet(torch.max(
-            torch.min(m[:,:,None], self.weight[None]), dim=-2
-        )[0], True, self._multiple_variables)
+            torch.min(self.prepare_inputs(m), self.weight.data[None]), dim=-1
+        )[0], m.is_batch)
 
 
 class MaxProd(FuzzyCompositionBase):
 
-    def forward(self, m: torch.Tensor):
+    def forward(self, m: FuzzySet):
         # assume inputs are binary
         # binarize the weights
-        if self._complement_inputs:
-            m = torch.cat([m, 1 - m], dim=1)
         return FuzzySet(torch.max(
-            m[:,:,None] * self.weight[None], dim=-2
-        )[0], True, self._multiple_variables)
-
-
-class MaxMinAgg(nn.Module):
-
-    def __init__(self, in_variables: int, in_features: int, out_features: int, complement_inputs: bool=False):
-
-        super().__init__()
-        self._max_min = MaxMin(in_features, out_features, complement_inputs, in_variables)
-    
-    @property
-    def to_complement(self) -> bool:
-        return self._max_min._complement_inputs
-    
-    def forward(self, m: torch.Tensor):
-        return FuzzySet(self._max_min.forward(m).data.max(dim=-1)[0], True, False)
+            self.prepare_inputs(m) * self.weight.data[None], dim=-2
+        )[0], m.is_batch)
 
 
 class MinMax(FuzzyCompositionBase):
@@ -252,14 +172,30 @@ class MinMax(FuzzyCompositionBase):
     def to_complement(self) -> bool:
         return self._complement_inputs
     
-    def forward(self, m: torch.Tensor):
+    def forward(self, m: FuzzySet):
         # assume inputs are binary
         # binarize the weights
-        if self._complement_inputs:
-            m = torch.cat([m, 1 - m], dim=1)
         return FuzzySet(torch.min(
-            torch.max(m[:,:,None], self.weight[None]), dim=-2
-        )[0], True, self._multiple_variables)
+            torch.max(self.prepare_inputs(m), self.weight.data[None]), dim=-2
+        )[0], m.is_batch)
+
+
+class MaxMinAgg(nn.Module):
+
+    def __init__(self, in_variables: int, in_features: int, out_features: int, agg_features: int, complement_inputs: bool=False):
+
+        super().__init__()
+        self._max_min = MaxMin(in_features, out_features * agg_features, complement_inputs, in_variables)
+        self._agg_features = agg_features
+    
+    @property
+    def to_complement(self) -> bool:
+        return self._max_min._complement_inputs
+    
+    def forward(self, m: FuzzySet):
+        data = self._max_min.forward(m).data
+        data = data.view(*data.shape[:-1], -1, self._agg_features).max(dim=-1)[0]
+        return FuzzySet(data, m.is_batch)
 
 
 class FuzzyCompLoss(nn.Module):
@@ -494,7 +430,37 @@ class FuzzyCompLoss(nn.Module):
         return reduce(((x - t) * mask.float()), self.reduction)
 
 
+# class FuzzySetParam(nn.Module):
 
+#     def __init__(self, fuzzy_set: typing.Union[FuzzySet, torch.Tensor], requires_grad: bool=True):
+
+#         super().__init__(fuzzy_set.data, requires_grad=requires_grad)
+#         if isinstance(crisp_set, torch.Tensor):
+#             crisp_set= FuzzySet(fuzzy_set)
+#         self._fuzzy_set = fuzzy_set
+#         self._data = nn.parameter.Parameter(
+#             fuzzy_set.data, requires_grad=requires_grad
+#         )
+
+#     @property
+#     def data(self) -> torch.Tensor:
+#         return self._data
+
+#     @data.setter
+#     def data(self, data: torch.Tensor):        
+#         self._fuzzy_set.data = data
+#         self._data = nn.parameter.Parameter(
+#             self._fuzzy_set.data.data, 
+#             requires_grad=self._data.requires_grad
+#         )
+
+#     @property
+#     def fuzzy_set(self) -> FuzzySet:
+#         return self._fuzzy_set
+    
+#     @fuzzy_set.setter
+#     def fuzzy_set(self, fuzzy_set: 'FuzzySet'):
+#         self.data = fuzzy_set.data
 
 # class MaxMinComp(nn.Module):
 
