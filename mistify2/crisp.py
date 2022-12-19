@@ -4,37 +4,33 @@ import torch.nn as nn
 import typing
 from abc import abstractmethod
 from .base import ISet
-from utils import reduce, get_comp_weight_size
+from .utils import reduce, get_comp_weight_size
 
 
 class CrispSet(ISet):
 
-    def __init__(self, data: torch.Tensor, is_batch: bool=False, multiple_variables: bool=False):
+    def __init__(self, data: torch.Tensor, is_batch: bool=False):
 
         self._data = data
         self._n_samples = None
         self._n_variables = None
-        self._multiple_variables = multiple_variables
-        self._is_batch = is_batch
-        if is_batch and multiple_variables:
-            assert data.dim() == 3
-            self._n_variables = data.size(1)
-            self._batch_size = data.size(0)
-        elif multiple_variables:
-            assert data.dim() == 2
-            self._n_samples = data.size(0)
-        elif is_batch:
-            assert data.dim() == 2
-            self._batch_size = data.size(0)
+        if is_batch and data.dim() == 1:
+            raise ValueError(f'Is batch cannot be set to true if data dimensionality is 1')
+        
+        if is_batch: 
+            self._value_size = None if data.dim() == 2 else data.shape[1:-1]
         else:
-            assert data.dim() == 1
+            self._value_size = None if data.dim() == 1 else data.shape[1:-1]
+
+        self._is_batch = is_batch
+        self._n_values = data.shape[-1]
     
     @property
     def data(self) -> torch.Tensor:
         return self._data
 
     def swap_variables(self) -> 'CrispSet':
-        assert self._multiple_variables
+        assert self._value_size is not None
         if self._is_batch:
             dim1, dim2 = 1, 2
         else:
@@ -52,12 +48,12 @@ class CrispSet(ISet):
 
     def inclusion(self, other: 'CrispSet') -> 'CrispSet':
         return CrispSet(
-            (1 - self.data) + torch.min(self.data, other.data), self._is_batch, self._multiple_variables
+            (1 - self.data) + torch.min(self.data, other.data), self._is_batch
         )
 
     def exclusion(self, other: 'CrispSet') -> 'CrispSet':
         return CrispSet(
-            (1 - other.data) + torch.min(self.data, other.data), self._is_batch, self._multiple_variables
+            (1 - other.data) + torch.min(self.data, other.data), self._is_batch
         )
 
     def exclusion(self, other: 'CrispSet') -> 'CrispSet':
@@ -74,44 +70,48 @@ class CrispSet(ISet):
 
     def __add__(self, other: 'CrispSet'):
         return self.unify(other)
+    
+    def __getitem__(self, idx):
+        return self.data[idx]
 
     @classmethod
-    def get_size(cls, n_features: int, batch_size: int=None, n_variables: int=None):
+    def get_size(cls, n_values: int, batch_size: int=None, variable_size: typing.Tuple[int]=None):
 
-        if batch_size is not None and n_variables is not None:
-            return (batch_size, n_variables, n_features)
+        if batch_size is not None and variable_size is not None:
+            return (batch_size, *variable_size, n_values)
         elif batch_size is not None:
-            return (batch_size, n_features)
-        elif n_variables is not None:
-            return (n_variables, n_features)
-        return (n_features,)
+            return (batch_size, n_values)
+        elif variable_size is not None:
+            return (*variable_size, n_values)
+        return (n_values,)
     
     @classmethod
-    def zeros(cls, n_features: int, batch_size: int=None, n_variables: int=None, dtype=torch.float32, device='cpu'):
+    def zeros(cls, n_values: int, batch_size: int=None, variable_size: typing.Tuple[int]=None, dtype=torch.float32, device='cpu'):
 
-        size = cls.get_size(n_features, batch_size, n_variables)
+        size = cls.get_size(n_values, batch_size, variable_size)
         return CrispSet(
             torch.zeros(*size, dtype=dtype, device=device), 
-            batch_size is not None, n_variables is not None
+            batch_size is not None
         )
 
     @classmethod
-    def ones(cls, n_features: int, batch_size: int=None, n_variables: int=None, dtype=torch.float32, device='cpu'):
+    def ones(cls, n_values: int, batch_size: int=None, variable_size: typing.Tuple[int]=None, dtype=torch.float32, device='cpu'):
 
-        size = cls.get_size(n_features, batch_size, n_variables)
+        size = cls.get_size(n_values, batch_size, variable_size)
         return CrispSet(
             torch.ones(*size, dtype=dtype, device=device), 
-            batch_size is not None, n_variables is not None
+            batch_size is not None
         )
 
     @classmethod
-    def rand(cls, n_features: int, batch_size: int=None, n_variables: int=None, dtype=torch.float32, device='cpu'):
+    def rand(cls, n_values: int, batch_size: int=None, variable_size: typing.Tuple[int]=None, dtype=torch.float32, device='cpu'):
 
-        size = cls.get_size(n_features, batch_size, n_variables)
+        size = cls.get_size(n_values, batch_size, variable_size)
         return CrispSet(
             (torch.rand(*size, device=device) > 0.5).type(dtype), 
-            batch_size is not None, n_variables is not None
+            batch_size is not None
         )
+
 
 class CrispComposition(nn.Module):
 
@@ -122,7 +122,6 @@ class CrispComposition(nn.Module):
         super().__init__()
         self._in_features = in_features
         self._out_features = out_features
-        self._in
         self._complement_inputs = complement_inputs
         if complement_inputs:
             in_features *= 2
@@ -136,14 +135,13 @@ class CrispComposition(nn.Module):
     def to_complement(self) -> bool:
         return self._complement_inputs
 
-    def forward(self, m: torch.Tensor):
-        # assume inputs are binary
-        # binarize the weights
+    def forward(self, m: CrispSet):
         if self._complement_inputs:
-            m = torch.cat([m, 1 - m], dim=1)
+            m = torch.cat([m.data, 1 - m.data], dim=-1)
+
         return CrispSet(torch.max(
-            torch.min(m[:,:,None], self.weight[None]), dim=-2
-        )[0], True, self._multiple_variables)
+            torch.min(m.data.unsqueeze(-1), self.weight[None]), dim=-2
+        )[0], True)
 
 
 class CrispSetParam(nn.parameter.Parameter):
