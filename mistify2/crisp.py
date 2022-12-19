@@ -32,13 +32,12 @@ class CrispSet(ISet):
     def data(self) -> torch.Tensor:
         return self._data
 
-    def swap_variables(self) -> 'CrispSet':
+    def dim(self) -> int:
+        return self.data.dim()
+
+    def transpose(self, first_dim, second_dim) -> 'CrispSet':
         assert self._value_size is not None
-        if self._is_batch:
-            dim1, dim2 = 1, 2
-        else:
-            dim1, dim2 = 0, 1
-        return CrispSet(self._data.transpose(dim2, dim1), self._is_batch, True)
+        return CrispSet(self._data.transpose(first_dim, second_dim), self._is_batch)
 
     def differ(self, other: 'CrispSet') -> 'CrispSet':
         return CrispSet((self.data - other._data).clamp(0.0, 1.0))
@@ -51,12 +50,12 @@ class CrispSet(ISet):
 
     def inclusion(self, other: 'CrispSet') -> 'CrispSet':
         return CrispSet(
-            (1 - self.data) + torch.min(self.data, other.data), self._is_batch
+            (1 - other.data) + torch.min(self.data, other.data), self._is_batch
         )
 
     def exclusion(self, other: 'CrispSet') -> 'CrispSet':
         return CrispSet(
-            (1 - other.data) + torch.min(self.data, other.data), self._is_batch
+            (1 - self.data) + torch.min(self.data, other.data), self._is_batch
         )
 
     def __sub__(self, other: 'CrispSet') -> 'CrispSet':
