@@ -1,8 +1,30 @@
 from abc import abstractmethod, abstractproperty
 import typing
 import torch
+from dataclasses import dataclass
 
 # TODO: Change so that it uses the FuzzySet class
+
+class ShapeParams:
+    
+    # batch, set, index
+    param: torch.Tensor
+
+    def __getitem__(self, key: str):
+        return self.param[:,:,key]
+
+    @property
+    def batch_size(self) -> int:
+        return self.param.size(0)
+
+    @property
+    def set_size(self) -> int:
+        return self.param.size(1)
+
+    @property
+    def points(self) -> int:
+        return self.param.size(2)
+
 
 def check_contains(x: torch.Tensor, pt1: torch.Tensor, pt2: torch.Tensor):
     
@@ -435,6 +457,53 @@ class DecreasingRightTriangle(ConvexPolygon):
             params.x, updated_m.x
         )
 
+# need to simplify this
+
+# self._points
+# self._scales <- logistic
+# etc
+
+# 
+
+class Square(ConvexPolygon):
+
+    def join(self, x: torch.Tensor):
+        return (x >= self._params[0] & x <= self._params[1]).type_as(x) * self._m
+
+    def _calc_areas(self):
+        
+        return (
+            (self._params[2] 
+            - self._params[0]) * self._m[0]
+        )
+
+    def _calc_mean_cores(self):
+        return 1 / 2 * (
+            self._params[0] + self._params[1]
+        )
+
+    def _calc_centroids(self):
+        return 1 / 2 * (
+            self._params[0] + self._params[1]
+        )
+    
+    def scale(self, m: torch.Tensor):
+
+        updated_m = self._intersect_m(m)
+        
+        return Square(
+            self._params.x, updated_m.x
+        )
+
+    def truncate(self, m: torch.Tensor):
+        # TODO: FINISH
+        
+        updated_m = self._intersect_m(m)
+
+        return Square(
+            self._params.x, updated_m.x
+        )
+
 
 class Triangle(ConvexPolygon):
 
@@ -489,7 +558,6 @@ class Triangle(ConvexPolygon):
         return Trapezoid(
             params.x, updated_m.x
         )
-
 
 class IsoscelesTriangle(ConvexPolygon):
 

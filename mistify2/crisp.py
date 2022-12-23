@@ -2,7 +2,6 @@ import typing
 import torch
 import torch.nn as nn
 import typing
-from abc import abstractmethod
 from .base import Set, SetParam
 from .utils import reduce, get_comp_weight_size
 
@@ -51,14 +50,14 @@ class CrispSet(Set):
         )
 
     @classmethod
-    def zeros(cls, *size: int, is_batch: bool=None, dtype=torch.float32, device='cpu'):
+    def negatives(cls, *size: int, is_batch: bool=None, dtype=torch.float32, device='cpu'):
 
         return CrispSet(
             torch.zeros(*size, dtype=dtype, device=device), is_batch
         )
     
     @classmethod
-    def ones(cls, *size: int, dtype=torch.float32, is_batch: bool=None, device='cpu'):
+    def positives(cls, *size: int, dtype=torch.float32, is_batch: bool=None, device='cpu'):
 
         return CrispSet(
             torch.ones(*size, dtype=dtype, device=device), 
@@ -69,13 +68,96 @@ class CrispSet(Set):
     def rand(cls, *size: int, is_batch: bool=None, dtype=torch.float32, device='cpu'):
 
         return CrispSet(
-            (torch.rand(*size, device=device) > 0.5).type(dtype), 
+            (torch.rand(*size, device=device)).round(), 
             is_batch
         )
 
-    def transpose(self, first_dim, second_dim) -> 'Set':
+    def transpose(self, first_dim, second_dim) -> 'CrispSet':
         assert self._value_size is not None
         return CrispSet(self._data.transpose(first_dim, second_dim), self._is_batch)
+
+
+class TernarySet(Set):
+
+    def differ(self, other: 'TernarySet') -> 'TernarySet':
+        return TernarySet((self.data - other._data).clamp(-1.0, 1.0))
+    
+    def unify(self, other: 'TernarySet') -> 'TernarySet':
+        return TernarySet(torch.max(self.data, other.data))
+
+    def intersect(self, other: 'TernarySet') -> 'TernarySet':
+        return TernarySet(torch.min(self.data, other.data))
+
+    def inclusion(self, other: 'TernarySet') -> 'TernarySet':
+        return TernarySet(
+            (1 - other.data) + torch.min(self.data, other.data), self._is_batch
+        )
+
+    def exclusion(self, other: 'TernarySet') -> 'TernarySet':
+        return TernarySet(
+            (1 - self.data) + torch.min(self.data, other.data), self._is_batch
+        )
+
+    def __sub__(self, other: 'TernarySet') -> 'TernarySet':
+        return self.differ(other)
+
+    def __mul__(self, other: 'TernarySet') -> 'TernarySet':
+        return self.intersect(other)
+
+    def __add__(self, other: 'TernarySet') -> 'TernarySet':
+        return self.unify(other)
+    
+    def __getitem__(self, idx):
+        return self.data[idx]
+    
+    def convert_variables(self, *size_after: int):
+        
+        if self._is_batch:
+            return CrispSet(
+                self._data.view(self._data.size(0), *size_after, -1), True
+            )
+        return self.__class__(
+            self._data.view(*size_after, -1), False
+        )
+
+    @classmethod
+    def negatives(cls, *size: int, is_batch: bool=None, dtype=torch.float32, device='cpu'):
+
+        return TernarySet(
+            -torch.ones(*size, dtype=dtype, device=device), is_batch
+        )
+    
+    @classmethod
+    def positives(cls, *size: int, dtype=torch.float32, is_batch: bool=None, device='cpu'):
+
+        return TernarySet(
+            torch.ones(*size, dtype=dtype, device=device), 
+            is_batch
+        )
+
+    @classmethod
+    def unknowns(cls, *size: int, dtype=torch.float32, is_batch: bool=None, device='cpu'):
+
+        return TernarySet(
+            torch.zeros(*size, dtype=dtype, device=device), 
+            is_batch
+        )
+
+    @classmethod
+    def rand(cls, *size: int, is_batch: bool=None, dtype=torch.float32, device='cpu'):
+
+        return TernarySet(
+            ((torch.rand(*size, device=device)) * 2 - 1).round(), 
+            is_batch
+        )
+
+    def transpose(self, first_dim, second_dim) -> 'CrispSet':
+        assert self._value_size is not None
+        return TernarySet(self._data.transpose(first_dim, second_dim), self._is_batch)
+
+
+# Add in TernarySet as a type of crisp set
+# with
 
 
 class CrispComposition(nn.Module):
@@ -107,8 +189,6 @@ class CrispComposition(nn.Module):
         return self._complement_inputs
 
     def forward(self, m: CrispSet):
-        print(self.prepare_inputs(m).unsqueeze(-1).size())
-        print(self.weight.data[None].size())
         return CrispSet(torch.max(
             torch.min(self.prepare_inputs(m), self.weight.data[None]), dim=-2
         )[0], True)

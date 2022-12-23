@@ -57,14 +57,14 @@ class FuzzySet(Set):
         )
 
     @classmethod
-    def zeros(cls, *size: int, is_batch: bool=None, dtype=torch.float32, device='cpu'):
+    def negatives(cls, *size: int, is_batch: bool=None, dtype=torch.float32, device='cpu'):
 
         return FuzzySet(
             torch.zeros(*size, dtype=dtype, device=device), is_batch
         )
     
     @classmethod
-    def ones(cls, *size: int, dtype=torch.float32, is_batch: bool=None, device='cpu'):
+    def positives(cls, *size: int, dtype=torch.float32, is_batch: bool=None, device='cpu'):
 
         return FuzzySet(
             torch.ones(*size, dtype=dtype, device=device), 
@@ -108,7 +108,7 @@ def differ(m: FuzzySet, m2: FuzzySet):
 class FuzzySetParam(SetParam):
 
     def __init__(self, set_: typing.Union[FuzzySet, torch.Tensor], requires_grad: bool=True):
-
+ 
         if isinstance(set_, torch.Tensor):
             set_ = FuzzySet(set_)
         super().__init__(set_, requires_grad=requires_grad)
@@ -178,6 +178,30 @@ class MinMax(FuzzyCompositionBase):
         return FuzzySet(torch.min(
             torch.max(self.prepare_inputs(m), self.weight.data[None]), dim=-2
         )[0], m.is_batch)
+
+
+class FuzzyRelation(FuzzyCompositionBase):
+
+    def __init__(
+        self, in_features: int, out_features: int, 
+        in_variables: int=None, to_complement: bool=True, 
+        inner=None, outer=None
+    ):
+        super().__init__()
+        self.inner = inner or torch.min
+        self.outer = outer or (lambda x: torch.max(x, dim=-2)[0])
+
+        self.weight = FuzzySetParam(
+            FuzzySet.ones(get_comp_weight_size(in_features, out_features, in_variables))
+        )
+
+    def forward(self, m: FuzzySet):
+
+        return FuzzySet(
+            self.outer(
+                self.inner(self.prepare_inputs(m), self.weight.data[None])
+            ), m.is_batch
+        )
 
 
 class MaxMinAgg(nn.Module):
@@ -285,7 +309,7 @@ class MaxMinThetaLoss(FuzzyCompLoss):
                 w, x, chosen
             )
         )
-    
+
 
 class MaxMinXLoss(FuzzyCompLoss):
 
@@ -341,17 +365,17 @@ class MinMaxThetaLoss(FuzzyCompLoss):
         x = x[:,:,None].detach()
         t = t[:,None].detach()
 
-        output_greater_than = y > t
+        output_less_than = y < t
 
         return (
             self._fuzzy_comp.forward(
-                w, t, mask=~output_greater_than
+                w, t, mask=~output_less_than
             )
             + self._fuzzy_comp.forward(
-                w, x, mask=chosen & (x > t) & output_greater_than & (x < w)
+                w, x, mask=chosen & (x > t) & output_less_than & (x < w)
             )
             + self._fuzzy_comp.forward(
-                w, t, mask=chosen & (x < t) & output_greater_than
+                w, t, mask=chosen & (x < t) & output_less_than
             )
             + self._fuzzy_comp_to_all.forward(
                 w, x, chosen
@@ -360,6 +384,86 @@ class MinMaxThetaLoss(FuzzyCompLoss):
 
 
 class MinMaxXLoss(FuzzyCompLoss):
+
+    def __init__(self, to_complement: bool = False, relation_lr: float = 1, reduction='mean'):
+        super().__init__(to_complement, relation_lr, reduction, inner=torch.max, outer=torch.min)
+
+    def forward(self, x: torch.Tensor, t: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
+        
+        if self._to_complement:
+            x = torch.cat([x, 1 - x], dim=1)
+
+        rel_idx = self.calc_idx(self.calc_relation(w[None], t[:,None], agg_dim=2), w)
+        chosen = self.set_chosen(x, w, rel_idx)
+
+        y = self.calc_y(x, w)[:,None]
+        w = w[None].detach()
+        x = x[:,:,None]
+        t = t[:,None].detach()
+
+        output_greater_than = y > t
+        output_less_than = ~output_greater_than
+
+        # TODO: Need to increase if chosen is greater than but output is less than
+        return (
+            self._fuzzy_comp.forward(
+                x, t, mask=~output_greater_than
+            )
+            + self._fuzzy_comp.forward(
+                x, w, mask=chosen & (w > t) & output_less_than & (w < x)
+            )
+            + self._fuzzy_comp.forward(
+                x, t, mask=chosen & (w < t) & output_less_than
+            )
+            + self._fuzzy_comp_to_all.forward(
+                x, w, chosen
+            )
+        )
+
+# TODO: MaxProd loss..
+
+
+class MaxProdThetaLoss(FuzzyCompLoss):
+    """TODO: Implement
+    """
+
+    def __init__(self, to_complement: bool = False, relation_lr: float = 1, reduction='mean'):
+        super().__init__(to_complement, relation_lr, reduction, inner=torch.max, outer=torch.min)
+
+    def forward(self, x: torch.Tensor, t: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
+        
+        if self._to_complement:
+            x = torch.cat([x, 1 - x], dim=1)
+
+        rel_idx = self.calc_idx(x, self.calc_relation(x[:,:,None], t[:,None], agg_dim=0))
+        chosen = self.set_chosen(x, w, rel_idx)
+
+        y = self.calc_y(x, w)[:,None]
+        w = w[None]
+        x = x[:,:,None].detach()
+        t = t[:,None].detach()
+
+        output_less_than = y < t
+
+        return (
+            self._fuzzy_comp.forward(
+                w, t, mask=~output_less_than
+            )
+            + self._fuzzy_comp.forward(
+                w, x, mask=chosen & (x > t) & output_less_than & (x < w)
+            )
+            + self._fuzzy_comp.forward(
+                w, t, mask=chosen & (x < t) & output_less_than
+            )
+            + self._fuzzy_comp_to_all.forward(
+                w, x, chosen
+            )
+        )
+
+
+class MaxProdXLoss(FuzzyCompLoss):
+    """TODO: Implement
+    """
 
     def __init__(self, to_complement: bool = False, relation_lr: float = 1, reduction='mean'):
         super().__init__(to_complement, relation_lr, reduction, inner=torch.max, outer=torch.min)
@@ -395,8 +499,6 @@ class MinMaxXLoss(FuzzyCompLoss):
         )
 
 
-# TODO: MaxProd loss..
-
 class FuzzyCompToAllLoss(nn.Module):
 
     def __init__(self, reduction='mean', inner=torch.max, outer=torch.min):
@@ -428,83 +530,3 @@ class FuzzyCompLoss(nn.Module):
     def forward(self, x: torch.Tensor, t: torch.Tensor, mask: torch.BoolTensor):
 
         return reduce(((x - t) * mask.float()), self.reduction)
-
-
-# class FuzzySetParam(nn.Module):
-
-#     def __init__(self, fuzzy_set: typing.Union[FuzzySet, torch.Tensor], requires_grad: bool=True):
-
-#         super().__init__(fuzzy_set.data, requires_grad=requires_grad)
-#         if isinstance(crisp_set, torch.Tensor):
-#             crisp_set= FuzzySet(fuzzy_set)
-#         self._fuzzy_set = fuzzy_set
-#         self._data = nn.parameter.Parameter(
-#             fuzzy_set.data, requires_grad=requires_grad
-#         )
-
-#     @property
-#     def data(self) -> torch.Tensor:
-#         return self._data
-
-#     @data.setter
-#     def data(self, data: torch.Tensor):        
-#         self._fuzzy_set.data = data
-#         self._data = nn.parameter.Parameter(
-#             self._fuzzy_set.data.data, 
-#             requires_grad=self._data.requires_grad
-#         )
-
-#     @property
-#     def fuzzy_set(self) -> FuzzySet:
-#         return self._fuzzy_set
-    
-#     @fuzzy_set.setter
-#     def fuzzy_set(self, fuzzy_set: 'FuzzySet'):
-#         self.data = fuzzy_set.data
-
-# class MaxMinComp(nn.Module):
-
-#     def __init__(self, in_features: int, out_features: int, n_variables: int=None):
-
-#         super().__init__()
-#         self._n_variables = n_variables
-#         self._in_features = in_features
-#         self._out_features = out_features
-#         size = (in_features, out_features) if n_variables is None else (n_variables, in_features, out_features)
-#         self._weight_param = FuzzySetParam(
-#             FuzzySet.ones(
-#                 *size
-#             )
-#         )
-    
-#     def forward(self, m: FuzzySet):
-
-#         assert m.is_batch
-
-#         return FuzzySet(
-#             torch.max(torch.min(m.data, self._weight_param.data), dim=-2),
-#             is_batch=m.is_batch, multiple_variables=m.multiple_variables
-#         )
-
-
-# class MinMaxComp(nn.Module):
-
-#     def __init__(self, in_features: int, out_features: int, n_variables: int=None):
-
-#         super().__init__()
-#         self._n_variables = n_variables
-#         self._in_features = in_features
-#         self._out_features = out_features
-#         size = (in_features, out_features) if n_variables is None else (n_variables, in_features, out_features)
-#         self._weight_param = FuzzySetParam(
-#             FuzzySet.zeros(
-#                 *size
-#             )
-#         )
-    
-#     def forward(self, m: FuzzySet):
-
-#         return FuzzySet(
-#             torch.min(torch.max(m.data, self._weight_param.data), dim=-2),
-#             is_batch=m.is_batch, multiple_variables=m.multiple_variables
-#         )

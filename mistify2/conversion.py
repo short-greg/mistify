@@ -7,6 +7,8 @@ from abc import abstractmethod
 from dataclasses import dataclass
 import typing
 import membership as memb
+from .membership import Shape
+import typing
 
 
 @dataclass
@@ -137,6 +139,32 @@ class WeightedAverageAcc(Accumulator):
             / torch.sum(value_weight.weight, dim=-1)
         )
 
+# TODO: Add ternary
+
+class StepCrispConverter(CrispConverter):
+
+    def __init__(self, out_variables: int, out_features: int, accumulator: Accumulator=None):
+        super().__init__()
+        self.weight = nn.parameter.Parameter(
+            torch.randn(out_variables, out_features)
+        )
+        self.bias = nn.parameter.Parameter(
+            torch.randn(out_variables, out_features)
+        )
+        self._accumulator = accumulator
+
+    def crispify(self, x: torch.Tensor) -> CrispSet:
+        return (x[:,:,None] >= self.weight[None]).type_as(x)
+
+    def imply(self, m: CrispSet) -> ValueWeight:
+        
+        return ValueWeight(
+            m, m * self.weight[None]
+        )
+
+    def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
+        return self._accumulator.forward(value_weight)
+
 
 class SigmoidFuzzyConverter(FuzzyConverter):
 
@@ -150,6 +178,7 @@ class SigmoidFuzzyConverter(FuzzyConverter):
             torch.randn(out_variables, out_features)
         )
         self.eps = eps
+        self._accumulator = accumulator
 
     def fuzzify(self, x: torch.Tensor) -> FuzzySet:
         return nn_func.sigmoid(
@@ -157,13 +186,14 @@ class SigmoidFuzzyConverter(FuzzyConverter):
         )
 
     def imply(self, m: FuzzySet) -> ValueWeight:
+
+        #     # x = ln(y/(1-y))
         return ValueWeight(m, (-torch.log(
             1 / (m.data + self.eps) - 1
         ) / self.weight[None] + self.bias[None]))
 
-    # def defuzzify(self, m: FuzzySet) -> torch.Tensor:
-    #     # x = ln(y/(1-y))
-    #     return self. # mean(dim=2)
+    def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
+        return self._accumulator.forward(value_weight)
 
 
 class SigmoidDefuzzifier(Defuzzifier):
@@ -182,9 +212,6 @@ class SigmoidDefuzzifier(Defuzzifier):
             SigmoidFuzzyConverter(out_variables, out_features, eps)
         )
 
-
-
-from .membership import Shape
 
 class ShapeConverter(FuzzyConverter):
 
@@ -227,8 +254,6 @@ class ShapeConverter(FuzzyConverter):
             [self._left_edge.join(x), self._middle.join(x), self._right_edge.join(x)],
             dim=2
         )
-    
-import typing
 
 class ShapeAggregator(nn.Module):
 
@@ -259,17 +284,6 @@ class CentroidAggregator(nn.Module):
         return torch.cat(
             [shape.centroids for shape in shapes], dim=2
         )
-
-# Not sure why i have strides
-# def get_strided_indices(n_points: int, stride: int, step: int=1):
-#     initial_indices = torch.arange(0, n_points).as_strided((n_points - stride + 1, stride), (1, 1))
-#     return initial_indices[torch.arange(0, len(initial_indices), step)]
-
-
-# def stride_coordinates(coordinates: torch.Tensor, stride: int, step: int=1):
-
-#     dim2_index = get_strided_indices(coordinates.size(2), stride, step)
-#     return coordinates[:, :, dim2_index]
 
 
 def get_strided_indices(n_points: int, stride: int, step: int=1):
@@ -354,8 +368,19 @@ class IsoscelesFuzzyConverter(FuzzyConverter):
         return self._join(x)
 
     def accumulate(self, value_weight: ValueWeight) -> FuzzySet:
-        return self._accumulator(value_weight)
+        return self._accumulator.forward(value_weight)
 
     def imply(self, m: FuzzySet) -> ValueWeight:
         return ValueWeight(m, self._aggregate(m))
 
+
+# Not sure why i have strides
+# def get_strided_indices(n_points: int, stride: int, step: int=1):
+#     initial_indices = torch.arange(0, n_points).as_strided((n_points - stride + 1, stride), (1, 1))
+#     return initial_indices[torch.arange(0, len(initial_indices), step)]
+
+
+# def stride_coordinates(coordinates: torch.Tensor, stride: int, step: int=1):
+
+#     dim2_index = get_strided_indices(coordinates.size(2), stride, step)
+#     return coordinates[:, :, dim2_index]
