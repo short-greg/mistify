@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from .utils import reduce, get_comp_weight_size
 from abc import abstractmethod
-from .base import Set, SetParam
+from .base import Set, SetParam, CompositionBase
 
 
 class FuzzySet(Set):
@@ -114,39 +114,12 @@ class FuzzySetParam(SetParam):
         super().__init__(set_, requires_grad=requires_grad)
 
 
-class FuzzyCompositionBase(nn.Module):
+class MaxMin(CompositionBase):
 
-    def __init__(
-        self, in_features: int, out_features: int, 
-        complement_inputs: bool=False, in_variables: int=None
-    ):
-        super().__init__()
-        self._in_features = in_features
-        self._out_features = out_features
-        self._complement_inputs = complement_inputs
-        if complement_inputs:
-            in_features *= 2
-        self._multiple_variables = in_variables is not None
-        # store weights as values between 0 and 1
-        self.weight = FuzzySetParam(
+    def init_weight(self, in_features: int, out_features: int, in_variables: int = None) -> SetParam:
+        return FuzzySetParam(
             FuzzySet.ones(get_comp_weight_size(in_features, out_features, in_variables))
         )
-
-    @property
-    def to_complement(self) -> bool:
-        return self._complement_inputs
-
-    def prepare_inputs(self, m: FuzzySet) -> torch.Tensor:
-        if self._complement_inputs:
-            return torch.cat([m.data, 1 - m.data], dim=-1).unsqueeze(-1)
-        return m.data.unsqueeze(-1)
-    
-    @abstractmethod
-    def forward(self, m: FuzzySet):
-        pass
-
-
-class MaxMin(FuzzyCompositionBase):
 
     def forward(self, m: FuzzySet):
         # assume inputs are binary
@@ -156,7 +129,12 @@ class MaxMin(FuzzyCompositionBase):
         )[0], m.is_batch)
 
 
-class MaxProd(FuzzyCompositionBase):
+class MaxProd(CompositionBase):
+
+    def init_weight(self, in_features: int, out_features: int, in_variables: int = None) -> SetParam:
+        return FuzzySetParam(
+            FuzzySet.ones(get_comp_weight_size(in_features, out_features, in_variables))
+        )
 
     def forward(self, m: FuzzySet):
         # assume inputs are binary
@@ -166,11 +144,12 @@ class MaxProd(FuzzyCompositionBase):
         )[0], m.is_batch)
 
 
-class MinMax(FuzzyCompositionBase):
+class MinMax(CompositionBase):
 
-    @property
-    def to_complement(self) -> bool:
-        return self._complement_inputs
+    def init_weight(self, in_features: int, out_features: int, in_variables: int = None) -> SetParam:
+        return FuzzySetParam(
+            FuzzySet.zeros(get_comp_weight_size(in_features, out_features, in_variables))
+        )
     
     def forward(self, m: FuzzySet):
         # assume inputs are binary
@@ -180,7 +159,7 @@ class MinMax(FuzzyCompositionBase):
         )[0], m.is_batch)
 
 
-class FuzzyRelation(FuzzyCompositionBase):
+class FuzzyRelation(CompositionBase):
 
     def __init__(
         self, in_features: int, out_features: int, 
@@ -192,6 +171,11 @@ class FuzzyRelation(FuzzyCompositionBase):
         self.outer = outer or (lambda x: torch.max(x, dim=-2)[0])
 
         self.weight = FuzzySetParam(
+            FuzzySet.ones(get_comp_weight_size(in_features, out_features, in_variables))
+        )
+
+    def init_weight(self, in_features: int, out_features: int, in_variables: int = None) -> SetParam:
+        return FuzzySetParam(
             FuzzySet.ones(get_comp_weight_size(in_features, out_features, in_variables))
         )
 
@@ -530,3 +514,37 @@ class FuzzyCompLoss(nn.Module):
     def forward(self, x: torch.Tensor, t: torch.Tensor, mask: torch.BoolTensor):
 
         return reduce(((x - t) * mask.float()), self.reduction)
+
+
+
+
+# class FuzzyCompositionBase(nn.Module):
+
+#     def __init__(
+#         self, in_features: int, out_features: int, 
+#         complement_inputs: bool=False, in_variables: int=None
+#     ):
+#         super().__init__()
+#         self._in_features = in_features
+#         self._out_features = out_features
+#         self._complement_inputs = complement_inputs
+#         if complement_inputs:
+#             in_features *= 2
+#         self._multiple_variables = in_variables is not None
+#         # store weights as values between 0 and 1
+#         self.weight = FuzzySetParam(
+#             FuzzySet.ones(get_comp_weight_size(in_features, out_features, in_variables))
+#         )
+
+#     @property
+#     def to_complement(self) -> bool:
+#         return self._complement_inputs
+
+#     def prepare_inputs(self, m: FuzzySet) -> torch.Tensor:
+#         if self._complement_inputs:
+#             return torch.cat([m.data, 1 - m.data], dim=-1).unsqueeze(-1)
+#         return m.data.unsqueeze(-1)
+    
+#     @abstractmethod
+#     def forward(self, m: FuzzySet):
+#         pass

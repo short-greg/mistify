@@ -1,6 +1,7 @@
 import torch
 import typing
 import torch.nn as nn
+from abc import abstractmethod
 
 
 class Set(object):
@@ -73,3 +74,32 @@ class SetParam(nn.Module):
     
     def __getitem__(self, idx) -> torch.Tensor:
         return self.data[idx]
+
+
+class CompositionBase(nn.Module):
+
+    def __init__(
+        self, in_features: int, out_features: int, 
+        complement_inputs: bool=False, in_variables: int=None
+    ):
+        super().__init__()
+        self._in_features = in_features
+        self._out_features = out_features
+        self._complement_inputs = complement_inputs
+        if complement_inputs:
+            in_features *= 2
+        self._multiple_variables = in_variables is not None
+        self.weight = self.init_weight(in_features, out_features, in_variables)
+    
+    @abstractmethod
+    def init_weight(self, in_features: int, out_features: int, in_variables: int=None) -> SetParam:
+        pass
+
+    def prepare_inputs(self, m: Set) -> torch.Tensor:
+        if self._complement_inputs:
+            return torch.cat([m.data, 1 - m.data], dim=-1).unsqueeze(-1)
+        return m.data.unsqueeze(-1)
+    
+    @property
+    def to_complement(self) -> bool:
+        return self._complement_inputs
