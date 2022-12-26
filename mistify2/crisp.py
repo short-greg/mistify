@@ -3,8 +3,7 @@ import torch
 import torch.nn as nn
 import typing
 from .base import Set, SetParam, CompositionBase, MistifyLoss
-from .utils import get_comp_weight_size
-from .modules import maxmin, minmax, maxprod
+from .utils import get_comp_weight_size, maxmin, minmax, maxprod
 
 # Add in TernarySet as a type of crisp set
 # with
@@ -234,13 +233,13 @@ class BinaryThetaLoss(MistifyLoss):
     def forward(self, relation: BinaryComposition, x: torch.Tensor, t: torch.Tensor, state: dict):
         # TODO: Ensure doesn't need to be mean
         score = state['score']
-    
-        positives = self._calculate_positives(x, t)
-        negatives = self._calculate_negatives(x, t)
-        score = self._update_score(score, positives, negatives)
-        state['score'] = score
-        maximums = self._calculate_maximums(x, t, score)
-        target_weight = self._update_weight(relation, maximums, negatives)
+        with torch.no_grad():
+            positives = self._calculate_positives(x, t)
+            negatives = self._calculate_negatives(x, t)
+            score = self._update_score(score, positives, negatives)
+            state['score'] = score
+            maximums = self._calculate_maximums(x, t, score)
+            target_weight = self._update_weight(relation, maximums, negatives)
         return self._reduction((target_weight - relation.weight).abs())
 
 
@@ -308,10 +307,11 @@ class BinaryXLoss(MistifyLoss):
 
         # TODO: Update so it is a "loss"
         w = binary.weight
-        positives = self._calculate_positives(w, t)
-        negatives = self._calculate_negatives(w, t)
-        score = self._calculate_score(positives, negatives)
-        maximums = self._calculate_maximums(score, w, t)
-        base_inputs = self._update_base_inputs(binary, maximums, positives, negatives)
-        x_prime = self._update_inputs(state, base_inputs)
-        return self._reduction((x_prime.detach() - x).abs())
+        with torch.no_grad():
+            positives = self._calculate_positives(w, t)
+            negatives = self._calculate_negatives(w, t)
+            score = self._calculate_score(positives, negatives)
+            maximums = self._calculate_maximums(score, w, t)
+            base_inputs = self._update_base_inputs(binary, maximums, positives, negatives)
+            x_prime = self._update_inputs(state, base_inputs)
+        return self._reduction((x_prime - x).abs())

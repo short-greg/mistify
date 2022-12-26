@@ -1,10 +1,9 @@
 import typing
 import torch
 import torch.nn as nn
-from .utils import reduce, get_comp_weight_size
+from .utils import reduce, get_comp_weight_size,  maxmin, minmax, maxprod
 from abc import abstractmethod
 from .base import Set, SetParam, CompositionBase
-from .modules import maxmin, minmax, maxprod
 
 
 class FuzzySet(Set):
