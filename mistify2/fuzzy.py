@@ -4,6 +4,7 @@ import torch.nn as nn
 from .utils import reduce, get_comp_weight_size
 from abc import abstractmethod
 from .base import Set, SetParam, CompositionBase
+from .modules import maxmin, minmax, maxprod
 
 
 class FuzzySet(Set):
@@ -124,9 +125,9 @@ class MaxMin(CompositionBase):
     def forward(self, m: FuzzySet):
         # assume inputs are binary
         # binarize the weights
-        return FuzzySet(torch.max(
-            torch.min(self.prepare_inputs(m), self.weight.data[None]), dim=-1
-        )[0], m.is_batch)
+        return FuzzySet(
+            maxmin(self.prepare_inputs(m), self.weight.data[None]
+        ), m.is_batch)
 
 
 class MaxProd(CompositionBase):
@@ -139,9 +140,9 @@ class MaxProd(CompositionBase):
     def forward(self, m: FuzzySet):
         # assume inputs are binary
         # binarize the weights
-        return FuzzySet(torch.max(
-            self.prepare_inputs(m) * self.weight.data[None], dim=-2
-        )[0], m.is_batch)
+        return FuzzySet(
+            maxprod(self.prepare_inputs(m), self.weight.data[None]), m.is_batch
+        )
 
 
 class MinMax(CompositionBase):
@@ -154,9 +155,9 @@ class MinMax(CompositionBase):
     def forward(self, m: FuzzySet):
         # assume inputs are binary
         # binarize the weights
-        return FuzzySet(torch.min(
-            torch.max(self.prepare_inputs(m), self.weight.data[None]), dim=-2
-        )[0], m.is_batch)
+        return FuzzySet(
+            minmax(self.prepare_inputs(m), self.weight.data[None]), m.is_batch
+        )
 
 
 class FuzzyRelation(CompositionBase):
@@ -211,7 +212,9 @@ class FuzzyCompLoss(nn.Module):
     def __init__(self, to_complement: bool=False, relation_lr: float=1.0, reduction='mean', inner=torch.min, outer=torch.max):
         super().__init__()
         self._to_complement = to_complement
-        self._fuzzy_comp = FuzzyCompLoss(reduction=reduction)
+        
+        # TODO: Fix this error here
+        self._fuzzy_comp = FuzzyLoss(reduction=reduction)
         self._fuzzy_comp_to_all = FuzzyCompToAllLoss(reduction=reduction)
         self._relation = None
         self._reduction = reduction
@@ -505,7 +508,7 @@ class FuzzyCompToAllLoss(nn.Module):
         return reduce(result.mean(), self.reduction)
 
 
-class FuzzyCompLoss(nn.Module):
+class FuzzyLoss(nn.Module):
     
     def __init__(self, reduction='mean'):
         super().__init__()

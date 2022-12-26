@@ -2,8 +2,9 @@ import typing
 import torch
 import torch.nn as nn
 import typing
-from .base import Set, SetParam, CompositionBase
+from .base import Set, SetParam, CompositionBase, MistifyLoss
 from .utils import get_comp_weight_size
+from .modules import maxmin, minmax, maxprod
 
 # Add in TernarySet as a type of crisp set
 # with
@@ -165,319 +166,152 @@ class BinaryComposition(CompositionBase):
         return SetParam(BinarySet.ones(get_comp_weight_size(in_features, out_features, in_variables)))
 
     def forward(self, m: BinarySet):
-        return BinarySet(torch.max(
-            torch.min(self.prepare_inputs(m), self.weight.data[None]), dim=-2
-        )[0], True)
+        return BinarySet(
+            maxmin(self.prepare_inputs(m), self.weight.data[None]).round(), True
+        )
 
 
 class TernaryComposition(CompositionBase):
 
     def init_weight(self, in_features: int, out_features: int, in_variables: int = None) -> SetParam:
-        return SetParam(TernarySet.ones(get_comp_weight_size(in_features, out_features, in_variables)))
+        return SetParam(
+            TernarySet.ones(get_comp_weight_size(in_features, out_features, in_variables))
+        )
 
     def forward(self, m: BinarySet):
-        return TernarySet(torch.max(
-            torch.min(self.prepare_inputs(m), self.weight.data[None]), dim=-2
-        )[0], True)
+        return TernarySet(
+            maxmin(self.prepare_inputs(m), self.weight.data[None]).round(), True
+        )
 
+# TODO: Update the below to be losses
 
+class BinaryThetaLoss(MistifyLoss):
 
-# from .base_machinery import ThetaOptim, ThetaUpdate, XOptim, XUpdate
-# import torch.nn as nn
-# import torch
-# from .assessment import ScalarAssessment, BatchAssessment
-# import typing
-# from .base_machinery import Machine, Result, T0
+    def __init__(self, lr: float=0.5):
+        """initializer
 
+        Args:
+            binary (Binary): Composition layer to optimize
+            lr (float, optional): learning rate value between 0 and 1. Defaults to 0.5.
+        """
+        self.lr = lr
 
-# class BinaryRelation(nn.Module):
+    def _calculate_positives(self, x: torch.Tensor, t: torch.Tensor):
+        positive = (t == 1)
+        return (
+            (x[:,:,None] == t[:,None]) & positive[:,None]
+        ).type_as(x).sum(dim=0)
 
-#     def __init__(self, in_features: int, out_features: int, complement_inputs: bool=False):
-
-#         super().__init__()
-#         self._in_features = in_features
-#         self._out_features = out_features
-#         self._complement_inputs = complement_inputs
-#         if complement_inputs:
-#             in_features = in_features * 2
-#         # store weights as values between 0 and 1
-#         self.weight = nn.parameter.Parameter(
-#             torch.rand(in_features, self._out_features)
-#         )
+    def _calculate_negatives(self, x: torch.Tensor, t: torch.Tensor):
+        negative = (t != 1)
+        return (
+            (x[:,:,None] != t[:,None]) & negative[:,None]
+        ).type_as(x).sum(dim=0)
     
-#     @property
-#     def to_complement(self) -> bool:
-#         return self._complement_inputs
+    def _update_score(self, score, positives: torch.Tensor, negatives: torch.Tensor):
+        cur_score = positives / (negatives + positives)
+        cur_score[cur_score.isnan() | cur_score.isinf()] = 0.0
+        if score is not None and self.lr is not None:
+            return (1 - self.lr) * score + self.lr * cur_score
+        return cur_score
     
-#     def forward(self, m: torch.Tensor):
-
-#         # assume inputs are binary
-#         # binarize the weights
-#         if self._complement_inputs:
-#             m = torch.cat([m, 1 - m], dim=1)
-#         weights = (self.weight > 0.5).type_as(self.weight)
-#         return torch.max(
-#             torch.min(m[:,:,None], weights[None]), dim=1
-#         )[0]
-
-
-# class ToBinary(nn.Module):
-
-#     def __init__(self, in_features: int, out_categories: int, same: bool=False):
-#         super().__init__()
-#         if same:
-#             self.threshold = nn.parameter.Parameter(
-#                 torch.rand(1, 1, out_categories)
-#             )
-#         else:
-#             self.threshold = nn.parameter.Parameter(
-#                 torch.rand(1, in_features, out_categories)
-#             )
-#         self.same = same
-
-#     def update_threshold(self, threshold: torch.Tensor):
-
-#         assert threshold.size() == self.threshold.size()
-#         self.threshold = nn.parameter.Parameter(
-#             threshold
-#         )
-
-#     def forward(self, x: torch.Tensor):
-#         return ((x[:,:,None] - self.threshold) >= 0.0).type_as(x)
-
-
-# class BinaryThetaOptim(ThetaOptim):
-
-#     def __init__(self, lr: float=0.5):
-#         """initializer
-
-#         Args:
-#             binary (Binary): Composition layer to optimize
-#             lr (float, optional): learning rate value between 0 and 1. Defaults to 0.5.
-#         """
-#         self.lr = lr
-#         # only works if weight between 0 and 1
-#         # self._binary.weight = nn.parameter.Parameter(self._binary.weight.clamp(0.0, 1.0))
-
-#     def _calculate_positives(self, x: torch.Tensor, t: torch.Tensor):
-#         positive = (t == 1)
-#         return (
-#             (x[:,:,None] == t[:,None]) & positive[:,None]
-#         ).type_as(x).sum(dim=0)
-
-#     def _calculate_negatives(self, x: torch.Tensor, t: torch.Tensor):
-#         negative = (t != 1)
-#         return (
-#             (x[:,:,None] != t[:,None]) & negative[:,None]
-#         ).type_as(x).sum(dim=0)
+    def _calculate_maximums(self, x: torch.Tensor, t: torch.Tensor, score: torch.Tensor):
+        positive = (t == 1)
+        y: torch.Tensor = torch.max(torch.min(x[:,:,None], score[None]), dim=1)[0]
+        return ((score[None] == y[:,None]) & positive[:,None]).type_as(x).sum(dim=0)
     
-#     def _update_score(self, score, positives: torch.Tensor, negatives: torch.Tensor):
-#         cur_score = positives / (negatives + positives)
-#         cur_score[cur_score.isnan() | cur_score.isinf()] = 0.0
-#         if score is not None and self.lr is not None:
-#             return (1 - self.lr) * score + self.lr * cur_score
-#         return cur_score
+    def _update_weight(self, relation: BinaryComposition, maximums: torch.Tensor, negatives: torch.Tensor):
+        cur_weight = maximums / (maximums + negatives)
+        cur_weight[cur_weight.isnan() | cur_weight.isinf()] = 0.0
+        return cur_weight
+        # if self.lr is not None:
+        #     relation.weight = nn.parameter.Parameter(
+        #         (1 - self.lr) * relation.weight + self.lr * cur_weight
+        #     )
+        # else:
+        #     relation.weight = cur_weight
+
+    def forward(self, relation: BinaryComposition, x: torch.Tensor, t: torch.Tensor, state: dict):
+        # TODO: Ensure doesn't need to be mean
+        score = state['score']
     
-#     def _calculate_maximums(self, x: torch.Tensor, t: torch.Tensor, score: torch.Tensor):
-#         positive = (t == 1)
-#         y: torch.Tensor = torch.max(torch.min(x[:,:,None], score[None]), dim=1)[0]
-#         return ((score[None] == y[:,None]) & positive[:,None]).type_as(x).sum(dim=0)
+        positives = self._calculate_positives(x, t)
+        negatives = self._calculate_negatives(x, t)
+        score = self._update_score(score, positives, negatives)
+        state['score'] = score
+        maximums = self._calculate_maximums(x, t, score)
+        target_weight = self._update_weight(relation, maximums, negatives)
+        return self._reduction((target_weight - relation.weight).abs())
+
+
+class BinaryXLoss(MistifyLoss):
+
+    def __init__(self, lr: float=None):
+        """initializer
+
+        Args:
+            lr (float, optional): learning rate value between 0 and 1. Defaults to 0.5.
+        """
+        self.lr = lr
     
-#     def _update_weight(self, binary_relation: BinaryRelation, maximums: torch.Tensor, negatives: torch.Tensor):
-#         cur_weight = maximums / (maximums + negatives)
-#         cur_weight[cur_weight.isnan() | cur_weight.isinf()] = 0.0
-#         if self.lr is not None:
-#             binary_relation.weight = nn.parameter.Parameter(
-#                 (1 - self.lr) * binary_relation.weight + self.lr * cur_weight
-#             )
-#         else:
-#             binary_relation.weight = cur_weight
+    def _calculate_positives(self, w: torch.Tensor, t: torch.Tensor):
+        positive = (t == 1)
+        return (
+            (w[None] == t[:,None]) & positive[:,None]
+        ).type_as(w).sum(dim=2)
 
-
-#     def optimize(self, machine: Machine) -> ThetaUpdate:
-#         binary_relation = machine.module
-#         assert isinstance(binary_relation, BinaryRelation)
-#         return ThetaUpdate(self, machine, binary_relation=binary_relation, score=None)
+    def _calculate_negatives(self, w: torch.Tensor, t: torch.Tensor):
+        negative = (t != 1)
+        return (
+            (w[None] != t[:,None]) & negative[:,None]
+        ).type_as(w).sum(dim=2)
     
-#     def spawn(self, lr: float=None) -> 'ThetaOptim':
-#         return BinaryThetaOptim(lr=self.lr)
-
-#     def step(self, theta_update: ThetaUpdate, x: torch.Tensor, out: 'XUpdate', result: Result) -> typing.Tuple[T0, BatchAssessment]:
-#         # TODO: Ensure doesn't need to be mean
-#         binary_relation = theta_update['binary_relation']
-#         score = theta_update['score']
+    def _calculate_score(self, positives: torch.Tensor, negatives: torch.Tensor):
+        cur_score = positives / (negatives + positives)
+        cur_score[cur_score.isnan()] == 0.0
+        return cur_score
     
-#         positives = self._calculate_positives(x, out.x)
-#         negatives = self._calculate_negatives(x, out.x)
-#         score = self._update_score(score, positives, negatives)
-#         theta_update['score'] = score
-#         maximums = self._calculate_maximums(x, out.x, score)
-#         self._update_weight(binary_relation, maximums, negatives)
-#         assessment = theta_update.machine.assess(x, out.x)
-#         # assessment2 = objective.assess(x, t)
-#         # print('Binary Theta After /Before', assessment2.mean().regularized, assessment.mean().regularized)
-#         return assessment
-
-
-# class BinaryXOptim(XOptim):
-
-#     def __init__(self, lr: float=None):
-#         """initializer
-
-#         Args:
-#             lr (float, optional): learning rate value between 0 and 1. Defaults to 0.5.
-#         """
-#         self.lr = lr
-
-#     def spawn(self) -> 'XOptim':
-#         return super().spawn()
-    
-#     def _calculate_positives(self, w: torch.Tensor, t: torch.Tensor):
-#         positive = (t == 1)
-#         return (
-#             (w[None] == t[:,None]) & positive[:,None]
-#         ).type_as(w).sum(dim=2)
-
-#     def _calculate_negatives(self, w: torch.Tensor, t: torch.Tensor):
-#         negative = (t != 1)
-#         return (
-#             (w[None] != t[:,None]) & negative[:,None]
-#         ).type_as(w).sum(dim=2)
-    
-#     def _calculate_score(self, positives: torch.Tensor, negatives: torch.Tensor):
-#         cur_score = positives / (negatives + positives)
-#         cur_score[cur_score.isnan()] == 0.0
-#         return cur_score
-    
-#     def _calculate_maximums(self, score: torch.Tensor, w: torch.Tensor, t: torch.Tensor):
-#         positive = (t == 1)
+    def _calculate_maximums(self, score: torch.Tensor, w: torch.Tensor, t: torch.Tensor):
+        positive = (t == 1)
         
-#         y: torch.Tensor = torch.max(torch.min(w[None,], score[:,:,None]), dim=1)[0]
-#         return ((score[:,:,None] == y[:,None]) & positive[:,None]).type_as(score).sum(dim=2)
+        y: torch.Tensor = torch.max(torch.min(w[None,], score[:,:,None]), dim=1)[0]
+        return ((score[:,:,None] == y[:,None]) & positive[:,None]).type_as(score).sum(dim=2)
     
-#     def _update_base_inputs(self, binary: BinaryRelation, maximums: torch.Tensor, positives: torch.Tensor, negatives: torch.Tensor):
+    def _update_base_inputs(self, binary: BinaryComposition, maximums: torch.Tensor, positives: torch.Tensor, negatives: torch.Tensor):
 
-#         if binary.to_complement:
-#             maximums.view(maximums.size(0), 2, -1)
-#             negatives.view(negatives.size(0), 2, -1)
-#             # only use the maximums + negatives
-#             # is okay for other positives to be 1 since it is an
-#             # "or" neuron
-#             base = (
-#                 maximums[:,0] / (maximums[:,0] + negatives[:,0])
-#             )
-#             # negatives for the complements must have 1 as the input 
-#             complements = (
-#                 negatives[:,1] / (positives[:,1] + negatives[:,1])
-#             )
+        if binary.to_complement:
+            maximums.view(maximums.size(0), 2, -1)
+            negatives.view(negatives.size(0), 2, -1)
+            # only use the maximums + negatives
+            # is okay for other positives to be 1 since it is an
+            # "or" neuron
+            base = (
+                maximums[:,0] / (maximums[:,0] + negatives[:,0])
+            )
+            # negatives for the complements must have 1 as the input 
+            complements = (
+                negatives[:,1] / (positives[:,1] + negatives[:,1])
+            )
 
-#             return ((0.5 * complements + 0.5 * base))
+            return ((0.5 * complements + 0.5 * base))
 
-#         cur_inputs = (maximums / (maximums + negatives))
-#         cur_inputs[cur_inputs.isnan()] = 0.0
-#         return cur_inputs
+        cur_inputs = (maximums / (maximums + negatives))
+        cur_inputs[cur_inputs.isnan()] = 0.0
+        return cur_inputs
     
-#     def _update_inputs(self, x_update: XUpdate, base_inputs: torch.Tensor):
-#         if self.lr is not None:
-#             base_inputs = (1 - self.lr) * x_update['base_inputs'] + self.lr * base_inputs
-        
-#         return (base_inputs >= 0.5).type_as(base_inputs)
+    def _update_inputs(self, state: dict, base_inputs: torch.Tensor):
+        if self.lr is not None:
+            base_inputs = (1 - self.lr) * state['base_inputs'] + self.lr * base_inputs        
+        return (base_inputs >= 0.5).type_as(base_inputs)
 
-#     def optimize(self, machine: Machine, x: torch.Tensor, t: torch.Tensor) ->    XUpdate:
-#         binary_relation = machine.module
-#         assert isinstance(binary_relation, BinaryRelation)
-#         return XUpdate(machine, self, x=x, t=t, binary_relation=binary_relation, base_inputs=None)
+    def forward(self, binary: BinaryComposition, x: torch.Tensor, t: torch.Tensor, state: dict):
 
-#     def step(self, x_update: XUpdate, x_prime: torch.Tensor, indices: typing.Optional[torch.LongTensor] = None) -> typing.Tuple[torch.Tensor, BatchAssessment]:
-
-#         # t = self._binary.activation.reverse(t)
-#         binary: BinaryRelation = x_update['binary_relation']
-#         # cur_inputs = x_update['cur_inputs']
-#         w = binary.weight
-#         t = x_update.t
-#         positives = self._calculate_positives(w, t)
-#         negatives = self._calculate_negatives(w, t)
-#         score = self._calculate_score(positives, negatives)
-#         maximums = self._calculate_maximums(score, w, t)
-#         base_inputs = self._update_base_inputs(binary, maximums, positives, negatives)
-#         x_update['base_inputs'] = base_inputs
-#         x_prime = self._update_inputs(x_update, base_inputs)
-#         assessment2, y, _ = x_update.assess(x_prime, full_output=True)
-
-#         return x_prime, assessment2
-
-
-# class ToBinaryThetaOptim(ThetaOptim):
-
-#     def __init__(self, lr: float=1e-2):
-#         """initialzier
-
-#         Args:
-#             linear (nn.Linear): Linear layer to optimize
-#             act_inverse (Reversible): The invertable activation of the layer
-#         """
-#         self.lr = lr
-
-#     def optimize(self, machine: Machine) -> ThetaUpdate:
-#         to_binary = machine.module
-#         assert isinstance(to_binary, ToBinary)
-#         return ThetaUpdate(self, machine, to_binary=to_binary)
-
-#     def spawn(self) -> 'ThetaOptim':
-#         return ToBinaryThetaOptim(self.lr)
-
-#     def step(self, theta_update: ThetaUpdate, x: torch.Tensor, out: 'XUpdate', result: Result) -> BatchAssessment:
-
-#         # assessment, y, result = get_y_and_assessment(objective, x, t, result)
-#         to_binary: ToBinary = theta_update['to_binary']
-#         assessment, y, result = theta_update.machine.assess(x, out.x, True, True)
-#         change = (y != out.x).type_as(y)
-#         threshold = torch.clone(to_binary.threshold)
-
-#         dthreshold = (change * (x[:,:,None] - threshold)).sum(dim=0) / change.sum(dim=0)
-#         dthreshold[dthreshold.isnan()] = 0.0
-#         #  x_prime = x + self._lr * ((t - y) @ weight.T)
-#         # aggregate
-#         if to_binary.same:
-#             threshold += self.lr * dthreshold[None].mean(dim=1, keepdim=True)
-#         else:
-#             threshold += self.lr * dthreshold[None]
-
-#         to_binary.threshold = nn.parameter.Parameter(threshold)
-#         return assessment
-
-
-# class ToBinaryXOptim(XOptim):
-
-#     def __init__(self, lr: float=1e-2):
-#         """initialzier
-
-#         Args:
-#             linear (nn.Linear): Linear layer to optimize
-#             act_inverse (Reversible): The invertable activation of the layer
-#         """
-#         self.lr = lr
-
-#     def spawn(self) -> 'XOptim':
-#         return ToBinaryXOptim(self.lr)
-
-#     def optimize(self, machine: Machine, x: torch.Tensor, t: torch.Tensor) -> XUpdate:
-#         to_binary = machine.module
-#         assert isinstance(to_binary, ToBinary)
-#         return XUpdate(machine, self, x=x, t=t, to_binary=to_binary)
-
-#     def step(self, x_update: XUpdate, x_prime: torch.Tensor, indices: typing.Optional[torch.LongTensor]=None) -> typing.Tuple[torch.Tensor, BatchAssessment]:
-        
-#         # TODO: simplify this.... This code is duplicated quite a bit
-#         # assessment, y, result = get_y_and_assessment(objective, x, t, result)
-#         to_binary = x_update['to_binary']
-#         assessment, y, result = x_update.assess(full_output=True)
-#         # TODO: check calculation of assessment
-#         change = (y != x_update.t).type_as(y)
-#         # change = self._to_binary.activation.reverse(change)
-#         threshold = torch.clone(to_binary.threshold)
-#         dx = (change * (threshold - x_update.x[:,:,None])).sum(dim=2) / change.sum(dim=2)
-#         dx[dx.isnan()] = 0.0
-#         x_prime = x_update.x + self.lr * dx
-#         return x_prime, assessment
-
+        # TODO: Update so it is a "loss"
+        w = binary.weight
+        positives = self._calculate_positives(w, t)
+        negatives = self._calculate_negatives(w, t)
+        score = self._calculate_score(positives, negatives)
+        maximums = self._calculate_maximums(score, w, t)
+        base_inputs = self._update_base_inputs(binary, maximums, positives, negatives)
+        x_prime = self._update_inputs(state, base_inputs)
+        return self._reduction((x_prime.detach() - x).abs())

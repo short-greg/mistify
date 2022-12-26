@@ -10,6 +10,7 @@ import membership as memb
 from .membership import Shape
 import typing
 
+from .crisp import BinaryComposition
 
 @dataclass
 class ValueWeight:
@@ -143,18 +144,33 @@ class WeightedAverageAcc(Accumulator):
 
 class StepCrispConverter(CrispConverter):
 
-    def __init__(self, out_variables: int, out_features: int, accumulator: Accumulator=None):
+    def __init__(
+        self, out_variables: int, out_features: int, 
+        accumulator: Accumulator=None, same: bool=False
+    ):
         super().__init__()
-        self.weight = nn.parameter.Parameter(
-            torch.randn(out_variables, out_features)
-        )
-        self.bias = nn.parameter.Parameter(
-            torch.randn(out_variables, out_features)
-        )
+
+        if same:
+            self.weight = nn.parameter.Parameter(
+                torch.randn(out_features)
+            )
+            self.bias = nn.parameter.Parameter(
+                torch.randn(out_features)
+            )
+        else:
+            self.weight = nn.parameter.Parameter(
+                torch.randn(out_variables, out_features)
+            )
+            self.bias = nn.parameter.Parameter(
+                torch.randn(out_variables, out_features)
+            )
+
         self._accumulator = accumulator
+        self.smae = same
 
     def crispify(self, x: torch.Tensor) -> CrispSet:
-        return (x[:,:,None] >= self.weight[None]).type_as(x)
+        weight = weight[None, None] if self.same else weight[None]
+        return (x[:,:,None] >= weight).type_as(x)
 
     def imply(self, m: CrispSet) -> ValueWeight:
         
@@ -372,6 +388,55 @@ class IsoscelesFuzzyConverter(FuzzyConverter):
 
     def imply(self, m: FuzzySet) -> ValueWeight:
         return ValueWeight(m, self._aggregate(m))
+
+
+class BinaryWeightLoss(nn.Module):
+
+    def __init__(self, lr: float=1e-2):
+        """initialzier
+
+        Args:
+            linear (nn.Linear): Linear layer to optimize
+            act_inverse (Reversible): The invertable activation of the layer
+        """
+        self.lr = lr
+
+    def step(self, to_binary, x: torch.Tensor, t: torch.Tensor, state: dict):
+
+        # assessment, y, result = get_y_and_assessment(objective, x, t, result)
+        y = to_binary.forward(x)
+        change = (y != t).type_as(y)
+        if to_binary.same:
+            loss = (to_binary.weight[None,None,:] * change) ** 2
+        else:
+            loss = (to_binary.weight[None,:,:] * change) ** 2
+
+        # TODO: Reduce the loss
+        return loss
+
+
+class BinaryXLoss(nn.Module):
+
+    def __init__(self, lr: float=1e-2):
+        """initialzier
+
+        Args:
+            linear (nn.Linear): Linear layer to optimize
+            act_inverse (Reversible): The invertable activation of the layer
+        """
+        self.lr = lr
+
+    def step(self, to_binary: StepCrispConverter, x: torch.Tensor, t: torch.Tensor, state: dict):
+
+        # assessment, y, result = get_y_and_assessment(objective, x, t, result)
+        y = to_binary.forward(x)
+        change = (y != t).type_as(y)
+        loss = (x[:,:,None] * change) ** 2
+
+        # TODO: Reduce the loss
+        return loss
+
+
 
 
 # Not sure why i have strides

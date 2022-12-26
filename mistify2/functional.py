@@ -15,7 +15,6 @@ def smooth_max_on(m: FuzzySet, dim: int, a: float) -> FuzzySet:
 
 
 def smooth_min(m1: FuzzySet, m2: FuzzySet, a: float) -> FuzzySet:
-    
     return smooth_max(m1, m2, -a)
 
 
@@ -24,9 +23,7 @@ def smooth_min_on(m: FuzzySet, dim: int, a: float) -> FuzzySet:
 
 
 def adamax(m1: FuzzySet, m2: FuzzySet):
-    
-    q = torch.clamp(-690 / torch.log(torch.min(m1.data, m2.data)), min=-1000).detach()
-    
+    q = torch.clamp(-690 / torch.log(torch.min(m1.data, m2.data)), min=-1000).detach()    
     return FuzzySet((m1.data ** q + m2.data ** q) ** (1 / q) / 2)
 
 
@@ -42,8 +39,8 @@ def adamax_on(m: torch.Tensor, dim: int):
     q = torch.clamp(-690 / torch.log(torch.min(m.data, dim=dim)[0]).detach(), min=-1000)
     return FuzzySet((torch.sum(m ** q.unsqueeze(dim), dim=dim) / m.size(dim)) ** (1 / q))
 
+
 def adamin_on(m: FuzzySet, dim: int):
 
     q = torch.clamp(690 / torch.log(torch.min(m.data, dim=dim)[0]).detach(), max=1000)
     return FuzzySet((torch.sum(m.data ** q.unsqueeze(dim), dim=dim) / m.size(dim)) ** (1 / q))
-

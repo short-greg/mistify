@@ -1,5 +1,4 @@
 import torch
-import typing
 import torch.nn as nn
 from abc import abstractmethod
 
@@ -103,3 +102,23 @@ class CompositionBase(nn.Module):
     @property
     def to_complement(self) -> bool:
         return self._complement_inputs
+
+
+class MistifyLoss(nn.Module):
+
+    def __init__(self, reduction: str='mean'):
+        super().__init__()
+        self._reduction = reduction
+        if reduction not in ('mean', 'sum', 'batchmean', 'none'):
+            raise ValueError(f"Reduction {reduction} is not a valid reduction")        
+
+    def reduce(self, y: torch.Tensor):
+
+        if self._reduction == 'mean':
+            return y.mean()
+        elif self._reduction == 'sum':
+            return y.sum()
+        elif self._reduction == 'batchmean':
+            return y.view(y.size(0), -1).mean(dim=1)
+        elif self._reduction == 'none':
+            return y
