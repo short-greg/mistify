@@ -182,7 +182,6 @@ class TernaryComposition(CompositionBase):
             maxmin(self.prepare_inputs(m), self.weight.data[None]).round(), True
         )
 
-# TODO: Update the below to be losses
 
 class BinaryThetaLoss(MistifyLoss):
 

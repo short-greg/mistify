@@ -3,27 +3,63 @@ import typing
 import torch
 from dataclasses import dataclass
 
-# TODO: Change so that it uses the FuzzySet class
+# TODO: 
+# Analyze the classes and design an approach to make
+# them easier to work with
+# Change so that it uses the FuzzySet class
+
 
 class ShapeParams:
     
     # batch, set, index
     param: torch.Tensor
 
-    def __getitem__(self, key: str):
-        return self.param[:,:,key]
+    def __init__(self, x: torch.Tensor):
+        if x.dim() == 2:
+            x = x[None]
+        assert x.dim() == 3
+        self._x = x
+
+    def sub(self, index: typing.Union[int, slice]):
+        if isinstance(index, int):
+            index = slice(index, index + 1)
+        return ShapeParams(self._x[:, :, index])
+
+    def pt(self, index: int):
+        assert isinstance(index, int)
+        return self._x[:,:,index]
+
+    def sample(self, index: int):
+        return self._x[index]
+
+    def samples(self, indices):
+        return self._x[indices]
+    
+    @property
+    def x(self) -> torch.Tensor:
+        return self._x
 
     @property
     def batch_size(self) -> int:
-        return self.param.size(0)
+        return self._x.size(0)
 
     @property
     def set_size(self) -> int:
-        return self.param.size(1)
+        return self._x.size(1)
 
     @property
-    def points(self) -> int:
-        return self.param.size(2)
+    def n_points(self) -> int:
+        return self._x.size(2)
+
+    def contains(self, x: torch.Tensor, index1: int, index2: int) -> torch.BoolTensor:
+        return (x >= self.pt[index1]) & (x <= self.pt[index2])
+
+    @classmethod
+    def from_sub(cls, *sub: 'ShapeParams'):
+        
+        return ShapeParams(
+            torch.cat([sub_i._x for sub_i in sub], dim=2)
+        )
 
 
 def check_contains(x: torch.Tensor, pt1: torch.Tensor, pt2: torch.Tensor):
@@ -362,10 +398,6 @@ class ConvexPolygon(SimpleShape):
         if not self._params.is_aligned_with(self._m):
             raise ValueError("Membership size does not match with params size{} {} ".format())
 
-    @abstractmethod
-    def to_mesh(self):
-        pass
-
 
 class IncreasingRightTriangle(ConvexPolygon):
 
@@ -559,6 +591,7 @@ class Triangle(ConvexPolygon):
             params.x, updated_m.x
         )
 
+
 class IsoscelesTriangle(ConvexPolygon):
 
     def join(self, x: torch.Tensor):
@@ -595,7 +628,7 @@ class IsoscelesTriangle(ConvexPolygon):
     def truncate(self, m: torch.Tensor):
         
         updated_m = self._intersect_m(m)
-
+        
         pt1 = calc_x_linear_increasing(updated_m[0], self._params[0], self._params[1], self._m[0])
         pt2 = calc_x_linear_decreasing(updated_m[0], self._params[1], self._params[1] + self._params[1] - self._params[0], self._m[0])
 
