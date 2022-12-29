@@ -15,15 +15,15 @@ class ShapeParams:
     param: torch.Tensor
 
     def __init__(self, x: torch.Tensor):
-        if x.dim() == 2:
+        if x.dim() == 3:
             x = x[None]
-        assert x.dim() == 3
+        assert x.dim() == 4
         self._x = x
 
     def sub(self, index: typing.Union[int, slice]):
         if isinstance(index, int):
             index = slice(index, index + 1)
-        return ShapeParams(self._x[:, :, index])
+        return ShapeParams(self._x[:, :, :, index])
 
     def pt(self, index: int):
         assert isinstance(index, int)
@@ -48,8 +48,12 @@ class ShapeParams:
         return self._x.size(1)
 
     @property
-    def n_points(self) -> int:
+    def n_terms(self) -> int:
         return self._x.size(2)
+
+    @property
+    def n_points(self) -> int:
+        return self._x.size(3)
 
     def contains(self, x: torch.Tensor, index1: int, index2: int) -> torch.BoolTensor:
         return (x >= self.pt[index1]) & (x <= self.pt[index2])
@@ -58,7 +62,7 @@ class ShapeParams:
     def from_sub(cls, *sub: 'ShapeParams'):
         
         return ShapeParams(
-            torch.cat([sub_i._x for sub_i in sub], dim=2)
+            torch.cat([sub_i._x for sub_i in sub], dim=3)
         )
 
 
