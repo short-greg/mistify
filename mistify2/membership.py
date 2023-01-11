@@ -319,50 +319,50 @@ class IncreasingRightTriangle(ConvexPolygon):
         )
 
 
-# class DecreasingRightTriangle(ConvexPolygon):
+class DecreasingRightTriangle(ConvexPolygon):
     
-#     def join(self, x: torch.Tensor):
-        
-#         return calc_m_linear_decreasing(
-#             un_x(x), self._params[0], self._params[1], self._m[0]
-#         )
-
-#     def _calc_areas(self):
-        
-#         return (
-#             0.5 * (self._params[1]
-#             - self._params[0]) * self._m[0]
-#         )
-
-#     def _calc_mean_cores(self):
-        
-#         return self._params[0]
-
-#     def _calc_centroids(self):
-#         return 2 / 3 * self._params[0] + 1 / 3 * self._params[1]
+    def join(self, x: torch.Tensor):
     
-#     def scale(self, m: FuzzySet):
-#         updated_m = self._intersect_m(m)
+        return FuzzySet(calc_m_linear_decreasing(
+            unsqueeze(x), self._params.pt(0), self._params.pt(1), self._m.data
+        ), x.dim() == 2)
+
+    def _calc_areas(self):
         
-#         return DecreasingRightTriangle(
-#             self._params, updated_m
-#         )
+        return self._resize_to_m((
+            0.5 * (self._params.pt(1)
+            - self._params.pt(0)) * self._m.data
+        ), self._m)
 
-#     def truncate(self, m: FuzzySet):
+    def _calc_mean_cores(self):
         
-#         # TODO: FINISH
-#         updated_m = self._intersect_m(m)
-#         pt = ShapeParams(
-#             calc_x_linear_decreasing(
-#                 updated_m, self._params.pt(0), self._params.pt(1), self._m
-#             )
-#         )
+        return self._resize_to_m(self._params[0], self._m)
 
-#         params = self._params.insert(pt, 1)
+    def _calc_centroids(self):
+        return self._resize_to_m(
+            2 / 3 * self._params.pt(0) + 1 / 3 * self._params.pt(1)
+        )
+    
+    def scale(self, m: FuzzySet):
+        updated_m = self._m.intersect(m)
+        
+        return DecreasingRightTriangle(
+            self._params, updated_m
+        )
 
-#         return DecreasingRightTrapezoid(
-#             params.x, updated_m.x
-#         )
+    def truncate(self, m: FuzzySet):
+        
+        updated_m = m.intersect(self._m)
+
+        pt = calc_x_linear_decreasing(
+            updated_m, self._params.pt(0), self._params.pt(1), self._m
+        )
+        
+        params = self._params.insert(pt, 1, to_unsqueeze=True)
+        return DecreasingRightTrapezoid(
+            params, updated_m
+        )
+
 
 # # need to simplify this
 
@@ -975,59 +975,60 @@ class IncreasingRightTrapezoid(ConvexPolygon):
         return IncreasingRightTrapezoid(params, updated_m)
 
 
-# class DecreasingRightTrapezoid(ConvexPolygon):
+class DecreasingRightTrapezoid(ConvexPolygon):
 
-#     P = 3
+    P = 3
 
-#     def join(self, x: torch.Tensor) -> 'FuzzySet':
+    def join(self, x: torch.Tensor) -> 'FuzzySet':
 
-#         m = calc_m_linear_decreasing(
-#             un_x(x), self._params[1], self._params[2], self._m[0]
-#         )
-#         m2 = calc_m_flat(un_x(x), self._params[0], self._params[1], self._m[0])
+        m = calc_m_linear_decreasing(
+            unsqueeze(x), self._params.pt(0), self._params.pt(1), self._m.data
+        )
+        m2 = calc_m_flat(unsqueeze(x), self._params.pt(1), self._params.pt(2), self._m.data)
+
+        return torch.max(m, m2)
     
-#         return torch.max(m, m2)
-    
-#     @property
-#     def a(self):
-#         return (
-#             self._params[2] - self._params[0]
-#         )
+    @property
+    def a(self):
+        return (
+            self._params.pt(2) - self._params.pt(0)
+        )
 
-#     @property
-#     def b(self):
-#         return self._params[1] - self._params[0]
+    @property
+    def b(self):
+        return self._params.pt(1) - self._params.pt(0)
 
-#     def _calc_areas(self):
+    def _calc_areas(self):
         
-#         return (
-#             0.5 * (self.a + self.b) * self._m[0]
-#         )
+        return self._resize_to_m((
+            0.5 * (self.a + self.b) * self._m.data
+        ), self._m)
 
-#     def _calc_mean_cores(self):
-#         return 0.5 * (self._params[0] + self._params[1])
+    def _calc_mean_cores(self):
+        return self._resize_to_m(
+            0.5 * (self._params.pt(0) + self._params.pt(1)), self._m
+        )
 
-#     def _calc_centroids(self):
-#         d1 = self._params[1] - self._params[0]
-#         d2 = 0.5 * (self._params[2] - self._params[1])
+    def _calc_centroids(self):
+        d1 = self._params.pt(1) - self._params.pt(0)
+        d2 = 0.5 * (self._params.pt(2) - self._params.pt(1))
         
-#         return (
-#             d1 * (1 / 2 * self._params[1] + 1 / 2 * self._params[0]) +
-#             d2 * (1 / 3 * self._params[2] + 2 / 3 * self._params[1])
-#         ) / (d1 + d2)
+        return self._resize_to_m((
+            d1 * (1 / 2 * self._params.pt(1) + 1 / 2 * self._params.pt(0)) +
+            d2 * (1 / 3 * self._params.pt(2) + 2 / 3 * self._params.pt(1))
+        ) / (d1 + d2), self._m)
 
-#     def scale(self, m: torch.Tensor) -> 'DecreasingRightTrapezoid':
-#         updated_m = self._intersect_m(m)
-#         return DecreasingRightTrapezoid(self._params.x, updated_m.x)
+    def scale(self, m: torch.Tensor) -> 'DecreasingRightTrapezoid':
+        return DecreasingRightTrapezoid(self._params, m.intersect(self._m))
 
-#     def truncate(self, m: torch.Tensor) -> 'DecreasingRightTrapezoid':
-#         updated_m = self._intersect_m(m)
+    def truncate(self, m: torch.Tensor) -> 'DecreasingRightTrapezoid':
+        updated_m = m.intersect(self._m)
         
-#         x = ShapeParams(calc_x_linear_decreasing(
-#             updated_m[0], self._params[1], self._params[2], self._m[0]
-#         ), True, updated_m.is_batch or self._params.is_batch)
-#         params = self._params.replace(x, 1)
-#         return DecreasingRightTrapezoid(params.x, updated_m.x)
+        x = calc_x_linear_decreasing(
+            updated_m, self._params.pt(0), self._params.pt(1), self._m
+        )
+        params = self._params.replace(x, 1, True)
+        return DecreasingRightTrapezoid(params, updated_m)
 
 
 # # class Params(object):
