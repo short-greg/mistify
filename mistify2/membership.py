@@ -320,6 +320,8 @@ class IncreasingRightTriangle(ConvexPolygon):
 
 
 class DecreasingRightTriangle(ConvexPolygon):
+
+    PT = 2
     
     def join(self, x: torch.Tensor):
     
@@ -364,107 +366,163 @@ class DecreasingRightTriangle(ConvexPolygon):
         )
 
 
-# # need to simplify this
+class Square(ConvexPolygon):
 
-# # self._points
-# # self._scales <- logistic
-# # etc
+    PT = 2
 
-# # 
+    def join(self, x: torch.Tensor):
+        return FuzzySet(
+            (x >= self._params.pt(0) & x <= self._params.pt(1)).type_as(x) * self._m.data
+        )
 
-# class Square(ConvexPolygon):
-
-#     def join(self, x: torch.Tensor):
-#         return (x >= self._params[0] & x <= self._params[1]).type_as(x) * self._m
-
-#     def _calc_areas(self):
+    def _calc_areas(self):
         
-#         return (
-#             (self._params[2] 
-#             - self._params[0]) * self._m[0]
-#         )
+        return self._resize_to_m((
+            (self._params[2] 
+            - self._params[0]) * self._m[0]
+        ), self._m)
 
-#     def _calc_mean_cores(self):
-#         return 1 / 2 * (
-#             self._params.pt(0) + self._params.pt(1)
-#         )
+    def _calc_mean_cores(self):
+        return self._resize_to_m(1 / 2 * (
+            self._params.pt(0) + self._params.pt(1)
+        ), self._m)
 
-#     def _calc_centroids(self):
-#         return 1 / 2 * (
-#             self._params.pt(0) + self._params.pt(1)
-#         )
+    def _calc_centroids(self):
+        return self._resize_to_m(1 / 2 * (
+            self._params.pt(0) + self._params.pt(1)
+        ), self._m)
     
-#     def scale(self, m: FuzzySet):
+    def scale(self, m: FuzzySet):
 
-#         updated_m = m.intersect(self._m)
+        updated_m = m.intersect(self._m)
         
-#         return Square(
-#             self._params, updated_m
-#         )
+        return Square(
+            self._params, updated_m
+        )
 
-#     def truncate(self, m: FuzzySet):
-#         # TODO: FINISH
+    def truncate(self, m: FuzzySet):
+        updated_m = m.intersect(self._m)
+
+        return Square(
+            self._params, updated_m
+        )
+
+
+class Triangle(ConvexPolygon):
+
+    def join(self, x: torch.Tensor):
         
-#         updated_m = m.intersect(self._m)
+        m1 = calc_m_linear_increasing(
+            unsqueeze(x), self._params.pt(0), self._params.pt(1), self._m.data
+        )
+        m2 = calc_m_linear_decreasing(
+            unsqueeze(x), self._params.pt(1), self._params.pt(2), self._m.data
+        )
+        return FuzzySet(torch.max(m1, m2))
 
-#         return Square(
-#             self._params, updated_m
-#         )
-
-
-# class Triangle(ConvexPolygon):
-
-#     def join(self, x: torch.Tensor):
-
-#         m = self._m[0][0]
+    def _calc_areas(self):
         
-#         m1 = calc_m_linear_increasing(
-#             un_x(x), self._params[0][0], self._params[1][0], m
-#         )
-#         m2 = calc_m_linear_decreasing(
-#             un_x(x), self._params[1][0], self._params[2][0], m
-#         )
-#         return torch.max(m1, m2)
+        return self._resize_to_m((
+            0.5 * (self._params.pt(2) 
+            - self._params.pt(0)) * self._m.data
+        ), self._m)
 
-#     def _calc_areas(self):
-        
-#         return (
-#             0.5 * (self._params[2] 
-#             - self._params[0]) * self._m[0]
-#         )
+    def _calc_mean_cores(self):
+        return self._resize_to_m(self._params.pt(1), self._m)
 
-#     def _calc_mean_cores(self):
-#         return self._params[1]
-
-#     def _calc_centroids(self):
-#         return 1 / 3 * (
-#             self._params[0] + self._params[1] + self._params[2]
-#         )
+    def _calc_centroids(self):
+        return self._resize_to_m(1 / 3 * (
+            self._params[0] + self._params[1] + self._params[2]
+        ), self._m)
     
-#     def scale(self, m: torch.Tensor):
+    def scale(self, m: FuzzySet):
 
-#         updated_m = self._intersect_m(m)
+        updated_m = self._m.intersect(m)
         
-#         return Triangle(
-#             self._params.x, updated_m.x
-#         )
+        return Triangle(
+            self._params, updated_m
+        )
 
-#     def truncate(self, m: torch.Tensor):
-#         # TODO: FINISH
+    def truncate(self, m: FuzzySet):
+        # TODO: FINISH
         
-#         updated_m = self._intersect_m(m)
+        updated_m = self._m.intersect(m)
 
-#         pt1 = calc_x_linear_increasing(updated_m[0], self._params[0], self._params[1], self._m[0])
-#         pt2 = calc_x_linear_decreasing(updated_m[0], self._params[1], self._params[2], self._m[0])
+        pt1 = calc_x_linear_increasing(updated_m, self._params.pt(0), self._params.pt(1), self._m)
+        pt2 = calc_x_linear_decreasing(updated_m, self._params.pt(1), self._params.pt(2), self._m)
 
-#         params = self._params.replace(
-#             ShapeParams(torch.cat(
-#                 [pt1.unsqueeze(3), pt2.unsqueeze(3)], dim=3
-#             ), False, updated_m.is_batch or self._params.is_batch), 1)
+        params = self._params.replace(
+            ShapeParams(torch.cat(
+                [pt1.unsqueeze(3), pt2.unsqueeze(3)], dim=3
+            ), False, updated_m.is_batch or self._params.is_batch), 1)
 
-#         return Trapezoid(
-#             params.x, updated_m.x
-#         )
+        return Trapezoid(
+            params.x, updated_m.x
+        )
+
+
+class Trapezoid(ConvexPolygon):
+
+    PT = 4
+
+    def join(self, x: torch.Tensor) -> FuzzySet:
+
+        x = unsqueeze(x)
+        m1 = calc_m_linear_increasing(x, self._params.pt(0), self._params.pt(1), self._m)
+        m2 = calc_m_flat(x, self._params.pt(1), self._params.pt(2), self._m)
+        m3 = calc_m_linear_decreasing(x, self._params.pt(2), self._params.pt(3), self._m)
+
+        return FuzzySet(torch.max(torch.max(
+            m1, m2
+        ), m3), m1.dim() == 3)
+
+    def _calc_areas(self):
+        
+        return self._resize_to_m((
+            0.5 * (self._params[2] 
+            - self._params[0]) * self._m[0]
+        ), self._m)
+
+    def _calc_mean_cores(self):
+        return self._resize_to_m(
+            0.5 * (self._params.pt(1) + self._params.pt(2)), self._m
+        )
+
+    def _calc_centroids(self):
+        d1 = 0.5 * (self._params.pt(1) - self._params.pt(0))
+        d2 = self._params.pt(2) - self._params.pt(1)
+        d3 = 0.5 * (self._params.pt(3) - self._params.pt(2))
+
+        return self._resize_to_m((
+            d1 * (2 / 3 * self._params[1] + 1 / 3 * self._params[0]) +
+            d2 * (1 / 2 * self._params[2] + 1 / 2 *  self._params[1]) + 
+            d3 * (1 / 3 * self._params[3] + 2 / 3 * self._params[2])
+        ) / (d1 + d2 + d3), self._m)
+
+    def scale(self, m: torch.Tensor) -> 'Trapezoid':
+        updated_m = self._m.intersect(m)
+        return Trapezoid(
+            self._params, updated_m
+        )
+
+    def truncate(self, m: torch.Tensor) -> 'Trapezoid':
+        updated_m = self._m.intersect(m)
+
+        # m = ShapeParams(m, True, m.dim() == 3)
+        left_x = ShapeParams(calc_x_linear_increasing(
+            updated_m, self._params.pt(0), self._params.pt(1), self._m
+        ))
+
+        right_x = ShapeParams(calc_x_linear_decreasing(
+            updated_m, self._params.pt(2), self._params.pt(3), self._m
+        ))        
+        
+        params = self._params.replace(left_x, 1, unsqueeze=True)
+        params = params.replace(right_x, 2, unsqueeze=True)
+
+        return Trapezoid(
+            params, updated_m, 
+        )
 
 
 # class IsoscelesTriangle(ConvexPolygon):
@@ -795,66 +853,6 @@ class DecreasingRightTriangle(ConvexPolygon):
 #         return cls(params[:,:,0], params[:,:,1], is_right, m)
 
 
-# class Trapezoid(ConvexPolygon):
-
-#     P = 4
-
-#     def join(self, x: torch.Tensor) -> FuzzySet:
-
-#         m1 = calc_m_linear_increasing(un_x(x), self._params[0], self._params[1], self._m[0])
-#         m2 = calc_m_flat(un_x(x), self._params[1], self._params[2], self._m[0])
-#         m3 = calc_m_linear_decreasing(un_x(x), self._params[2], self._params[3], self._m[0])
-
-#         return torch.max(torch.max(
-#             m1, m2
-#         ), m3)
-
-#     def _calc_areas(self):
-        
-#         return (
-#             0.5 * (self._params[2] 
-#             - self._params[0]) * self._m[0]
-#         )
-
-#     def _calc_mean_cores(self):
-#         return 0.5 * (self._params[1] + self._params[2])
-
-#     def _calc_centroids(self):
-#         d1 = 0.5 * (self._params[1] - self._params[0])
-#         d2 = self._params[2] - self._params[1]
-#         d3 = 0.5 * (self._params[3] - self._params[2])
-
-#         return (
-#             d1 * (2 / 3 * self._params[1] + 1 / 3 * self._params[0]) +
-#             d2 * (1 / 2 * self._params[2] + 1 / 2 *  self._params[1]) + 
-#             d3 * (1 / 3 * self._params[3] + 2 / 3 * self._params[2])
-#         ) / (d1 + d2 + d3)
-
-#     def scale(self, m: torch.Tensor) -> 'Trapezoid':
-#         updated_m = self._intersect_m(m)
-#         return Trapezoid(
-#             self._params.x, updated_m.x
-#         )
-
-#     def truncate(self, m: torch.Tensor) -> 'Trapezoid':
-#         updated_m = self._intersect_m(m)
-
-#         # m = ShapeParams(m, True, m.dim() == 3)
-#         left_x = ShapeParams(calc_x_linear_increasing(
-#             updated_m.x, self._params[0], self._params[1], self._m[0]
-#         ), True, updated_m.is_batch or self._params.is_batch)
-
-#         right_x = ShapeParams(calc_x_linear_decreasing(
-#             updated_m.x, self._params[2], self._params[3], self._m[0]
-#         ), True, updated_m.is_batch or self._params.is_batch)        
-        
-#         params = self._params.replace(left_x, 1)
-#         params = params.replace(right_x, 2)
-
-#         return Trapezoid(
-#             params.x, updated_m.x, 
-#         )
-
 
 # class IsoscelesTrapezoid(ConvexPolygon):
 
@@ -977,7 +975,7 @@ class IncreasingRightTrapezoid(ConvexPolygon):
 
 class DecreasingRightTrapezoid(ConvexPolygon):
 
-    P = 3
+    PT = 3
 
     def join(self, x: torch.Tensor) -> 'FuzzySet':
 
