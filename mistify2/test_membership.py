@@ -159,3 +159,65 @@ class TestIncreasingRightTriangle(object):
         )
         shape = right_triangle.truncate(m)
         assert isinstance(shape, membership.IncreasingRightTrapezoid)
+
+class TestIncreasingRightTrazoid(object):
+
+    def test_join_returns_fuzzy_set_with_correct_size(self):
+
+        p = torch.rand(3, 4, 3).cumsum(2)
+        x = torch.rand(2, 3)
+        right_triangle = membership.IncreasingRightTrapezoid(
+            membership.ShapeParams(p)
+        )
+        m = right_triangle.join(x)
+        assert m.data.size() == torch.Size([2, 3, 4])
+
+    def test_scale_returns_shape_with_correct_size(self):
+
+        p = torch.rand(3, 4, 3).cumsum(2)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        right_triangle = membership.IncreasingRightTrapezoid(
+            membership.ShapeParams(p)
+        )
+        shape = right_triangle.scale(m)
+        assert isinstance(shape, membership.IncreasingRightTrapezoid)
+
+    def test_mean_core_returns_tensor_with_correct_size(self):
+
+        p = torch.rand(3, 4, 3).cumsum(2)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        right_triangle = membership.IncreasingRightTrapezoid(
+            membership.ShapeParams(p)
+        )
+        shape = right_triangle.scale(m)
+        assert shape.mean_cores.shape == torch.Size([2, 3, 4])
+
+    def test_centroids_returns_tensor_with_correct_size(self):
+
+        p = torch.rand(3, 4, 3).cumsum(2)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        right_triangle = membership.IncreasingRightTrapezoid(
+            membership.ShapeParams(p)
+        )
+        shape = right_triangle.scale(m)
+        assert shape.centroids.shape == torch.Size([2, 3, 4])
+
+    def test_areas_returns_tensor_with_correct_size(self):
+
+        p = torch.rand(3, 4, 3).cumsum(2)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        right_triangle = membership.IncreasingRightTrapezoid(
+            membership.ShapeParams(p)
+        )
+        shape = right_triangle.scale(m)
+        assert shape.areas.shape == torch.Size([2, 3, 4])
+
+    def test_truncate_returns_right_trapezoid(self):
+
+        p = torch.rand(3, 4, 3).cumsum(2)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        right_triangle = membership.IncreasingRightTrapezoid(
+            membership.ShapeParams(p)
+        )
+        shape = right_triangle.truncate(m)
+        assert isinstance(shape, membership.IncreasingRightTrapezoid)

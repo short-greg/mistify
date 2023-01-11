@@ -943,22 +943,24 @@ class IncreasingRightTrapezoid(ConvexPolygon):
 
     def _calc_areas(self):
         
-        return (
-            0.5 * (self.a + self.b) * self._m.data
+        return self._resize_to_m(
+            0.5 * (self.a + self.b) * self._m.data, self._m
         )
 
     def _calc_mean_cores(self):
-        return 0.5 * (self._params.pt(2) + self._params.pt(1))
+        return self._resize_to_m(
+            0.5 * (self._params.pt(2) + self._params.pt(1)), self._m
+        )
 
     def _calc_centroids(self):
         
         d1 = 0.5 * (self._params.pt(1) - self._params.pt(0))
         d2 = self._params.pt(2) - self._params.pt(1)
 
-        return (
+        return self._resize_to_m((
             d1 * (2 / 3 * self._params.pt(1) + 1 / 3 * self._params.pt(0)) +
             d2 * (1 / 2 * self._params.pt(2) + 1 / 2 * self._params.pt(1))
-        ) / (d1 + d2)
+        ) / (d1 + d2), self._m)
 
     def scale(self, m: FuzzySet) -> 'IncreasingRightTrapezoid':
         return IncreasingRightTrapezoid(self._params, m.intersect(self._m))
@@ -966,10 +968,10 @@ class IncreasingRightTrapezoid(ConvexPolygon):
     def truncate(self, m: FuzzySet) -> 'IncreasingRightTrapezoid':
         updated_m = m.intersect(self._m)
         
-        x = ShapeParams(calc_x_linear_increasing(
+        x = calc_x_linear_increasing(
             updated_m, self._params.pt(0), self._params.pt(1), self._m
-        ))
-        params = self._params.replace(x, 1)
+        )
+        params = self._params.replace(x, 1, True)
         return IncreasingRightTrapezoid(params, updated_m)
 
 
