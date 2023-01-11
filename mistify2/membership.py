@@ -9,6 +9,16 @@ from .fuzzy import FuzzySet
 # them easier to work with
 # Change so that it uses the FuzzySet class
 
+def resize_to(x1: torch.Tensor, x2: torch.Tensor, dim=0):
+
+    if x1.size(dim) == 1 and x2.size(dim) != 1:
+        size = [1] * x1.dim()
+        size[dim] = x2.size(dim)
+        return x1.repeat(*size)
+    elif x1.size(dim) != x2.size(dim):
+        raise ValueError()
+    return x1
+
 
 class ShapeParams:
     
@@ -65,18 +75,21 @@ class ShapeParams:
 
     def insert(self, x: torch.Tensor, idx: int, to_unsqueeze: bool=False):
         x = x if not to_unsqueeze else unsqueeze(x)
-        if not (0 <= idx <= self._x.size(3)):
-            raise ValueError(f'Argument idx must be in range of [0, {self._x.size(3)}] not {idx}')
+        mine = resize_to(self.x, x)
+        if not (0 <= idx <= mine.size(3)):
+            raise ValueError(f'Argument idx must be in range of [0, {mine.size(3)}] not {idx}')
+        
         return ShapeParams(
-            torch.concat([self._x[:,:,:,:idx], x, self._x[:,:,:,idx:]], dim=3)
+            torch.concat([mine[:,:,:,:idx], x, mine[:,:,:,idx:]], dim=3)
         )
 
     def replace(self, x: torch.Tensor, idx: int, to_unsqueeze: bool=False):
         x = x if not to_unsqueeze else unsqueeze(x)
+        mine = resize_to(self.x, x)
         if not (0 <= idx < self._x.size(3)):
-            raise ValueError(f'Argument idx must be in range of [0, {self._x.size(3)}) not {idx}')
+            raise ValueError(f'Argument idx must be in range of [0, {mine.size(3)}) not {idx}')
         return ShapeParams(
-            torch.concat([self._x[:,:,:,:idx], x, self._x[:,:,:,idx+1:]], dim=3)
+            torch.concat([mine[:,:,:,:idx], x, mine[:,:,:,idx+1:]], dim=3)
         )
 
     def replace_slice(self, x: torch.Tensor, pt_range: typing.Tuple[int, int], to_unsqueeze: bool=False):
@@ -193,7 +206,7 @@ class Shape(object):
         pass
 
     @property
-    def areas(self):
+    def areas(self) -> torch.Tensor:
         if self._areas is None:
             self._areas = self._calc_areas()
         return self._areas
@@ -234,6 +247,11 @@ class Shape(object):
     def join(self, x: torch.Tensor) -> FuzzySet:
         pass
 
+    def _resize_to_m(self, x: torch.Tensor, m: FuzzySet):
+        if m.is_batch and x.size(0) == 1 and m.data.size(0) != 1:
+            return x.repeat(m.data.size(0), *[1] * (m.data.dim() - 1))
+        return x    
+
 
 class ConvexPolygon(Shape):
 
@@ -263,20 +281,21 @@ class IncreasingRightTriangle(ConvexPolygon):
 
     def _calc_areas(self):
         
-        return (
+        return self._resize_to_m(
             0.5 * (self._params.pt(1)
-            - self._params.pt(0)) * self._m.data
+            - self._params.pt(0)) * self._m.data, self._m
         )
 
     def _calc_mean_cores(self):
-        
-        return self._params.pt(1)
+        return self._resize_to_m(self._params.pt(1), self._m)
 
     def _calc_centroids(self):
         
         p1, p2 = 1 / 3, 2 / 3
 
-        return p1 * self._params.pt(0) + p2 * self._params.pt(1)
+        return self._resize_to_m(
+            p1 * self._params.pt(0) + p2 * self._params.pt(1), self._m
+        )
     
     def scale(self, m: FuzzySet):
 
@@ -290,11 +309,11 @@ class IncreasingRightTriangle(ConvexPolygon):
         # TODO: FINISH
         updated_m = m.intersect(self._m)
 
-        pt = ShapeParams(calc_x_linear_increasing(
-            updated_m, self._params.pt(0), self._params.pt(1), self._m)
+        pt = calc_x_linear_increasing(
+            updated_m, self._params.pt(0), self._params.pt(1), self._m
         )
         
-        params = self._params.insert(unsqueeze(pt), 1)
+        params = self._params.insert(pt, 1, to_unsqueeze=True)
         return IncreasingRightTrapezoid(
             params, updated_m
         )
@@ -902,7 +921,7 @@ class IncreasingRightTriangle(ConvexPolygon):
 
 class IncreasingRightTrapezoid(ConvexPolygon):
 
-    P = 3
+    PT = 3
 
     def join(self, x: torch.Tensor) -> 'FuzzySet':
         m = calc_m_linear_increasing(
