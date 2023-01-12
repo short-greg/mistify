@@ -412,6 +412,8 @@ class Square(ConvexPolygon):
 
 class Triangle(ConvexPolygon):
 
+    PT = 3
+
     def join(self, x: torch.Tensor):
         
         m1 = calc_m_linear_increasing(
@@ -434,7 +436,7 @@ class Triangle(ConvexPolygon):
 
     def _calc_centroids(self):
         return self._resize_to_m(1 / 3 * (
-            self._params[0] + self._params[1] + self._params[2]
+            self._params.pt(0) + self._params.pt(1) + self._params.pt(2)
         ), self._m)
     
     def scale(self, m: FuzzySet):
@@ -446,20 +448,19 @@ class Triangle(ConvexPolygon):
         )
 
     def truncate(self, m: FuzzySet):
-        # TODO: FINISH
-        
         updated_m = self._m.intersect(m)
 
         pt1 = calc_x_linear_increasing(updated_m, self._params.pt(0), self._params.pt(1), self._m)
         pt2 = calc_x_linear_decreasing(updated_m, self._params.pt(1), self._params.pt(2), self._m)
-
-        params = self._params.replace(
-            ShapeParams(torch.cat(
-                [pt1.unsqueeze(3), pt2.unsqueeze(3)], dim=3
-            ), False, updated_m.is_batch or self._params.is_batch), 1)
+        to_replace = torch.cat(
+            [pt1.unsqueeze(3), pt2.unsqueeze(3)], dim=3
+        )
+        params= self._params.replace(
+            to_replace, 1, False
+        )
 
         return Trapezoid(
-            params.x, updated_m.x
+            params, updated_m
         )
 
 
@@ -481,8 +482,8 @@ class Trapezoid(ConvexPolygon):
     def _calc_areas(self):
         
         return self._resize_to_m((
-            0.5 * (self._params[2] 
-            - self._params[0]) * self._m[0]
+            0.5 * (self._params.pt(2) 
+            - self._params.pt(0)) * self._m.data
         ), self._m)
 
     def _calc_mean_cores(self):
@@ -496,9 +497,9 @@ class Trapezoid(ConvexPolygon):
         d3 = 0.5 * (self._params.pt(3) - self._params.pt(2))
 
         return self._resize_to_m((
-            d1 * (2 / 3 * self._params[1] + 1 / 3 * self._params[0]) +
-            d2 * (1 / 2 * self._params[2] + 1 / 2 *  self._params[1]) + 
-            d3 * (1 / 3 * self._params[3] + 2 / 3 * self._params[2])
+            d1 * (2 / 3 * self._params.pt(1) + 1 / 3 * self._params.pt(0)) +
+            d2 * (1 / 2 * self._params.pt(2) + 1 / 2 *  self._params.pt(1)) + 
+            d3 * (1 / 3 * self._params.pt(3) + 2 / 3 * self._params.pt(2))
         ) / (d1 + d2 + d3), self._m)
 
     def scale(self, m: torch.Tensor) -> 'Trapezoid':
@@ -511,16 +512,16 @@ class Trapezoid(ConvexPolygon):
         updated_m = self._m.intersect(m)
 
         # m = ShapeParams(m, True, m.dim() == 3)
-        left_x = ShapeParams(calc_x_linear_increasing(
+        left_x = calc_x_linear_increasing(
             updated_m, self._params.pt(0), self._params.pt(1), self._m
-        ))
+        )
 
-        right_x = ShapeParams(calc_x_linear_decreasing(
+        right_x = calc_x_linear_decreasing(
             updated_m, self._params.pt(2), self._params.pt(3), self._m
-        ))        
-        
-        params = self._params.replace(left_x, 1, unsqueeze=True)
-        params = params.replace(right_x, 2, unsqueeze=True)
+        )
+
+        params = self._params.replace(left_x, 1, to_unsqueeze=True)
+        params = params.replace(right_x, 2, to_unsqueeze=True)
 
         return Trapezoid(
             params, updated_m, 
