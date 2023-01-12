@@ -338,11 +338,12 @@ class DecreasingRightTriangle(ConvexPolygon):
 
     def _calc_mean_cores(self):
         
-        return self._resize_to_m(self._params[0], self._m)
+        return self._resize_to_m(self._params.pt(0), self._m)
 
     def _calc_centroids(self):
         return self._resize_to_m(
-            2 / 3 * self._params.pt(0) + 1 / 3 * self._params.pt(1)
+            2 / 3 * self._params.pt(0) 
+            + 1 / 3 * self._params.pt(1), self._m
         )
     
     def scale(self, m: FuzzySet):
