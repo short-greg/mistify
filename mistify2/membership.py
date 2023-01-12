@@ -371,15 +371,16 @@ class Square(ConvexPolygon):
     PT = 2
 
     def join(self, x: torch.Tensor):
-        return FuzzySet(
-            (x >= self._params.pt(0) & x <= self._params.pt(1)).type_as(x) * self._m.data
-        )
+        return FuzzySet((
+            (x[:,:,None] >= self._params.pt(0)) 
+            & (x[:,:,None] <= self._params.pt(1))
+        ).type_as(x) * self._m.data)
 
     def _calc_areas(self):
         
         return self._resize_to_m((
-            (self._params[2] 
-            - self._params[0]) * self._m[0]
+            (self._params.pt(1) 
+            - self._params.pt(0)) * self._m.data
         ), self._m)
 
     def _calc_mean_cores(self):
