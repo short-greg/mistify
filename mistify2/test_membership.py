@@ -475,3 +475,197 @@ class TestTrapezoid(object):
         shape = trapezoid.truncate(m)
         assert isinstance(shape, membership.Trapezoid)
 
+
+class TestIsocelesTriangle(object):
+
+    def test_join_returns_fuzzy_set_with_correct_size(self):
+
+        p = torch.rand(3, 4, 2).cumsum(2)
+        x = torch.rand(2, 3)
+        right_trapezoid = membership.IsoscelesTriangle(
+            membership.ShapeParams(p)
+        )
+        m = right_trapezoid.join(x)
+        assert m.data.size() == torch.Size([2, 3, 4])
+
+    def test_scale_returns_shape_with_correct_size(self):
+
+        p = torch.rand(3, 4, 2).cumsum(2)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        triangle = membership.IsoscelesTriangle(
+            membership.ShapeParams(p)
+        )
+        shape = triangle.scale(m)
+        assert isinstance(shape, membership.IsoscelesTriangle)
+
+    def test_mean_core_returns_tensor_with_correct_size(self):
+
+        p = torch.rand(3, 4, 2).cumsum(2)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        right_trapezoid = membership.IsoscelesTriangle(
+            membership.ShapeParams(p)
+        )
+        shape = right_trapezoid.scale(m)
+        assert shape.mean_cores.shape == torch.Size([2, 3, 4])
+
+    def test_centroids_returns_tensor_with_correct_size(self):
+
+        p = torch.rand(3, 4, 2).cumsum(2)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        right_trapezoid = membership.IsoscelesTriangle(
+            membership.ShapeParams(p)
+        )
+        shape = right_trapezoid.scale(m)
+        assert shape.centroids.shape == torch.Size([2, 3, 4])
+
+    def test_areas_returns_tensor_with_correct_size(self):
+
+        p = torch.rand(3, 4, 2).cumsum(2)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        right_trapezoid = membership.IsoscelesTriangle(
+            membership.ShapeParams(p)
+        )
+        shape = right_trapezoid.scale(m)
+        assert shape.areas.shape == torch.Size([2, 3, 4])
+
+    def test_truncate_returns_trapezoid(self):
+
+        p = torch.rand(3, 4, 2).cumsum(2)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        right_trapezoid = membership.IsoscelesTriangle(
+            membership.ShapeParams(p)
+        )
+        shape = right_trapezoid.truncate(m)
+        assert isinstance(shape, membership.IsoscelesTrapezoid)
+
+
+
+class TestIsoscelesTrapezoid(object):
+
+    def test_join_returns_fuzzy_set_with_correct_size(self):
+
+        p = torch.rand(3, 4, 3).cumsum(2)
+        x = torch.rand(2, 3)
+        trapezoid = membership.IsoscelesTrapezoid(
+            membership.ShapeParams(p)
+        )
+        m = trapezoid.join(x)
+        assert m.data.size() == torch.Size([2, 3, 4])
+
+    def test_scale_returns_shape_with_correct_size(self):
+
+        p = torch.rand(3, 4, 3).cumsum(2)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        trapezoid = membership.IsoscelesTrapezoid(
+            membership.ShapeParams(p)
+        )
+        shape = trapezoid.scale(m)
+        assert isinstance(shape, membership.IsoscelesTrapezoid)
+
+    def test_mean_core_returns_tensor_with_correct_size(self):
+
+        p = torch.rand(3, 4, 3).cumsum(2)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        trapezoid = membership.IsoscelesTrapezoid(
+            membership.ShapeParams(p)
+        )
+        shape = trapezoid.scale(m)
+        assert shape.mean_cores.shape == torch.Size([2, 3, 4])
+
+    def test_centroids_returns_tensor_with_correct_size(self):
+
+        p = torch.rand(3, 4, 3).cumsum(2)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        trapezoid = membership.IsoscelesTrapezoid(
+            membership.ShapeParams(p)
+        )
+        shape = trapezoid.scale(m)
+        assert shape.centroids.shape == torch.Size([2, 3, 4])
+
+    def test_areas_returns_tensor_with_correct_size(self):
+
+        p = torch.rand(3, 4, 3).cumsum(2)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        trapezoid = membership.IsoscelesTrapezoid(
+            membership.ShapeParams(p)
+        )
+        shape = trapezoid.scale(m)
+        assert shape.areas.shape == torch.Size([2, 3, 4])
+
+    def test_truncate_returns_trapezoid(self):
+
+        p = torch.rand(3, 4, 3).cumsum(2)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        trapezoid = membership.IsoscelesTrapezoid(
+            membership.ShapeParams(p)
+        )
+        shape = trapezoid.truncate(m)
+        assert isinstance(shape, membership.IsoscelesTrapezoid)
+
+
+
+class TestLogistic(object):
+
+    def test_join_returns_fuzzy_set_with_correct_size(self):
+
+        b = torch.rand(3, 4, 1)
+        s = torch.rand(3, 4, 1)
+        x = torch.rand(2, 3)
+        trapezoid = membership.Logistic(
+            membership.ShapeParams(b), membership.ShapeParams(s)
+        )
+        m = trapezoid.join(x)
+        assert m.data.size() == torch.Size([2, 3, 4])
+
+    # def test_scale_returns_shape_with_correct_size(self):
+
+    #     p = torch.rand(3, 4, 3).cumsum(2)
+    #     m = FuzzySet(torch.rand(2, 3, 4), True)
+    #     trapezoid = membership.IsoscelesTrapezoid(
+    #         membership.ShapeParams(p)
+    #     )
+    #     shape = trapezoid.scale(m)
+    #     assert isinstance(shape, membership.IsoscelesTrapezoid)
+
+    # def test_mean_core_returns_tensor_with_correct_size(self):
+
+    #     p = torch.rand(3, 4, 3).cumsum(2)
+    #     m = FuzzySet(torch.rand(2, 3, 4), True)
+    #     trapezoid = membership.IsoscelesTrapezoid(
+    #         membership.ShapeParams(p)
+    #     )
+    #     shape = trapezoid.scale(m)
+    #     assert shape.mean_cores.shape == torch.Size([2, 3, 4])
+
+    # def test_centroids_returns_tensor_with_correct_size(self):
+
+    #     p = torch.rand(3, 4, 3).cumsum(2)
+    #     m = FuzzySet(torch.rand(2, 3, 4), True)
+    #     trapezoid = membership.IsoscelesTrapezoid(
+    #         membership.ShapeParams(p)
+    #     )
+    #     shape = trapezoid.scale(m)
+    #     assert shape.centroids.shape == torch.Size([2, 3, 4])
+
+    # def test_areas_returns_tensor_with_correct_size(self):
+
+    #     p = torch.rand(3, 4, 3).cumsum(2)
+    #     m = FuzzySet(torch.rand(2, 3, 4), True)
+    #     trapezoid = membership.IsoscelesTrapezoid(
+    #         membership.ShapeParams(p)
+    #     )
+    #     shape = trapezoid.scale(m)
+    #     assert shape.areas.shape == torch.Size([2, 3, 4])
+
+    # def test_truncate_returns_trapezoid(self):
+
+    #     p = torch.rand(3, 4, 3).cumsum(2)
+    #     m = FuzzySet(torch.rand(2, 3, 4), True)
+    #     trapezoid = membership.IsoscelesTrapezoid(
+    #         membership.ShapeParams(p)
+    #     )
+    #     shape = trapezoid.truncate(m)
+    #     assert isinstance(shape, membership.IsoscelesTrapezoid)
+
+
+
