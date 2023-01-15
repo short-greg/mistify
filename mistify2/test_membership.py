@@ -539,7 +539,6 @@ class TestIsocelesTriangle(object):
         assert isinstance(shape, membership.IsoscelesTrapezoid)
 
 
-
 class TestIsoscelesTrapezoid(object):
 
     def test_join_returns_fuzzy_set_with_correct_size(self):
@@ -603,69 +602,297 @@ class TestIsoscelesTrapezoid(object):
         assert isinstance(shape, membership.IsoscelesTrapezoid)
 
 
-
 class TestLogistic(object):
 
     def test_join_returns_fuzzy_set_with_correct_size(self):
 
-        b = torch.rand(3, 4, 1)
-        s = torch.rand(3, 4, 1)
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
         x = torch.rand(2, 3)
-        trapezoid = membership.Logistic(
-            membership.ShapeParams(b), membership.ShapeParams(s)
+        logistic = membership.LogisticBell(
+            b, s
         )
-        m = trapezoid.join(x)
+        m = logistic.join(x)
         assert m.data.size() == torch.Size([2, 3, 4])
 
-    # def test_scale_returns_shape_with_correct_size(self):
+    def test_scale_returns_shape_with_correct_size(self):
 
-    #     p = torch.rand(3, 4, 3).cumsum(2)
-    #     m = FuzzySet(torch.rand(2, 3, 4), True)
-    #     trapezoid = membership.IsoscelesTrapezoid(
-    #         membership.ShapeParams(p)
-    #     )
-    #     shape = trapezoid.scale(m)
-    #     assert isinstance(shape, membership.IsoscelesTrapezoid)
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        logistic = membership.LogisticBell(
+            b, s
+        )
+        shape = logistic.scale(m)
+        assert isinstance(shape, membership.LogisticBell)
 
-    # def test_mean_core_returns_tensor_with_correct_size(self):
+    def test_mean_core_returns_tensor_with_correct_size(self):
 
-    #     p = torch.rand(3, 4, 3).cumsum(2)
-    #     m = FuzzySet(torch.rand(2, 3, 4), True)
-    #     trapezoid = membership.IsoscelesTrapezoid(
-    #         membership.ShapeParams(p)
-    #     )
-    #     shape = trapezoid.scale(m)
-    #     assert shape.mean_cores.shape == torch.Size([2, 3, 4])
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        logistic = membership.LogisticBell(
+            b, s
+        )
+        shape = logistic.scale(m)
+        assert shape.mean_cores.shape == torch.Size([2, 3, 4])
 
-    # def test_centroids_returns_tensor_with_correct_size(self):
+    def test_centroids_returns_tensor_with_correct_size(self):
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        logistic = membership.LogisticBell(
+            b, s
+        )
+        shape = logistic.scale(m)
+        assert shape.centroids.shape == torch.Size([2, 3, 4])
 
-    #     p = torch.rand(3, 4, 3).cumsum(2)
-    #     m = FuzzySet(torch.rand(2, 3, 4), True)
-    #     trapezoid = membership.IsoscelesTrapezoid(
-    #         membership.ShapeParams(p)
-    #     )
-    #     shape = trapezoid.scale(m)
-    #     assert shape.centroids.shape == torch.Size([2, 3, 4])
+    def test_areas_returns_tensor_with_correct_size(self):
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        logistic = membership.LogisticBell(
+            b, s
+        )
+        shape = logistic.scale(m)
+        assert shape.areas.shape == torch.Size([2, 3, 4])
 
-    # def test_areas_returns_tensor_with_correct_size(self):
+    def test_truncate_returns_trapezoid(self):
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        logistic = membership.LogisticBell(
+            b, s
+        )
+        shape = logistic.truncate(m)
+        assert isinstance(shape, membership.LogisticTrapezoid)
 
-    #     p = torch.rand(3, 4, 3).cumsum(2)
-    #     m = FuzzySet(torch.rand(2, 3, 4), True)
-    #     trapezoid = membership.IsoscelesTrapezoid(
-    #         membership.ShapeParams(p)
-    #     )
-    #     shape = trapezoid.scale(m)
-    #     assert shape.areas.shape == torch.Size([2, 3, 4])
 
-    # def test_truncate_returns_trapezoid(self):
+class TestLogisticTrapezoid(object):
 
-    #     p = torch.rand(3, 4, 3).cumsum(2)
-    #     m = FuzzySet(torch.rand(2, 3, 4), True)
-    #     trapezoid = membership.IsoscelesTrapezoid(
-    #         membership.ShapeParams(p)
-    #     )
-    #     shape = trapezoid.truncate(m)
-    #     assert isinstance(shape, membership.IsoscelesTrapezoid)
+    def test_join_returns_fuzzy_set_with_correct_size(self):
+
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
+        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+        x = torch.rand(2, 3)
+        logistic = membership.LogisticTrapezoid(
+            b, s, truncated_m
+        )
+        m = logistic.join(x)
+        assert m.data.size() == torch.Size([2, 3, 4])
+
+    def test_scale_returns_shape_with_correct_size(self):
+
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
+        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        logistic = membership.LogisticTrapezoid(
+            b, s, truncated_m
+        )
+        shape = logistic.scale(m)
+        assert isinstance(shape, membership.LogisticTrapezoid)
+
+    def test_mean_core_returns_tensor_with_correct_size(self):
+
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+
+        logistic = membership.LogisticTrapezoid(
+            b, s, truncated_m
+        )
+        shape = logistic.scale(m)
+        assert shape.mean_cores.shape == torch.Size([2, 3, 4])
+
+    def test_centroids_returns_tensor_with_correct_size(self):
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
+        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        logistic = membership.LogisticTrapezoid(
+            b, s, truncated_m
+        )
+        shape = logistic.scale(m)
+        assert shape.centroids.shape == torch.Size([2, 3, 4])
+
+    def test_areas_returns_tensor_with_correct_size(self):
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
+        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        logistic = membership.LogisticTrapezoid(
+            b, s, truncated_m
+        )
+        shape = logistic.scale(m)
+        assert shape.areas.shape == torch.Size([2, 3, 4])
+
+    def test_truncate_returns_trapezoid(self):
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+
+        logistic = membership.LogisticTrapezoid(
+            b, s, truncated_m
+        )
+        shape = logistic.truncate(m)
+        assert isinstance(shape, membership.LogisticTrapezoid)
+
+
+class TestRightLogistic(object):
+
+    def test_join_returns_fuzzy_set_with_correct_size(self):
+
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
+        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+        x = torch.rand(2, 3)
+        logistic = membership.RightLogistic(
+            b, s, True, truncated_m
+        )
+        m = logistic.join(x)
+        assert m.data.size() == torch.Size([2, 3, 4])
+
+    def test_scale_returns_shape_with_correct_size(self):
+
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
+        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        logistic = membership.RightLogistic(
+            b, s, True, truncated_m
+        )
+        shape = logistic.scale(m)
+        assert isinstance(shape, membership.RightLogistic)
+
+    def test_mean_core_returns_tensor_with_correct_size(self):
+
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+
+        logistic = membership.RightLogistic(
+            b, s, True, truncated_m
+        )
+        shape = logistic.scale(m)
+        assert shape.mean_cores.shape == torch.Size([2, 3, 4])
+
+    def test_centroids_returns_tensor_with_correct_size(self):
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
+        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        logistic = membership.RightLogistic(
+            b, s, True, truncated_m
+        )
+        shape = logistic.scale(m)
+        assert shape.centroids.shape == torch.Size([2, 3, 4])
+
+    def test_areas_returns_tensor_with_correct_size(self):
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
+        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        logistic = membership.RightLogistic(
+            b, s, True, truncated_m
+        )
+        shape = logistic.scale(m)
+        assert shape.areas.shape == torch.Size([2, 3, 4])
+
+    def test_truncate_returns_trapezoid(self):
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+
+        logistic = membership.RightLogistic(
+            b, s, True, truncated_m
+        )
+        shape = logistic.truncate(m)
+        assert isinstance(shape, membership.RightLogisticTrapezoid)
+
+
+
+
+
+
+
+class TestRightLogisticTrapezoid(object):
+
+    def test_join_returns_fuzzy_set_with_correct_size(self):
+
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
+        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+        x = torch.rand(2, 3)
+        logistic = membership.RightLogisticTrapezoid(
+            b, s, True, truncated_m
+        )
+        m = logistic.join(x)
+        assert m.data.size() == torch.Size([2, 3, 4])
+
+    def test_scale_returns_shape_with_correct_size(self):
+
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
+        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        logistic = membership.RightLogisticTrapezoid(
+            b, s, True, truncated_m
+        )
+        shape = logistic.scale(m)
+        assert isinstance(shape, membership.RightLogisticTrapezoid)
+
+    def test_mean_core_returns_tensor_with_correct_size(self):
+
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+
+        logistic = membership.RightLogisticTrapezoid(
+            b, s, True, truncated_m
+        )
+        shape = logistic.scale(m)
+        assert shape.mean_cores.shape == torch.Size([2, 3, 4])
+
+    def test_centroids_returns_tensor_with_correct_size(self):
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
+        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        logistic = membership.RightLogisticTrapezoid(
+            b, s, True, truncated_m
+        )
+        shape = logistic.scale(m)
+        assert shape.centroids.shape == torch.Size([2, 3, 4])
+
+    def test_areas_returns_tensor_with_correct_size(self):
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
+        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        logistic = membership.RightLogisticTrapezoid(
+            b, s, True, truncated_m
+        )
+        shape = logistic.scale(m)
+        assert shape.areas.shape == torch.Size([2, 3, 4])
+
+    def test_truncate_returns_trapezoid(self):
+        b = membership.ShapeParams(torch.rand(3, 4, 1))
+        s = membership.ShapeParams(torch.rand(3, 4, 1))
+        m = FuzzySet(torch.rand(2, 3, 4), True)
+        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+
+        logistic = membership.RightLogisticTrapezoid(
+            b, s, True, truncated_m
+        )
+        shape = logistic.truncate(m)
+        assert isinstance(shape, membership.RightLogisticTrapezoid)
 
 
 

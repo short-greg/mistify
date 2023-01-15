@@ -153,6 +153,11 @@ def calc_m_logistic(x, b, s, m: FuzzySet):
     return multiplier * y * (1 - y)
 
 
+def calc_x_logistic(y, b, s):
+
+    return -torch.log(1 / y - 1) / s + b
+
+
 def calc_dx_logistic(m0: FuzzySet, s: torch.Tensor, m_base: FuzzySet):
     
     m = m0.data / m_base.data
@@ -163,7 +168,7 @@ def calc_dx_logistic(m0: FuzzySet, s: torch.Tensor, m_base: FuzzySet):
 
 def calc_area_logistic(s: torch.Tensor, m_base: FuzzySet, left=True):
     
-    return 4 * m_base / s
+    return 4 * m_base.data / s
 
 
 def calc_area_logistic_one_side(x: torch.Tensor, b: torch.Tensor, s: torch.Tensor, m_base: FuzzySet):
@@ -175,7 +180,7 @@ def calc_area_logistic_one_side(x: torch.Tensor, b: torch.Tensor, s: torch.Tenso
     # flip the probability
     a = left * a + (1 - left) * (1 - a)
 
-    return a * m_base * 4 / s
+    return a * m_base.data * 4 / s
 
 def unsqueeze(x: torch.Tensor):
     return x.unsqueeze(x.dim())
@@ -530,7 +535,6 @@ class Trapezoid(Polygon):
         )
 
 
-
 class Logistic(Shape):
 
     def __init__(
@@ -577,13 +581,13 @@ class LogisticBell(Logistic):
         return 4  * (1 - sig) * sig * self._m.data
 
     def _calc_areas(self):
-        return 4 * self._m.data / self._biases.pt(0)
+        return self._resize_to_m(4 * self._m.data / self._biases.pt(0), self._m)
         
     def _calc_mean_cores(self):
-        return self._biases.pt(0)
+        return self._resize_to_m(self._biases.pt(0), self._m)
 
     def _calc_centroids(self):
-        return self._biases.pt(0)
+        return self._resize_to_m(self._biases.pt(0), self._m)
 
     def scale(self, m: torch.Tensor) -> 'LogisticBell':
         updated_m = self._m.intersect(m)
@@ -611,12 +615,12 @@ class LogisticTrapezoid(Logistic):
 
         self._truncated_m = truncated_m.intersect(self._m)
         
-        dx = calc_dx_logistic(self._truncated_m, self._scales.pt(0), self._m)
+        dx = unsqueeze(calc_dx_logistic(self._truncated_m, self._scales.pt(0), self._m))
         self._dx = ShapeParams(dx)
-        self._pts = ShapeParams(torch.stack([
+        self._pts = ShapeParams(torch.concat([
             self._biases.x - self._dx.x,
             self._biases.x + self._dx.x
-        ], dim=dx.dim()))
+        ], dim=dx.dim() - 1))
 
     @property
     def dx(self):
@@ -627,9 +631,9 @@ class LogisticTrapezoid(Logistic):
         return self._truncated_m
 
     def join(self, x: torch.Tensor) -> 'FuzzySet':
-        
+        x = unsqueeze(x)
         inside = check_contains(x, self._pts.pt(0), self._pts.pt(1)).float()
-        m1 = calc_m_logistic(unsqueeze(x), self._biases.pt(0), self._scales.pt(0), self._m) * (1 - inside)
+        m1 = calc_m_logistic(x, self._biases.pt(0), self._scales.pt(0), self._m) * (1 - inside)
         m2 = self._truncated_m.data * inside
         return FuzzySet(torch.max(m1, m2), self._m.is_batch)
 
@@ -640,17 +644,18 @@ class LogisticTrapezoid(Logistic):
         ), self._m)
         
     def _calc_mean_cores(self):
-        return self._biases.pt(0)
+        return self._resize_to_m(self._biases.pt(0), self._m)
 
     def _calc_centroids(self):
-        return self._biases.pt(0)
+        return self._resize_to_m(self._biases.pt(0), self._m)
 
     def scale(self, m: FuzzySet) -> 'LogisticTrapezoid':
         updated_m = self._m.intersect(m)
-        truncated_m = self._truncated_m.data * updated_m.data
+        # TODO: check if multiplication is correct
+        truncated_m = FuzzySet(self._truncated_m.data * updated_m.data)
 
         return LogisticTrapezoid(
-            self._biases.x, self._scales.x, truncated_m, updated_m.x 
+            self._biases, self._scales, truncated_m, updated_m
         )
 
     def truncate(self, m: FuzzySet) -> 'LogisticTrapezoid':
@@ -674,11 +679,12 @@ class RightLogistic(Logistic):
         if self._is_right:
             side = x >= self._biases.pt(0)
         else: side = x <= self._biases.pt(0)
-        return side.unsqueeze(2)
+        return side
 
     def join(self, x: torch.Tensor):
+        x = unsqueeze(x)
         return FuzzySet(calc_m_logistic(
-            unsqueeze(x), self._biases.pt(0), 
+            x, self._biases.pt(0), 
             self._scales.pt(0), self._m
         ) * self._on_side(x).float(), self._m.is_batch)
 
@@ -689,10 +695,9 @@ class RightLogistic(Logistic):
         return self._resize_to_m(self._biases.pt(0), self._m)
 
     def _calc_centroids(self):
-        dx = calc_dx_logistic(torch.tensor(
-            0.75, device=self._biases.x.device
-        ), self._scales.pt(0))
-        return self._resize_to_m(self._biases.pt(0) + self._direction * dx, self._m)
+        base_y = 0.75 if self._is_right else 0.25
+        x = torch.logit(torch.tensor(base_y, dtype=torch.float, device=self._m.data.device)) / self._scales.pt(0) + self._biases.pt(0)
+        return self._resize_to_m(x, self._m)
 
     def scale(self, m: FuzzySet) -> 'RightLogistic':
         updated_m = self._m.intersect(m)
@@ -703,13 +708,12 @@ class RightLogistic(Logistic):
 
     def truncate(self, m: torch.Tensor) -> 'LogisticTrapezoid':
         truncated_m = self._m.intersect(m)
-        return LogisticTrapezoid(
-            self._biases, self._scales, truncated_m, self._m
+        return RightLogisticTrapezoid(
+            self._biases, self._scales, self._is_right, truncated_m, self._m
         )
 
     @classmethod
     def from_combined(cls, params: torch.Tensor, is_right: bool=True,m: torch.Tensor=None):
-
         # TODO: Check this and confirm
         if params.x.dim() == 4:
             return cls(params.sub(0), params.sub(1), is_right, m)
@@ -717,8 +721,6 @@ class RightLogistic(Logistic):
 
 
 class RightLogisticTrapezoid(Logistic):
-
-    # TODO: Think about the "logistic trapezoids" more
 
     def __init__(
         self, biases: ShapeParams, scales: ShapeParams, is_right: bool, 
@@ -730,9 +732,8 @@ class RightLogisticTrapezoid(Logistic):
         if truncated_m is None:
             truncated_m = torch.ones(self._m.x.size(), device=self._m.x.device)
 
-        self._truncated_m = scaled_m.intersect(truncated_m)
-        
-        dx = calc_dx_logistic(self._truncated_m.pt(0), self._scales.pt(0), self._m)
+        self._truncated_m = self._m.intersect(truncated_m)
+        dx = unsqueeze(calc_dx_logistic(self._truncated_m, self._scales.pt(0), self._m))
         self._dx = ShapeParams(dx)
         self._is_right = is_right
         self._direction = is_right * 2 - 1
@@ -748,19 +749,20 @@ class RightLogisticTrapezoid(Logistic):
 
     def _contains(self, x: torch.Tensor):
         if self._is_right:
-            square_contains = (x >= self._biases[0]) & (x <= self._pts[0])
-            logistic_contains = x >= self._pts[0]
+            square_contains = (x >= self._biases.pt(0)) & (x <= self._pts.pt(0))
+            logistic_contains = x >= self._pts.pt(0)
         else:
-            square_contains = (x <= self._biases[0]) & (x >= self._pts[0])
-            logistic_contains = x <= self._pts[0]
+            square_contains = (x <= self._biases.pt(0)) & (x >= self._pts[0])
+            logistic_contains = x <= self._pts.pt(0)
         return square_contains.float(), logistic_contains.float()
 
     def join(self, x: torch.Tensor) -> 'FuzzySet':
+        x = unsqueeze(x)
         
         square_contains, logistic_contains = self._contains(x)
         
         m1 = calc_m_logistic(
-            unsqueeze(x), self._biases.pt(0), self._scales.pt(0), self._m
+            x, self._biases.pt(0), self._scales.pt(0), self._m
         ) * logistic_contains
         m2 = self._m.data * square_contains
         return FuzzySet(torch.max(m1, m2), self._m.is_batch)
@@ -768,8 +770,8 @@ class RightLogisticTrapezoid(Logistic):
     def _calc_areas(self):
         a1 = self._resize_to_m(calc_area_logistic_one_side(
             self._pts.pt(0), self._biases.pt(0), self._scales.pt(0), 
-            self._m, left=not self._is_right), self._m)
-        a2 = 0.5 * (self._biases.pt(0) + self._pts.pt(0)) * self._m.pt(0)
+            self._m), self._m)
+        a2 = 0.5 * (self._biases.pt(0) + self._pts.pt(0)) * self._m.data
         return self._resize_to_m(a1 + a2, self._m)
 
     def _calc_mean_cores(self):
@@ -778,7 +780,8 @@ class RightLogisticTrapezoid(Logistic):
     def _calc_centroids(self):
 
         # area up to "dx"
-        p = torch.sigmoid(self._scales.pt(0) * (-self._dx.pt(0))) # check
+        print(self._scales.x.size(), self._dx.x.size())
+        p = torch.sigmoid(self._scales.pt(0) * (-self._dx.pt(0)))
         centroid_logistic = self._biases.pt(0) + torch.logit(p / 2) / self._scales.pt(0)
         centroid_square = self._biases.pt(0) - self._dx.pt(0) / 2
 
@@ -788,7 +791,7 @@ class RightLogisticTrapezoid(Logistic):
         return self._resize_to_m(centroid, self._m)
 
     def scale(self, m: FuzzySet) -> 'RightLogisticTrapezoid':
-        updated_m = self._intersect_m(m)
+        updated_m = self._m.intersect(m)
 
         # TODO: Confirm if this is correct
         # I think it should be intersecting rather than multiplying
