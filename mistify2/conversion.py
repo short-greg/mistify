@@ -10,7 +10,6 @@ import membership as memb
 from .membership import Shape
 import typing
 
-from .crisp import BinaryComposition
 
 @dataclass
 class ValueWeight:
@@ -250,14 +249,14 @@ class ShapeConverter(FuzzyConverter):
     def right_edge(self) -> Shape:
         return self._right_edge
 
-    def truncate(self, m: torch.Tensor) -> 'ShapeConverter':
+    def truncate(self, m: FuzzySet) -> 'ShapeConverter':
         return self.__class__(
             self._left_edge.truncate(m[:,:,0:1]),
             self._middle.truncate(m[:,:,1:-1]),
             self._right_edge.truncate(m[:,:,-1:]),
         )
 
-    def scale(self, m: torch.Tensor) -> 'ShapeConverter':
+    def scale(self, m: FuzzySet) -> 'ShapeConverter':
         return self.__class__(
             self._left_edge.scale(m[:,:,0:1]),
             self._middle.scale(m[:,:,1:-1]),
@@ -271,14 +270,15 @@ class ShapeConverter(FuzzyConverter):
             dim=2
         )
 
-class ShapeAggregator(nn.Module):
+
+class ShapeImplication(nn.Module):
 
     @abstractmethod
     def forward(self, *shapes: memb.Shape):
         pass
 
 
-class AreaAggregator(nn.Module):
+class AreaImplication(nn.Module):
 
     def forward(self, *shapes: memb.Shape):
         return torch.cat(
@@ -286,7 +286,7 @@ class AreaAggregator(nn.Module):
         )
 
 
-class MeanCoreAggregator(nn.Module):
+class MeanCoreImplication(nn.Module):
 
     def forward(self, *shapes: memb.Shape):
         return torch.cat(
@@ -294,7 +294,7 @@ class MeanCoreAggregator(nn.Module):
         )
 
 
-class CentroidAggregator(nn.Module):
+class CentroidImplication(nn.Module):
 
     def forward(self, *shapes: memb.Shape):
         return torch.cat(
@@ -312,43 +312,42 @@ def stride_coordinates(coordinates: torch.Tensor, stride: int, step: int=1):
     return coordinates[:, dim2_index]
 
 
-class IsoscelesFuzzyConverter(FuzzyConverter):
+@dataclass
+class ShapePoints:
 
-    def __init__(self, n_variables: int, n_values: int, accumulator: Accumulator=None, flat_edges: bool=False, truncate: bool=True, fixed: bool=False):
+    n_side_pts: int
+    n_pts: int
+    n_middle_pts: int
+    side_step: int
+    step: int
+    n_pts: int
 
+
+class PolygonFuzzyConverter(FuzzyConverter):
+
+    def __init__(
+        self, n_variables: int, n_terms: int, shape_pts: ShapePoints,
+        left_cls: memb.Polygon, middle_cls: memb.Polygon, right_cls: memb.Polygon, 
+        fixed: bool=False,
+        implication: ShapeImplication=None, accumulator: Accumulator=None, truncate: bool=True
+    ):
         super().__init__()
-        self._aggregator = AreaAggregator()
 
+        self._shape_pts = shape_pts
+        self._left_cls = left_cls
+        self._middle_cls = middle_cls
+        self._right_cls = right_cls
+        self.truncate = truncate
+        self.accumulator = accumulator or WeightedAverageAcc()
+        self.implication = implication or AreaImplication()
         self._n_variables = n_variables
-        self._n_values = n_values
-        
-        self._step = 1
-        if flat_edges:
-            self._left_cls = memb.DecreasingRightTrapezoid
-            self._right_cls = memb.IncreasingRightTrapezoid
-            self._n_side_points = 3
-            self._n_points = n_values + 2
-            self._side_step = 1
-        else:
-            self._side_step = 1
-            self._side_points = 2
-            self._n_points = n_values
-            self._left_cls = memb.DecreasingRightTriangle
-            self._right_cls = memb.IncreasingRightTriangle
-
-        self._middle_cls = memb.IsoscelesTriangle
-        self._accumulator = accumulator
-        self._truncate = truncate
-        self._side_points = 3
-        self._middle_points = n_values
-
-        self._params = torch.linspace(0.0, 1.0, self._n_points)
-        self._params = self._params[None]
-        self._params = self._params.repeat(n_variables, 1)
-
+        self._n_terms = n_terms
+        params = torch.linspace(0.0, 1.0, shape_pts.n_pts)
+        params = params[None]
+        self._params = params.repeat(n_variables, 1)
         if not fixed:
-            self._params = nn.parameter.Parameter(self._params)
-
+            self._params = nn.parameter.Parameter(self._parameters)
+    
     def generate_params(self):
         positive_params = torch.nn.functional.softplus(self._params)
         cumulated_params = torch.cumsum(positive_params, dim=1)
@@ -356,7 +355,12 @@ class IsoscelesFuzzyConverter(FuzzyConverter):
         max_val = cumulated_params[:,-1:]
         scaled_params  = (cumulated_params - min_val) / (max_val - min_val)
         return scaled_params
-
+    
+    def _join(self, x: torch.Tensor):
+        return torch.cat(
+            [shape.join(x) for shape in self.create_shapes() ],dim=2
+        )
+    
     def create_shapes(self) -> typing.Tuple[Shape, Shape, Shape]:
         left = self._params[:,:self._params].view(self._n_variables, 1, -1)
         right = self._params[:,-self._side_points:].view(self._n_values, 1, -1)
@@ -365,20 +369,15 @@ class IsoscelesFuzzyConverter(FuzzyConverter):
             self._n_points, self._step
         )
         return self._left_cls(left), self._middle_cls(middle), self._right_cls(right)
-
-    def _join(self, x: torch.Tensor):
-        return torch.cat(
-            [shape.join(x) for shape in self.create_shapes() ],dim=2
-        )
     
-    def _aggregate(self, m: torch.Tensor):
+    def _imply(self, m: torch.Tensor):
         xs = []
         for shape in self.create_shapes():
             if self._truncate:
                 xs.append(shape.truncate(m) )
             else:
                 xs.append(shape.scale(m))
-        return self._aggregator(*xs)
+        return self._implication(*xs)
 
     def fuzzify(self, x: torch.Tensor) -> FuzzySet:
         return self._join(x)
@@ -387,56 +386,80 @@ class IsoscelesFuzzyConverter(FuzzyConverter):
         return self._accumulator.forward(value_weight)
 
     def imply(self, m: FuzzySet) -> ValueWeight:
-        return ValueWeight(m, self._aggregate(m))
+        return ValueWeight(m, self._imply(m))
 
 
-class BinaryWeightLoss(nn.Module):
+class IsoscelesFuzzyConverter(PolygonFuzzyConverter):
 
-    def __init__(self, lr: float=1e-2):
-        """initialzier
-
-        Args:
-            linear (nn.Linear): Linear layer to optimize
-            act_inverse (Reversible): The invertable activation of the layer
-        """
-        self.lr = lr
-
-    def step(self, to_binary, x: torch.Tensor, t: torch.Tensor, state: dict):
-
-        # assessment, y, result = get_y_and_assessment(objective, x, t, result)
-        y = to_binary.forward(x)
-        change = (y != t).type_as(y)
-        if to_binary.same:
-            loss = (to_binary.weight[None,None,:] * change) ** 2
+    def __init__(
+        self, n_variables: int, n_terms: int, implication: ShapeImplication=None, 
+        accumulator: Accumulator=None, flat_edges: bool=False, truncate: bool=True, fixed: bool=False
+    ):
+        if flat_edges:
+            left_cls = memb.DecreasingRightTrapezoid
+            right_cls = memb.IncreasingRightTrapezoid
+            shape_pts = ShapePoints(3, n_terms + 2, n_terms, 1, 1)
         else:
-            loss = (to_binary.weight[None,:,:] * change) ** 2
+            shape_pts = ShapePoints(2, n_terms, n_terms, 0, 0)
+            left_cls = memb.DecreasingRightTriangle
+            right_cls = memb.IncreasingRightTriangle
 
-        # TODO: Reduce the loss
-        return loss
-
-
-class BinaryXLoss(nn.Module):
-
-    def __init__(self, lr: float=1e-2):
-        """initialzier
-
-        Args:
-            linear (nn.Linear): Linear layer to optimize
-            act_inverse (Reversible): The invertable activation of the layer
-        """
-        self.lr = lr
-
-    def step(self, to_binary: StepCrispConverter, x: torch.Tensor, t: torch.Tensor, state: dict):
-
-        # assessment, y, result = get_y_and_assessment(objective, x, t, result)
-        y = to_binary.forward(x)
-        change = (y != t).type_as(y)
-        loss = (x[:,:,None] * change) ** 2
-
-        # TODO: Reduce the loss
-        return loss
+        middle_cls = memb.IsoscelesTriangle
+        
+        super().__init__(
+            n_variables, n_terms, shape_pts, left_cls, middle_cls, right_cls, fixed, implication, accumulator, truncate
+        )
 
 
+class TriangleFuzzyConverter(FuzzyConverter):
+
+    def __init__(
+        self, n_variables: int, n_terms: int, implication: ShapeImplication=None, accumulator: Accumulator=None, 
+        flat_edges: bool=False, truncate: bool=True, fixed: bool=False
+    ):
+
+        if flat_edges:
+            left_cls = memb.DecreasingRightTrapezoid
+            right_cls = memb.IncreasingRightTrapezoid
+            shape_pts = ShapePoints(3, n_terms + 2, n_terms, 1, 1)
+        else:
+            shape_pts = ShapePoints(3, n_terms + 2, n_terms, 1, 1)
+            left_cls = memb.DecreasingRightTriangle
+            right_cls = memb.IncreasingRightTriangle
+        middle_cls = memb.Triangle
+        
+        super().__init__(
+            n_variables, n_terms, shape_pts, left_cls, middle_cls, right_cls, fixed, implication, accumulator, truncate
+        )
+
+
+class TrapezoidFuzzyConverter(FuzzyConverter):
+
+    def __init__(
+        self, n_variables: int, n_terms: int, implication: ShapeImplication=None, accumulator: Accumulator=None, 
+        flat_edges: bool=False, truncate: bool=True, fixed: bool=False
+    ):
+        if flat_edges:
+            left_cls = memb.DecreasingRightTrapezoid
+            right_cls = memb.IncreasingRightTrapezoid
+
+            shape_pts = ShapePoints(3, n_terms + 2, n_terms, 0, 2)
+        else:
+            shape_pts = ShapePoints(3, n_terms + 2, n_terms, 1, 2)
+            left_cls = memb.DecreasingRightTriangle
+            right_cls = memb.IncreasingRightTriangle
+
+        middle_cls = memb.Trapezoid
+        
+        super().__init__(
+            n_variables, n_terms, shape_pts,
+            left_cls, middle_cls, right_cls, fixed, 
+            implication, accumulator, truncate, 
+        )
+
+
+class LogisticFuzzyConverter(FuzzyConverter):
+    pass
 
 
 # Not sure why i have strides

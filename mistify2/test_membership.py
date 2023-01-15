@@ -893,6 +893,3 @@ class TestRightLogisticTrapezoid(object):
         )
         shape = logistic.truncate(m)
         assert isinstance(shape, membership.RightLogisticTrapezoid)
-
-
-
