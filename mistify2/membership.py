@@ -267,7 +267,7 @@ class Polygon(Shape):
     def __init__(self, params: ShapeParams, m: typing.Optional[torch.Tensor]=None):
 
         assert params.x.size(3) == self.PT, f'Number of points must be {self.PT} not {params.x.size(3)}'
-
+        print(params.x.size())
         self._params = params
         self._m = m or FuzzySet.positives(
             self._params.batch_size, self._params.set_size, 
@@ -367,7 +367,6 @@ class DecreasingRightTriangle(Polygon):
         pt = calc_x_linear_decreasing(
             updated_m, self._params.pt(0), self._params.pt(1), self._m
         )
-        
         params = self._params.insert(pt, 1, to_unsqueeze=True)
         return DecreasingRightTrapezoid(
             params, updated_m
@@ -715,7 +714,7 @@ class RightLogistic(Logistic):
     @classmethod
     def from_combined(cls, params: torch.Tensor, is_right: bool=True,m: torch.Tensor=None):
         # TODO: Check this and confirm
-        if params.x.dim() == 4:
+        if params.dim() == 4:
             return cls(params.sub(0), params.sub(1), is_right, m)
         return cls(params.sub(0), params.sub(1), is_right, m)
 
@@ -848,7 +847,6 @@ class IsoscelesTriangle(Polygon):
 
     def scale(self, m: FuzzySet) -> 'IsoscelesTriangle':
         updated_m = self._m.intersect(m)
-        
         return IsoscelesTriangle(
             self._params, updated_m
         )

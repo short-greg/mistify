@@ -48,3 +48,5 @@ class BinaryXLoss(nn.Module):
 
         # TODO: Reduce the loss
         return loss
+
+# TODO: Add fuzzy losses

@@ -8,7 +8,6 @@ def smooth_max(m1: FuzzySet, m2: FuzzySet, a: float) -> FuzzySet:
     z2 = ((m2.data + 1) ** a).detach()
     return FuzzySet((m1.data * z1 + m2.data * z2) / (z1 + z2))
 
-
 def smooth_max_on(m: FuzzySet, dim: int, a: float) -> FuzzySet:
     z = ((m.data + 1) ** a).detach()
     return FuzzySet((m.data * z).sum(dim=dim) / z.sum(dim=dim))
