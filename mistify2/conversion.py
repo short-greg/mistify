@@ -229,59 +229,17 @@ class SigmoidDefuzzifier(Defuzzifier):
         )
 
 
-class ShapeConverter(FuzzyConverter):
+def get_implication(implication: typing.Union['ShapeImplication', str]):
 
-    # def __init__(self, left_edge: Shape, middle: Shape, right_edge: Shape):
-
-    #     super().__init__([left_edge, middle, right_edge])
-    #     self._left_edge = left_edge
-    #     self._middle = middle
-    #     self._right_edge = right_edge
-    
-    # @property
-    # def left_edge(self) -> Shape:
-    #     return self._left_edge
-
-    # @property
-    # def middle(self) -> Shape:
-    #     return self._middle
-    
-    # @property
-    # def right_edge(self) -> Shape:
-    #     return self._right_edge
-
-    # def truncate(self, m: FuzzySet) -> 'ShapeConverter':
-    #     return self.__class__(
-    #         self._left_edge.truncate(m[:,:,0:1]),
-    #         self._middle.truncate(m[:,:,1:-1]),
-    #         self._right_edge.truncate(m[:,:,-1:]),
-    #     )
-
-    # def scale(self, m: FuzzySet) -> 'ShapeConverter':
-    #     return self.__class__(
-    #         self._left_edge.scale(m[:,:,0:1]),
-    #         self._middle.scale(m[:,:,1:-1]),
-    #         self._right_edge.scale(m[:,:,-1:]),
-    #     )
-
-    # def join(self, x: torch.Tensor) -> torch.Tensor:
-
-    #     return torch.cat(
-    #         [self._left_edge.join(x), self._middle.join(x), self._right_edge.join(x)],
-    #         dim=2
-    #     )
-
-    def get_implication(self, implication: typing.Union['ShapeImplication', str]):
-
-        if isinstance(implication, ShapeImplication):
-            return implication
-        if implication == 'area':
-            return AreaImplication()
-        if implication == 'mean_core':
-            return MeanCoreImplication()
-        if implication == 'centroid':
-            return CentroidImplication()
-        raise ValueError(f"Name {implication} cannot be created")
+    if isinstance(implication, ShapeImplication):
+        return implication
+    if implication == 'area':
+        return AreaImplication()
+    if implication == 'mean_core':
+        return MeanCoreImplication()
+    if implication == 'centroid':
+        return CentroidImplication()
+    raise ValueError(f"Name {implication} cannot be created")
 
 
 class ShapeImplication(nn.Module):
@@ -336,7 +294,7 @@ class ShapePoints:
     n_pts: int
 
 
-class PolygonFuzzyConverter(ShapeConverter):
+class PolygonFuzzyConverter(FuzzyConverter):
 
     def __init__(
         self, n_variables: int, n_terms: int, shape_pts: ShapePoints,
@@ -353,7 +311,7 @@ class PolygonFuzzyConverter(ShapeConverter):
         self._right_cls = right_cls
         self.truncate = truncate
         self.accumulator = self.get_accumulator(accumulator)
-        self.implication = self.get_implication(implication)
+        self.implication = get_implication(implication)
         self._n_variables = n_variables
         self._n_terms = n_terms
         params = torch.linspace(0.0, 1.0, shape_pts.n_pts)
@@ -490,7 +448,7 @@ class TrapezoidFuzzyConverter(PolygonFuzzyConverter):
         )
 
 
-class LogisticFuzzyConverter(ShapeConverter):
+class LogisticFuzzyConverter(FuzzyConverter):
 
     def __init__(
         self, n_variables: int, n_terms: int, fixed: bool=False,
@@ -502,7 +460,7 @@ class LogisticFuzzyConverter(ShapeConverter):
 
         self.truncate = truncate
         self.accumulator = self.get_accumulator(accumulator)
-        self.implication = self.get_implication(implication)
+        self.implication = get_implication(implication)
         self._n_variables = n_variables
         self._n_terms = n_terms
         biases = torch.linspace(0.0, 1.0, n_terms).unsqueeze(0)
