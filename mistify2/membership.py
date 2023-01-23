@@ -75,30 +75,40 @@ class ShapeParams:
     def contains(self, x: torch.Tensor, index1: int, index2: int) -> torch.BoolTensor:
         return (x >= self.pt(index1)) & (x <= self.pt(index2))
 
-    def insert(self, x: torch.Tensor, idx: int, to_unsqueeze: bool=False):
+    def insert(self, x: torch.Tensor, idx: int, to_unsqueeze: bool=False, equalize_to: torch.Tensor=None):
         x = x if not to_unsqueeze else unsqueeze(x)
+
         mine = resize_to(self.x, x)
+        if equalize_to is not None:
+            mine = resize_to(mine, equalize_to, 1)
         if not (0 <= idx <= mine.size(3)):
             raise ValueError(f'Argument idx must be in range of [0, {mine.size(3)}] not {idx}')
         
+        print(mine[:,:,:,:idx].shape, x.shape, mine[:,:,:,idx:].shape)
         return ShapeParams(
             torch.concat([mine[:,:,:,:idx], x, mine[:,:,:,idx:]], dim=3)
         )
 
-    def replace(self, x: torch.Tensor, idx: int, to_unsqueeze: bool=False):
+    def replace(self, x: torch.Tensor, idx: int, to_unsqueeze: bool=False, equalize_to: torch.Tensor=None):
         x = x if not to_unsqueeze else unsqueeze(x)
         mine = resize_to(self.x, x)
+        if equalize_to is not None:
+            mine = resize_to(mine, equalize_to, 1)
         if not (0 <= idx < self._x.size(3)):
             raise ValueError(f'Argument idx must be in range of [0, {mine.size(3)}) not {idx}')
+        
         return ShapeParams(
             torch.concat([mine[:,:,:,:idx], x, mine[:,:,:,idx+1:]], dim=3)
         )
 
-    def replace_slice(self, x: torch.Tensor, pt_range: typing.Tuple[int, int], to_unsqueeze: bool=False):
+    def replace_slice(self, x: torch.Tensor, pt_range: typing.Tuple[int, int], to_unsqueeze: bool=False, equalize_to: torch.Tensor=None):
         x = x if not to_unsqueeze else unsqueeze(x)
         
+        mine = resize_to(self.x, x)
+        if equalize_to is not None:
+            mine = resize_to(mine, equalize_to, 1)
         return ShapeParams(
-            torch.concat([self._x[:,:,:,:pt_range[0]], x, self._x[:,:,:,pt_range[1]+1:]], dim=3)
+            torch.concat([mine[:,:,:,:pt_range[0]], x, mine[:,:,:,pt_range[1]+1:]], dim=3)
         )
 
     @classmethod
@@ -267,7 +277,6 @@ class Polygon(Shape):
     def __init__(self, params: ShapeParams, m: typing.Optional[torch.Tensor]=None):
 
         assert params.x.size(3) == self.PT, f'Number of points must be {self.PT} not {params.x.size(3)}'
-        print(params.x.size())
         self._params = params
         self._m = m or FuzzySet.positives(
             self._params.batch_size, self._params.set_size, 
@@ -319,8 +328,9 @@ class IncreasingRightTriangle(Polygon):
         pt = calc_x_linear_increasing(
             updated_m, self._params.pt(0), self._params.pt(1), self._m
         )
-        
-        params = self._params.insert(pt, 1, to_unsqueeze=True)
+        params = self._params.insert(
+            pt, 1, to_unsqueeze=True, equalize_to=updated_m.data
+        )
         return IncreasingRightTrapezoid(
             params, updated_m
         )
@@ -367,7 +377,9 @@ class DecreasingRightTriangle(Polygon):
         pt = calc_x_linear_decreasing(
             updated_m, self._params.pt(0), self._params.pt(1), self._m
         )
-        params = self._params.insert(pt, 1, to_unsqueeze=True)
+
+        print('Truncate Right Triangle: ', pt.size(), updated_m.data.size(), self._params.x.size())
+        params = self._params.insert(pt, 1, to_unsqueeze=True, equalize_to=updated_m.data)
         return DecreasingRightTrapezoid(
             params, updated_m
         )
@@ -462,7 +474,7 @@ class Triangle(Polygon):
             [pt1.unsqueeze(3), pt2.unsqueeze(3)], dim=3
         )
         params= self._params.replace(
-            to_replace, 1, False
+            to_replace, 1, False, equalize_to=updated_m.data
         )
 
         return Trapezoid(
@@ -526,7 +538,7 @@ class Trapezoid(Polygon):
             updated_m, self._params.pt(2), self._params.pt(3), self._m
         )
 
-        params = self._params.replace(left_x, 1, to_unsqueeze=True)
+        params = self._params.replace(left_x, 1, to_unsqueeze=True, equalize_to=updated_m.data)
         params = params.replace(right_x, 2, to_unsqueeze=True)
 
         return Trapezoid(
@@ -779,7 +791,7 @@ class RightLogisticTrapezoid(Logistic):
     def _calc_centroids(self):
 
         # area up to "dx"
-        print(self._scales.x.size(), self._dx.x.size())
+        print('Centroids: ', self._scales.x.size(), self._dx.x.size())
         p = torch.sigmoid(self._scales.pt(0) * (-self._dx.pt(0)))
         centroid_logistic = self._biases.pt(0) + torch.logit(p / 2) / self._scales.pt(0)
         centroid_square = self._biases.pt(0) - self._dx.pt(0) / 2
@@ -854,7 +866,6 @@ class IsoscelesTriangle(Polygon):
     def truncate(self, m: FuzzySet) -> 'IsoscelesTrapezoid':
         
         updated_m = self._m.intersect(m)
-        
         pt1 = calc_x_linear_increasing(updated_m, self._params.pt(0), self._params.pt(1), self._m)
         pt2 = calc_x_linear_decreasing(
             updated_m, self._params.pt(1), self._params.pt(1) + self._params.pt(1) - self._params.pt(0), self._m)
@@ -864,7 +875,7 @@ class IsoscelesTriangle(Polygon):
         )
 
         params = self._params.replace(
-            to_replace, 1, False
+            to_replace, 1, False, updated_m.data
         )
         return IsoscelesTrapezoid(
             params, updated_m
@@ -925,7 +936,7 @@ class IsoscelesTrapezoid(Polygon):
         right_x = self._params.pt(2) + self._params.pt(1) - left_x
 
         params = self._params.replace(
-            left_x, 1, True
+            left_x, 1, True, updated_m.data
         )
         params = params.replace(
             right_x, 2, True
@@ -985,7 +996,7 @@ class IncreasingRightTrapezoid(Polygon):
         x = calc_x_linear_increasing(
             updated_m, self._params.pt(0), self._params.pt(1), self._m
         )
-        params = self._params.replace(x, 1, True)
+        params = self._params.replace(x, 1, True, updated_m.data)
         return IncreasingRightTrapezoid(params, updated_m)
 
 
@@ -1032,14 +1043,14 @@ class DecreasingRightTrapezoid(Polygon):
             d2 * (1 / 3 * self._params.pt(2) + 2 / 3 * self._params.pt(1))
         ) / (d1 + d2), self._m)
 
-    def scale(self, m: torch.Tensor) -> 'DecreasingRightTrapezoid':
+    def scale(self, m: FuzzySet) -> 'DecreasingRightTrapezoid':
         return DecreasingRightTrapezoid(self._params, m.intersect(self._m))
 
-    def truncate(self, m: torch.Tensor) -> 'DecreasingRightTrapezoid':
+    def truncate(self, m: FuzzySet) -> 'DecreasingRightTrapezoid':
         updated_m = m.intersect(self._m)
         
         x = calc_x_linear_decreasing(
             updated_m, self._params.pt(0), self._params.pt(1), self._m
         )
-        params = self._params.replace(x, 1, True)
+        params = self._params.replace(x, 1, True, updated_m.data)
         return DecreasingRightTrapezoid(params, updated_m)

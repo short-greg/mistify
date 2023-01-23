@@ -1,4 +1,4 @@
-from . import fuzzy
+from .. import fuzzy
 import torch
 
 
@@ -172,6 +172,3 @@ class TestMinMax(object):
         fuzzy_set = fuzzy.FuzzySet.rand(4, 2, 2)
         result = composition.forward(fuzzy_set)
         assert result.data.size() == torch.Size([4, 2, 4])
-
-
-

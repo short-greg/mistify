@@ -79,6 +79,10 @@ class BinarySet(Set):
         assert self._value_size is not None
         return BinarySet(self._data.transpose(first_dim, second_dim), self._is_batch)
 
+    @property
+    def shape(self) -> torch.Size:
+        return self._data.shape
+
 
 class TernarySet(Set):
 
@@ -158,6 +162,9 @@ class TernarySet(Set):
         assert self._value_size is not None
         return TernarySet(self._data.transpose(first_dim, second_dim), self._is_batch)
 
+    @property
+    def shape(self) -> torch.Size:
+        return self._data.shape
 
 class BinaryComposition(CompositionBase):
 

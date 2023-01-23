@@ -10,6 +10,7 @@ from . import membership as memb
 from .membership import Shape
 import typing
 import torch.nn.functional
+from . import crisp
 
 
 @dataclass
@@ -22,6 +23,10 @@ class ValueWeight:
 
         yield self.value
         yield self.weight
+    
+    def __post_init__(self):
+        if isinstance(self.weight, FuzzySet):
+            self.weight = self.weight.data
 
 
 class FuzzyConverter(nn.Module):
@@ -139,8 +144,6 @@ class WeightedAverageAcc(Accumulator):
             torch.sum(value_weight.value * value_weight.weight, dim=-1) 
             / torch.sum(value_weight.weight, dim=-1)
         )
-
-# TODO: Add ternary
 
 class StepCrispConverter(CrispConverter):
 
@@ -332,7 +335,7 @@ class PolygonFuzzyConverter(FuzzyConverter):
         self._n_variables = n_variables
         self._n_terms = n_terms
         params = torch.linspace(0.0, 1.0, shape_pts.n_pts)
-        params = params[None]
+        params = params.unsqueeze(0)
         self._params = params.repeat(n_variables, 1)
         if not fixed:
             self._params = nn.parameter.Parameter(self._params)
@@ -370,15 +373,13 @@ class PolygonFuzzyConverter(FuzzyConverter):
     
     def _join(self, x: torch.Tensor):
         return FuzzySet(torch.cat(
-            [shape.join(x).data for shape in self.create_shapes() ],dim=2
+            [shape.join(x).data for shape, _ in self.create_shapes() ],dim=2
         ))
     
-    def create_shapes(self) -> typing.Tuple[Shape, Shape, Shape]:
+    def create_shapes(self, m: FuzzySet=None) -> typing.Iterator[typing.Tuple[Shape, FuzzySet]]:
         left = memb.ShapeParams(
             self._params[:,:self._shape_pts.n_side_pts].view(self._n_variables, 1, -1))
-        right = memb.ShapeParams(
-            self._params[:,-self._shape_pts.n_side_pts:].view(self._n_variables, 1, -1)
-        )
+        yield self._left_cls(left), m[:,:,:1] if m is not None else None
 
         middle = memb.ShapeParams(
             stride_coordinates(
@@ -387,26 +388,31 @@ class PolygonFuzzyConverter(FuzzyConverter):
                 ],
                 self._shape_pts.n_middle_pts, self._shape_pts.step
         ))
+        yield self._middle_cls(middle), m[:,:,:-2] if m is not None else None
 
-        return self._left_cls(left), self._middle_cls(middle), self._right_cls(right)
+        right = memb.ShapeParams(
+            self._params[:,-self._shape_pts.n_side_pts:].view(self._n_variables, 1, -1)
+        )
+        yield self._right_cls(right), m[:,:,-1:] if m is not None else None
     
-    def _imply(self, m: torch.Tensor):
+    def _imply(self, m: torch.Tensor) -> FuzzySet:
         xs = []
-        for shape in self.create_shapes():
+        for shape, m_i in self.create_shapes(m):
             if self.truncate:
-                xs.append(shape.truncate(m) )
+                xs.append(shape.truncate(m_i) )
             else:
-                xs.append(shape.scale(m))
+                xs.append(shape.scale(m_i))
+        
         return self.implication(*xs)
 
-    def fuzzify(self, x: torch.Tensor) -> FuzzySet:
+    def fuzzify(self, x: torch.Tensor) -> torch.Tensor:
         return self._join(x)
 
-    def accumulate(self, value_weight: ValueWeight) -> FuzzySet:
+    def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
         return self.accumulator.forward(value_weight)
 
     def imply(self, m: FuzzySet) -> ValueWeight:
-        return ValueWeight(m, self._imply(m))
+        return ValueWeight(self._imply(m).data, m.data)
 
 
 class IsoscelesFuzzyConverter(PolygonFuzzyConverter):
@@ -485,6 +491,16 @@ class TrapezoidFuzzyConverter(FuzzyConverter):
 
 class LogisticFuzzyConverter(FuzzyConverter):
     pass
+
+
+def binary_to_fuzzy(binary: crisp.BinarySet):
+
+    return FuzzySet(binary.data, binary.is_batch)
+
+
+def fuzzy_to_binary(self, fuzzy: FuzzySet, threshold: float=0.5):
+
+    return BinarySet((fuzzy.data > threshold).type_as(fuzzy.data), fuzzy.is_batch)
 
 
 # Not sure why i have strides

@@ -83,6 +83,13 @@ class FuzzySet(Set):
         assert self._value_size is not None
         return FuzzySet(self._data.transpose(first_dim, second_dim), self._is_batch)
 
+    @property
+    def shape(self) -> torch.Size:
+        return self._data.shape
+
+    def __getitem__(self, key):
+        return FuzzySet(self.data[key])
+
 
 class FuzzyCalcApprox(object):
 

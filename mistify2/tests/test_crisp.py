@@ -1,4 +1,4 @@
-from . import crisp
+from .. import crisp
 import torch
 
 

@@ -1,7 +1,7 @@
-from . import membership
+from .. import membership
 import torch
 import pytest
-from .fuzzy import FuzzySet
+from ..fuzzy import FuzzySet
 
 class TestShapeParams:
 

@@ -1,6 +1,6 @@
 import pytest
-from . import conversion
-from . import crisp, fuzzy
+from .. import conversion
+from .. import crisp, fuzzy
 import torch
 
 
@@ -91,7 +91,6 @@ class TestSigmoidDefuzzifier:
 
 class TestIsoscelesFuzzyConverter:
     
-
     def test_fuzzify_converts_to_binary_set(self):
 
         converter = conversion.IsoscelesFuzzyConverter(2, 3)
