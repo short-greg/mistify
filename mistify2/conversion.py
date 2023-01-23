@@ -49,6 +49,16 @@ class FuzzyConverter(nn.Module):
     def forward(self, x: torch.Tensor) -> FuzzySet:
         return self.fuzzify(x)
 
+    def get_accumulator(self, accumulator: typing.Union['Accumulator', str]):
+
+        if isinstance(accumulator, Accumulator):
+            return accumulator
+        if accumulator == 'max':
+            return MaxAcc()
+        if accumulator == 'weighted_average':
+            return WeightedAverageAcc()
+        raise ValueError(f"Name {accumulator} cannot be created")
+
 
 class CrispConverter(nn.Module):
 
@@ -221,45 +231,57 @@ class SigmoidDefuzzifier(Defuzzifier):
 
 class ShapeConverter(FuzzyConverter):
 
-    def __init__(self, left_edge: Shape, middle: Shape, right_edge: Shape):
+    # def __init__(self, left_edge: Shape, middle: Shape, right_edge: Shape):
 
-        super().__init__([left_edge, middle, right_edge])
-        self._left_edge = left_edge
-        self._middle = middle
-        self._right_edge = right_edge
+    #     super().__init__([left_edge, middle, right_edge])
+    #     self._left_edge = left_edge
+    #     self._middle = middle
+    #     self._right_edge = right_edge
     
-    @property
-    def left_edge(self) -> Shape:
-        return self._left_edge
+    # @property
+    # def left_edge(self) -> Shape:
+    #     return self._left_edge
 
-    @property
-    def middle(self) -> Shape:
-        return self._middle
+    # @property
+    # def middle(self) -> Shape:
+    #     return self._middle
     
-    @property
-    def right_edge(self) -> Shape:
-        return self._right_edge
+    # @property
+    # def right_edge(self) -> Shape:
+    #     return self._right_edge
 
-    def truncate(self, m: FuzzySet) -> 'ShapeConverter':
-        return self.__class__(
-            self._left_edge.truncate(m[:,:,0:1]),
-            self._middle.truncate(m[:,:,1:-1]),
-            self._right_edge.truncate(m[:,:,-1:]),
-        )
+    # def truncate(self, m: FuzzySet) -> 'ShapeConverter':
+    #     return self.__class__(
+    #         self._left_edge.truncate(m[:,:,0:1]),
+    #         self._middle.truncate(m[:,:,1:-1]),
+    #         self._right_edge.truncate(m[:,:,-1:]),
+    #     )
 
-    def scale(self, m: FuzzySet) -> 'ShapeConverter':
-        return self.__class__(
-            self._left_edge.scale(m[:,:,0:1]),
-            self._middle.scale(m[:,:,1:-1]),
-            self._right_edge.scale(m[:,:,-1:]),
-        )
+    # def scale(self, m: FuzzySet) -> 'ShapeConverter':
+    #     return self.__class__(
+    #         self._left_edge.scale(m[:,:,0:1]),
+    #         self._middle.scale(m[:,:,1:-1]),
+    #         self._right_edge.scale(m[:,:,-1:]),
+    #     )
 
-    def join(self, x: torch.Tensor) -> torch.Tensor:
+    # def join(self, x: torch.Tensor) -> torch.Tensor:
 
-        return torch.cat(
-            [self._left_edge.join(x), self._middle.join(x), self._right_edge.join(x)],
-            dim=2
-        )
+    #     return torch.cat(
+    #         [self._left_edge.join(x), self._middle.join(x), self._right_edge.join(x)],
+    #         dim=2
+    #     )
+
+    def get_implication(self, implication: typing.Union['ShapeImplication', str]):
+
+        if isinstance(implication, ShapeImplication):
+            return implication
+        if implication == 'area':
+            return AreaImplication()
+        if implication == 'mean_core':
+            return MeanCoreImplication()
+        if implication == 'centroid':
+            return CentroidImplication()
+        raise ValueError(f"Name {implication} cannot be created")
 
 
 class ShapeImplication(nn.Module):
@@ -314,7 +336,7 @@ class ShapePoints:
     n_pts: int
 
 
-class PolygonFuzzyConverter(FuzzyConverter):
+class PolygonFuzzyConverter(ShapeConverter):
 
     def __init__(
         self, n_variables: int, n_terms: int, shape_pts: ShapePoints,
@@ -340,28 +362,6 @@ class PolygonFuzzyConverter(FuzzyConverter):
         if not fixed:
             self._params = nn.parameter.Parameter(self._params)
     
-    def get_implication(self, implication: typing.Union[ShapeImplication, str]):
-
-        if isinstance(implication, ShapeImplication):
-            return implication
-        if implication == 'area':
-            return AreaImplication()
-        if implication == 'mean_core':
-            return MeanCoreImplication()
-        if implication == 'centroid':
-            return CentroidImplication()
-        raise ValueError(f"Name {implication} cannot be created")
-
-    def get_accumulator(self, accumulator: typing.Union[Accumulator, str]):
-
-        if isinstance(accumulator, Accumulator):
-            return accumulator
-        if accumulator == 'max':
-            return MaxAcc()
-        if accumulator == 'weighted_average':
-            return WeightedAverageAcc()
-        raise ValueError(f"Name {accumulator} cannot be created")
-
     # how can i make this more flexible (?)
     def generate_params(self):
         positive_params = torch.nn.functional.softplus(self._params)
@@ -381,14 +381,15 @@ class PolygonFuzzyConverter(FuzzyConverter):
             self._params[:,:self._shape_pts.n_side_pts].view(self._n_variables, 1, -1))
         yield self._left_cls(left), m[:,:,:1] if m is not None else None
 
-        middle = memb.ShapeParams(
-            stride_coordinates(
-                self._params[
-                    :,self._shape_pts.side_step:self._shape_pts.side_step + self._shape_pts.n_middle_pts
-                ],
-                self._shape_pts.n_middle_pts, self._shape_pts.step
-        ))
-        yield self._middle_cls(middle), m[:,:,:-2] if m is not None else None
+        if self._n_terms > 2:
+            middle = memb.ShapeParams(
+                stride_coordinates(
+                    self._params[
+                        :,self._shape_pts.side_step:self._shape_pts.side_step + self._shape_pts.n_middle_pts
+                    ],
+                    self._shape_pts.n_middle_pts, self._shape_pts.step
+            ))
+            yield self._middle_cls(middle), m[:,:,:-2] if m is not None else None
 
         right = memb.ShapeParams(
             self._params[:,-self._shape_pts.n_side_pts:].view(self._n_variables, 1, -1)
@@ -438,7 +439,7 @@ class IsoscelesFuzzyConverter(PolygonFuzzyConverter):
         )
 
 
-class TriangleFuzzyConverter(FuzzyConverter):
+class TriangleFuzzyConverter(PolygonFuzzyConverter):
 
     def __init__(
         self, n_variables: int, n_terms: int, 
@@ -452,7 +453,7 @@ class TriangleFuzzyConverter(FuzzyConverter):
             right_cls = memb.IncreasingRightTrapezoid
             shape_pts = ShapePoints(3, n_terms + 2, n_terms, 1, 1)
         else:
-            shape_pts = ShapePoints(3, n_terms + 2, n_terms, 1, 1)
+            shape_pts = ShapePoints(2, n_terms + 2, n_terms, 1, 1)
             left_cls = memb.DecreasingRightTriangle
             right_cls = memb.IncreasingRightTriangle
         middle_cls = memb.Triangle
@@ -462,7 +463,7 @@ class TriangleFuzzyConverter(FuzzyConverter):
         )
 
 
-class TrapezoidFuzzyConverter(FuzzyConverter):
+class TrapezoidFuzzyConverter(PolygonFuzzyConverter):
 
     def __init__(
         self, n_variables: int, n_terms: int, 
@@ -489,8 +490,84 @@ class TrapezoidFuzzyConverter(FuzzyConverter):
         )
 
 
-class LogisticFuzzyConverter(FuzzyConverter):
-    pass
+class LogisticFuzzyConverter(ShapeConverter):
+
+    def __init__(
+        self, n_variables: int, n_terms: int, fixed: bool=False,
+        implication: typing.Union[ShapeImplication, str]="area", 
+        accumulator: typing.Union[Accumulator, str]="max", truncate: bool=True
+    ):
+        super().__init__()
+        assert n_terms > 1
+
+        self.truncate = truncate
+        self.accumulator = self.get_accumulator(accumulator)
+        self.implication = self.get_implication(implication)
+        self._n_variables = n_variables
+        self._n_terms = n_terms
+        biases = torch.linspace(0.0, 1.0, n_terms).unsqueeze(0)
+        self._scales = torch.empty(
+            n_variables, n_terms).fill_(1.0 / (n_terms - 1)
+        ).unsqueeze(2)
+        self._biases = biases.repeat(
+            n_variables, 1).unsqueeze(2)
+        if not fixed:
+            self._biases = nn.parameter.Parameter(self._biases)
+            self._scales = nn.parameter.Parameter(self._scales)
+
+    def generate_means(self):
+        positive_params = torch.nn.functional.softplus(self._biases)
+        cumulated_params = torch.cumsum(positive_params, dim=1)
+        min_val = cumulated_params[:,:1]
+        max_val = cumulated_params[:,-1:]
+        scaled_params  = (cumulated_params - min_val) / (max_val - min_val)
+        return scaled_params
+    
+    def _join(self, x: torch.Tensor):
+        return FuzzySet(torch.cat(
+            [shape.join(x).data for shape, _ in self.create_shapes() ],dim=2
+        ))
+    
+    def create_shapes(self, m: FuzzySet=None) -> typing.Iterator[typing.Tuple[Shape, FuzzySet]]:
+        left_biases = memb.ShapeParams(
+            self._biases[:,:1].view(self._n_variables, 1, 1))
+        left_scales = memb.ShapeParams(
+            self._scales[:,:1].view(self._n_variables, 1, 1))
+        
+        yield memb.RightLogistic(left_biases, left_scales, False), m[:,:,:1] if m is not None else None
+        
+        if self._n_terms > 2:
+            mid_biases = memb.ShapeParams(
+                self._biases[:,1:-1].view(self._n_variables, self._n_terms - 2, 1))
+            mid_scales = memb.ShapeParams(
+                self._scales[:,1:-1].view(self._n_variables, self._n_terms - 2, 1))
+            
+            yield memb.LogisticBell(mid_biases, mid_scales), m[:,:,1:-1] if m is not None else None
+            
+        right_biases = memb.ShapeParams(
+            self._biases[:,-1:].view(self._n_variables, 1, 1))
+        right_scales = memb.ShapeParams(
+            self._scales[:,-1:].view(self._n_variables, 1, 1))
+        
+        yield memb.RightLogistic(right_biases, right_scales, True), m[:,:,-1:] if m is not None else None
+    
+    def _imply(self, m: torch.Tensor) -> FuzzySet:
+        xs = []
+        for shape, m_i in self.create_shapes(m):
+            if self.truncate:
+                xs.append(shape.truncate(m_i) )
+            else:
+                xs.append(shape.scale(m_i))
+        return self.implication(*xs)
+
+    def fuzzify(self, x: torch.Tensor) -> torch.Tensor:
+        return self._join(x)
+
+    def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
+        return self.accumulator.forward(value_weight)
+
+    def imply(self, m: FuzzySet) -> ValueWeight:
+        return ValueWeight(self._imply(m).data, m.data)
 
 
 def binary_to_fuzzy(binary: crisp.BinarySet):
