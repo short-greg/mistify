@@ -6,27 +6,27 @@ class TestFuzzySet(object):
 
     def test_zeros_dim_is_1(self):
         
-        zeros = fuzzy.FuzzySet.zeros(4)
+        zeros = fuzzy.FuzzySet.negatives(4)
         assert zeros.data.dim() == 1
     
     def test_zeros_with_batch_dim_is_2(self):
         
-        zeros = fuzzy.FuzzySet.zeros(2, 4)
+        zeros = fuzzy.FuzzySet.negatives(2, 4)
         assert zeros.data.dim() == 2
 
     def test_zeros_with_batch_and_variables_dim_is_4(self):
         
-        zeros = fuzzy.FuzzySet.zeros(2, 3, 2, 4)
+        zeros = fuzzy.FuzzySet.negatives(2, 3, 2, 4)
         assert zeros.data.dim() == 4
 
     def test_ones_with_batch_and_variables_dim_is_4(self):
         
-        ones = fuzzy.FuzzySet.ones(2, 3, 2, 4)
+        ones = fuzzy.FuzzySet.positives(2, 3, 2, 4)
         assert ones.data.dim() == 4
 
     def test_ones_with_batch_and_variables_is_1(self):
         
-        ones = fuzzy.FuzzySet.ones(2, 3, 2, 4)
+        ones = fuzzy.FuzzySet.positives(2, 3, 2, 4)
         assert (ones.data == torch.tensor(1.0)).all()
 
     def test_rand_with_batch_and_variables_dim_is_4(self):

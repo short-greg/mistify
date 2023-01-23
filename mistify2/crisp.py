@@ -169,7 +169,7 @@ class TernarySet(Set):
 class BinaryComposition(CompositionBase):
 
     def init_weight(self, in_features: int, out_features: int, in_variables: int = None) -> SetParam:
-        return SetParam(BinarySet.ones(get_comp_weight_size(in_features, out_features, in_variables)))
+        return SetParam(BinarySet.positives(get_comp_weight_size(in_features, out_features, in_variables)))
 
     def forward(self, m: BinarySet):
         return BinarySet(
@@ -181,7 +181,7 @@ class TernaryComposition(CompositionBase):
 
     def init_weight(self, in_features: int, out_features: int, in_variables: int = None) -> SetParam:
         return SetParam(
-            TernarySet.ones(get_comp_weight_size(in_features, out_features, in_variables))
+            TernarySet.positives(get_comp_weight_size(in_features, out_features, in_variables))
         )
 
     def forward(self, m: BinarySet):

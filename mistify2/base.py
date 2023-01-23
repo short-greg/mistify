@@ -96,8 +96,8 @@ class CompositionBase(nn.Module):
 
     def prepare_inputs(self, m: Set) -> torch.Tensor:
         if self._complement_inputs:
-            return torch.cat([m.data, 1 - m.data], dim=-1).unsqueeze(-1)
-        return m.data.unsqueeze(-1)
+            return torch.cat([m.data, 1 - m.data], dim=-1)
+        return m.data
     
     @property
     def to_complement(self) -> bool:
