@@ -525,35 +525,38 @@ class FuzzyLoss(nn.Module):
         return reduce(((x - t) * mask.float()), self.reduction)
 
 
+class FuzzyElse(nn.Module):
+
+    def __init__(self, dim=-1):
+        super().__init__()
+        self.dim = dim
+
+    def forward(self, m: FuzzySet):
+
+        return FuzzySet(
+            torch.clamp(1 - m.data.sum(self.dim, keepdim=True), 0, 1),
+            is_batch=m.is_batch
+        )
 
 
-# class FuzzyCompositionBase(nn.Module):
+class WithFuzzyElse(nn.Module):
 
-#     def __init__(
-#         self, in_features: int, out_features: int, 
-#         complement_inputs: bool=False, in_variables: int=None
-#     ):
-#         super().__init__()
-#         self._in_features = in_features
-#         self._out_features = out_features
-#         self._complement_inputs = complement_inputs
-#         if complement_inputs:
-#             in_features *= 2
-#         self._multiple_variables = in_variables is not None
-#         # store weights as values between 0 and 1
-#         self.weight = FuzzySetParam(
-#             FuzzySet.ones(get_comp_weight_size(in_features, out_features, in_variables))
-#         )
-
-#     @property
-#     def to_complement(self) -> bool:
-#         return self._complement_inputs
-
-#     def prepare_inputs(self, m: FuzzySet) -> torch.Tensor:
-#         if self._complement_inputs:
-#             return torch.cat([m.data, 1 - m.data], dim=-1).unsqueeze(-1)
-#         return m.data.unsqueeze(-1)
+    def __init__(self, dim=-1):
+        super().__init__()
+        self.else_ = FuzzyElse(dim)
     
-#     @abstractmethod
-#     def forward(self, m: FuzzySet):
-#         pass
+    @property
+    def dim(self) -> int:
+        return self.else_.dim
+
+    @dim.setter
+    def dim(self, dim: int) -> None:
+        self.else_.dim = dim
+
+    def forward(self, m: FuzzySet):
+
+        else_ = self.else_.forward(m)
+        return FuzzySet(
+            torch.cat([m.data, else_.data], dim=self.else_.dim),
+            is_batch=m.is_batch
+        )
