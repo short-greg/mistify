@@ -67,6 +67,11 @@ class BinarySet(Set):
             is_batch
         )
 
+    def reshape(self, *size: int):
+        return BinarySet(
+            self.data.reshape(*size), self.is_batch
+        )
+
     @classmethod
     def rand(cls, *size: int, is_batch: bool=None, dtype=torch.float32, device='cpu'):
 
@@ -121,10 +126,15 @@ class TernarySet(Set):
         
         if self._is_batch:
             return TernarySet(
-                self._data.view(self._data.size(0), *size_after, -1), True
+                self._data.reshape(self._data.size(0), *size_after, -1), True
             )
         return self.__class__(
-            self._data.view(*size_after, -1), False
+            self._data.reshape(*size_after, -1), False
+        )
+
+    def reshape(self, *size: int):
+        return BinarySet(
+            self.data.reshape(*size), self.is_batch
         )
 
     @classmethod

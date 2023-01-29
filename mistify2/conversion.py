@@ -184,14 +184,14 @@ class StepCrispConverter(CrispConverter):
 
 class SigmoidFuzzyConverter(FuzzyConverter):
 
-    def __init__(self, out_variables: int, out_features: int, eps: float=1e-7, accumulator: Accumulator=None):
+    def __init__(self, out_variables: int, out_terms: int, eps: float=1e-7, accumulator: Accumulator=None):
 
         super().__init__()
         self.weight = nn.parameter.Parameter(
-            torch.randn(out_variables, out_features)
+            torch.randn(out_variables, out_terms)
         )
         self.bias = nn.parameter.Parameter(
-            torch.randn(out_variables, out_features)
+            torch.randn(out_variables, out_terms)
         )
         self.eps = eps
         self._accumulator = accumulator or MaxAcc()
@@ -204,9 +204,15 @@ class SigmoidFuzzyConverter(FuzzyConverter):
     def imply(self, m: FuzzySet) -> ValueWeight:
 
         #     # x = ln(y/(1-y))
-        return ValueWeight((-torch.log(
-            1 / (m.data + self.eps) - 1
-        ) / self.weight[None] + self.bias[None]), m.data)
+        print(m.data.size(), self.weight.size(), self.bias.size())
+        return ValueWeight(
+            torch.logit(m.data) / (self.weight[None]) + self.bias[None], 
+            m.data
+        )
+
+        # return ValueWeight((-torch.log(
+        #     1 / (m.data + self.eps) - 1
+        # ) / self.weight.float[] + self.bias[None]), m.data)
 
     def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
         return self._accumulator.forward(value_weight)
@@ -223,9 +229,9 @@ class SigmoidDefuzzifier(Defuzzifier):
         return self._converter.defuzzify(m)
     
     @classmethod
-    def build(cls, out_variables: int, out_features: int, eps: float=1e-7):
+    def build(cls, out_variables: int, out_terms: int, eps: float=1e-7):
         return SigmoidDefuzzifier(
-            SigmoidFuzzyConverter(out_variables, out_features, eps)
+            SigmoidFuzzyConverter(out_variables, out_terms, eps)
         )
 
 
