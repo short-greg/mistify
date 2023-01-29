@@ -159,7 +159,7 @@ class StepCrispConverter(CrispConverter):
 
     def __init__(
         self, out_variables: int, out_terms: int, 
-        accumulator: Accumulator=None, same: bool=False
+        accumulator: Accumulator=None
     ):
         super().__init__()
 

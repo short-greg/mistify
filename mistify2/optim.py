@@ -11,6 +11,9 @@ from .utils import reduce
 from . import conversion
 from . import fuzzy
 
+# The performance of these will be bad so if 
+
+
 class BinaryWeightLoss(nn.Module):
 
     def __init__(self, to_binary: conversion.StepCrispConverter):
