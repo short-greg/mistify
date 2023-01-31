@@ -378,7 +378,7 @@ class DecreasingRightTriangle(Polygon):
             updated_m, self._params.pt(0), self._params.pt(1), self._m
         )
 
-        print('Truncate Right Triangle: ', pt.size(), updated_m.data.size(), self._params.x.size())
+        # print('Truncate Right Triangle: ', pt.size(), updated_m.data.size(), self._params.x.size())
         params = self._params.insert(pt, 1, to_unsqueeze=True, equalize_to=updated_m.data)
         return DecreasingRightTrapezoid(
             params, updated_m

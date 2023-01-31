@@ -1,5 +1,6 @@
 # 1st Party
 from abc import abstractmethod
+from enum import Enum
 
 # 3rd Party
 import torch
@@ -9,10 +10,24 @@ import torch.nn as nn
 # Local
 from .utils import reduce
 from . import conversion
-from . import fuzzy
+from . import fuzzy, crisp
 
 # The performance of these will be bad so if 
 
+
+
+class ToOptim(Enum):
+
+    X = 'x'
+    THETA = 'theta'
+    BOTH = 'both'
+
+    def x(self) -> bool:
+        return self in (ToOptim.X, ToOptim.BOTH)
+
+    def theta(self) -> bool:
+        return self in (ToOptim.THETA, ToOptim.BOTH)
+        
 
 class BinaryWeightLoss(nn.Module):
 
@@ -25,8 +40,9 @@ class BinaryWeightLoss(nn.Module):
         """
         self._to_binary = to_binary
 
-    def step(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor):
+    def step(self, x: crisp.BinarySet, y: crisp.BinarySet, t: crisp.BinarySet):
 
+        x, y, t = x.data, y.data, t.data
         # assessment, y, result = get_y_and_assessment(objective, x, t, result)
         # y = to_binary.forward(x)
         change = (y != t).type_as(y)
@@ -50,7 +66,8 @@ class BinaryXLoss(nn.Module):
         """
         self._to_binary = to_binary
 
-    def step(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor):
+    def step(self, x: crisp.BinarySet, y: crisp.BinarySet, t: crisp.BinarySet):
+        x, y, t = x.data, y.data, t.data
 
         # assessment, y, result = get_y_and_assessment(objective, x, t, result)
         # y = to_binary.forward(x)
@@ -60,14 +77,11 @@ class BinaryXLoss(nn.Module):
         # TODO: Reduce the loss
         return loss
 
-# TODO: Add fuzzy losses
-
 
 class FuzzyCompLoss(nn.Module):
 
-    def __init__(self, to_complement: bool=False, relation_lr: float=1.0, reduction='mean', inner=torch.min, outer=torch.max):
+    def __init__(self, relation_lr: float=1.0, reduction='mean'):
         super().__init__()
-        self._to_complement = to_complement
         
         # TODO: Fix this error here
         self._fuzzy_comp = FuzzyLoss(reduction=reduction)
@@ -75,9 +89,7 @@ class FuzzyCompLoss(nn.Module):
         self._relation = None
         self._reduction = reduction
         self.relation_lr = relation_lr
-        self._inner = inner
-        self._outer = outer
-    
+
     def set_chosen(self, x: torch.Tensor, w: torch.Tensor, idx: torch.LongTensor):
 
         chosen = torch.zeros(x.size(0), x.size(1), w.size(1), dtype=torch.bool)
@@ -107,67 +119,49 @@ class FuzzyCompLoss(nn.Module):
         self._relation = None
 
     def calc_idx(self, x: torch.Tensor, w: torch.Tensor):
-        return self._outer(self._inner(
-            x[:,:,None], w[None]
-        ), dim=1, keepdim=True)[1]
+        return self.outer(self.inner(
+            x.unsqueeze(-1), w[None]
+        ), dim=-1, keepdim=True)[1]
 
     @abstractmethod
     def forward(self, x: torch.Tensor, t: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
         pass
 
-    def calc_y(self, x: torch.Tensor, w: torch.Tensor):
-        return self._outer(self._inner(x[:,:,None], w[None]), dim=1)[0]
+    @abstractmethod
+    def inner(self, x: torch.Tensor, w: torch.Tensor):
+        pass
+
+    @abstractmethod
+    def outer(self, x: torch.Tensor):
+        pass
 
 
-class MaxMinThetaLoss(FuzzyCompLoss):
+class MaxMinLoss(FuzzyCompLoss):
 
-    def __init__(self, to_complement: bool = False, relation_lr: float = 1, reduction='mean'):
-        super().__init__(to_complement, relation_lr, reduction, inner=torch.min, outer=torch.max)
+    def __init__(self, maxmin: fuzzy.MaxMin, relation_lr: float = 1, reduction='mean', default_optim: ToOptim=ToOptim.BOTH):
+        super().__init__(relation_lr, reduction)
+        self.maxmin = maxmin
+        self.default_optim = default_optim
 
-    def forward(self, x: torch.Tensor, t: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
-        if self._to_complement:
+    def forward(self, x: fuzzy.FuzzySet, y: fuzzy.FuzzySet, t: fuzzy.FuzzySet) -> torch.Tensor:
+        losses = []
+        if self.default_optim.x():
+            losses.append(self.forward_x(x, y, t))
+        if self.default_optim.theta():
+            losses.append(self.forward_theta(x, y, t))
+        return sum(losses)
+    
+    def forward_x(self, x: fuzzy.FuzzySet, y: fuzzy.FuzzySet, t: fuzzy.FuzzySet) -> torch.Tensor:
+        x, y, t = x.data, y.data, t.data
+        if self.maxmin.to_complement:
             x = torch.cat([x, 1 - x], dim=1)
 
-        rel_idx = self.calc_idx(x, self.calc_relation(x[:,:,None], t[:,None], agg_dim=0))
-        chosen = self.set_chosen(x, w, rel_idx)
-
-        y = self.calc_y(x, w)[:,None]
-        w = w[None]
-        x = x[:,:,None].detach()
-        t = t[:,None].detach()
-
-        output_less_than = y > t
-
-        return (
-            self._fuzzy_comp.forward(
-                w, t, mask=~output_less_than
-            )
-            + self._fuzzy_comp.forward(
-                w, x, mask=chosen & (x < t) & output_less_than & (x > w)
-            )
-            + self._fuzzy_comp.forward(
-                w, t, mask=chosen & (x > t) & output_less_than
-            )
-            + self._fuzzy_comp_to_all.forward(
-                w, x, chosen
-            )
-        )
-
-
-class MaxMinXLoss(FuzzyCompLoss):
-
-    def __init__(self, to_complement: bool = False, relation_lr: float = 1, reduction='mean'):
-        super().__init__(to_complement, relation_lr, reduction, inner=torch.min, outer=torch.max)
-
-    def forward(self, x: torch.Tensor, t: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
-        
-        if self._to_complement:
-            x = torch.cat([x, 1 - x], dim=1)
+        w = self.maxmin.weight
 
         rel_idx = self.calc_idx(self.calc_relation(w[None], t[:,None], agg_dim=2), w)
         chosen = self.set_chosen(x, w, rel_idx)
 
-        y = self.calc_y(x, w)[:,None]
+        y = y[:,None]
         w = w[None].detach()
         x = x[:,:,None]
         t = t[:,None].detach()
@@ -189,21 +183,73 @@ class MaxMinXLoss(FuzzyCompLoss):
             )
         )
 
+    def forward_theta(self, x: fuzzy.FuzzySet, y: fuzzy.FuzzySet, t: fuzzy.FuzzySet) -> torch.Tensor:
 
-class MinMaxThetaLoss(FuzzyCompLoss):
-
-    def __init__(self, to_complement: bool = False, relation_lr: float = 1, reduction='mean'):
-        super().__init__(to_complement, relation_lr, reduction, inner=torch.max, outer=torch.min)
-
-    def forward(self, x: torch.Tensor, t: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
-        
-        if self._to_complement:
+        x, y, t = x.data, y.data, t.data
+        if self.maxmin.to_complement:
             x = torch.cat([x, 1 - x], dim=1)
+
+        w = self.maxmin.weight
 
         rel_idx = self.calc_idx(x, self.calc_relation(x[:,:,None], t[:,None], agg_dim=0))
         chosen = self.set_chosen(x, w, rel_idx)
 
-        y = self.calc_y(x, w)[:,None]
+        y = y[:,None]
+        w = w[None]
+        x = x[:,:,None].detach()
+        t = t[:,None].detach()
+
+        output_less_than = y > t
+
+        return (
+            self._fuzzy_comp.forward(
+                w, t, mask=~output_less_than
+            )
+            + self._fuzzy_comp.forward(
+                w, x, mask=chosen & (x < t) & output_less_than & (x > w)
+            )
+            + self._fuzzy_comp.forward(
+                w, t, mask=chosen & (x > t) & output_less_than
+            )
+            + self._fuzzy_comp_to_all.forward(
+                w, x, chosen
+            )
+        )
+
+    def inner(self, x: torch.Tensor, w: torch.Tensor):
+        return torch.min(x, w)
+
+    def outer(self, x: torch.Tensor):
+        return torch.max(x)
+        
+
+class MinMaxLoss(FuzzyCompLoss):
+
+    def __init__(self, minmax: fuzzy.MinMax, relation_lr: float = 1, reduction='mean', default_optim: ToOptim=ToOptim.BOTH):
+        super().__init__(relation_lr, reduction)
+        self.minmax = minmax
+        self.default_optim = default_optim
+
+    def forward(self, x: fuzzy.FuzzySet, y: fuzzy.FuzzySet, t: fuzzy.FuzzySet) -> torch.Tensor:
+        losses = []
+        if self.default_optim.x():
+            losses.append(self.forward_x(x, y, t))
+        if self.default_optim.theta():
+            losses.append(self.forward_theta(x, y, t))
+        return sum(losses)
+
+    def forward_theta(self, x: fuzzy.FuzzySet, y: fuzzy.FuzzySet, t: fuzzy.FuzzySet) -> torch.Tensor:
+        
+        x, y, t = x.data, y.data, t.data
+        if self.minmax.to_complement:
+            x = torch.cat([x, 1 - x], dim=1)
+
+        w = self.minmax.weight
+
+        rel_idx = self.calc_idx(x, self.calc_relation(x[:,:,None], t[:,None], agg_dim=0))
+        chosen = self.set_chosen(x, w, rel_idx)
+
+        y = y[:,None]
         w = w[None]
         x = x[:,:,None].detach()
         t = t[:,None].detach()
@@ -225,21 +271,18 @@ class MinMaxThetaLoss(FuzzyCompLoss):
             )
         )
 
-
-class MinMaxXLoss(FuzzyCompLoss):
-
-    def __init__(self, to_complement: bool = False, relation_lr: float = 1, reduction='mean'):
-        super().__init__(to_complement, relation_lr, reduction, inner=torch.max, outer=torch.min)
-
-    def forward(self, x: torch.Tensor, t: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
+    def forward_x(self, x: fuzzy.FuzzySet, y: fuzzy.FuzzySet, t: fuzzy.FuzzySet) -> torch.Tensor:
         
-        if self._to_complement:
+        x, y, t = x.data, y.data, t.data
+        if self.minmax.to_complement:
             x = torch.cat([x, 1 - x], dim=1)
+    
+        w = self.minmax.weight
 
         rel_idx = self.calc_idx(self.calc_relation(w[None], t[:,None], agg_dim=2), w)
         chosen = self.set_chosen(x, w, rel_idx)
 
-        y = self.calc_y(x, w)[:,None]
+        y = y[:,None]
         w = w[None].detach()
         x = x[:,:,None]
         t = t[:,None].detach()
@@ -263,63 +306,33 @@ class MinMaxXLoss(FuzzyCompLoss):
             )
         )
 
-# TODO: MaxProd loss..
+    def inner(self, x: torch.Tensor, w: torch.Tensor):
+        return torch.max(x, w)
+
+    def outer(self, x: torch.Tensor):
+        return torch.min(x)
+        
 
 
 class MaxProdThetaLoss(FuzzyCompLoss):
     """TODO: Implement
     """
 
-    def __init__(self, to_complement: bool = False, relation_lr: float = 1, reduction='mean'):
-        super().__init__(to_complement, relation_lr, reduction, inner=torch.max, outer=torch.min)
+    def __init__(self, maxprod: fuzzy.MaxProd, relation_lr: float = 1, reduction='mean'):
+        super().__init__(relation_lr, reduction)
+        self.maxprod = maxprod
 
-    def forward(self, x: torch.Tensor, t: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
+    def forward_x(self, x: fuzzy.FuzzySet, y: fuzzy.FuzzySet, t: fuzzy.FuzzySet) -> torch.Tensor:
         
-        if self._to_complement:
+        x, y, t = x.data, y.data, t.data
+        if self.maxprod.to_complement:
             x = torch.cat([x, 1 - x], dim=1)
-
-        rel_idx = self.calc_idx(x, self.calc_relation(x[:,:,None], t[:,None], agg_dim=0))
-        chosen = self.set_chosen(x, w, rel_idx)
-
-        y = self.calc_y(x, w)[:,None]
-        w = w[None]
-        x = x[:,:,None].detach()
-        t = t[:,None].detach()
-
-        output_less_than = y < t
-
-        return (
-            self._fuzzy_comp.forward(
-                w, t, mask=~output_less_than
-            )
-            + self._fuzzy_comp.forward(
-                w, x, mask=chosen & (x > t) & output_less_than & (x < w)
-            )
-            + self._fuzzy_comp.forward(
-                w, t, mask=chosen & (x < t) & output_less_than
-            )
-            + self._fuzzy_comp_to_all.forward(
-                w, x, chosen
-            )
-        )
-
-
-class MaxProdXLoss(FuzzyCompLoss):
-    """TODO: Implement
-    """
-
-    def __init__(self, to_complement: bool = False, relation_lr: float = 1, reduction='mean'):
-        super().__init__(to_complement, relation_lr, reduction, inner=torch.max, outer=torch.min)
-
-    def forward(self, x: torch.Tensor, t: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
-        
-        if self._to_complement:
-            x = torch.cat([x, 1 - x], dim=1)
+        w = self.maxprod.weight
 
         rel_idx = self.calc_idx(self.calc_relation(w[None], t[:,None], agg_dim=2), w)
         chosen = self.set_chosen(x, w, rel_idx)
 
-        y = self.calc_y(x, w)[:,None]
+        y = y[:,None]
         w = w[None].detach()
         x = x[:,:,None]
         t = t[:,None].detach()
@@ -341,14 +354,50 @@ class MaxProdXLoss(FuzzyCompLoss):
             )
         )
 
+    def forward_theta(self, x: fuzzy.FuzzySet, y: fuzzy.FuzzySet, t: fuzzy.FuzzySet) -> torch.Tensor:
+        
+        x, y, t = x.data, y.data, t.data
+        if self.maxprod.to_complement:
+            x = torch.cat([x, 1 - x], dim=1)
+        w = self.minmax.weight
+
+        rel_idx = self.calc_idx(x, self.calc_relation(x[:,:,None], t[:,None], agg_dim=0))
+        chosen = self.set_chosen(x, w, rel_idx)
+
+        y = y[:,None]
+        w = w[None]
+        x = x[:,:,None].detach()
+        t = t[:,None].detach()
+
+        output_less_than = y < t
+
+        return (
+            self._fuzzy_comp.forward(
+                w, t, mask=~output_less_than
+            )
+            + self._fuzzy_comp.forward(
+                w, x, mask=chosen & (x > t) & output_less_than & (x < w)
+            )
+            + self._fuzzy_comp.forward(
+                w, t, mask=chosen & (x < t) & output_less_than
+            )
+            + self._fuzzy_comp_to_all.forward(
+                w, x, chosen
+            )
+        )
+    
+    def inner(self, x: torch.Tensor, w: torch.Tensor):
+        return x * w
+
+    def outer(self, x: torch.Tensor):
+        return torch.max(x)
+        
 
 class FuzzyCompToAllLoss(nn.Module):
 
-    def __init__(self, reduction='mean', inner=torch.max, outer=torch.min):
+    def __init__(self, reduction='mean'):
         super().__init__()
         self.reduction = reduction
-        self.inner = inner
-        self.outer = outer
 
     def forward(self, x: torch.Tensor, t: torch.Tensor, chosen: torch.Tensor):
 
@@ -357,6 +406,7 @@ class FuzzyCompToAllLoss(nn.Module):
         chosen_clone[chosen == 0] = 1.0
 
         # input_difference[chosen.long()] = -torch.inf
+        # TODO: Figure out how to handle this
         result = self.outer(
             self.inner((t - x) * chosen_clone, dim=0)[0], torch.tensor(0.0)
         )
@@ -373,3 +423,41 @@ class FuzzyLoss(nn.Module):
     def forward(self, x: torch.Tensor, t: torch.Tensor, mask: torch.BoolTensor):
 
         return reduce(((x - t) * mask.float()), self.reduction)
+
+
+class IntersectOnLoss(nn.Module):
+
+    def __init__(self, intersect: fuzzy.IntersectOn, reduction: str='mean'):
+        super().__init__()
+        self.intersect = intersect
+        self.reduction = reduction
+
+    def forward(self, x: fuzzy.FuzzySet, y: fuzzy.FuzzySet, t: fuzzy.FuzzySet) -> torch.Tensor:
+        x, y, t = x.data, y.data, t.data
+        loss = 0.5 * (t.unsqueeze(self.intersect.dim) - x) ** 2
+        y_greater_than = (y > t).float()  
+        x_greater_than = (x > t[:,None]).float()
+
+        return (
+            (x_greater_than * loss * y_greater_than).float().mean() + (loss * ~y_greater_than).float().mean()
+        )
+
+
+class UnionOnLoss(nn.Module):
+
+    def __init__(self, union: fuzzy.UnionOn, reduction: str='mean'):
+        super().__init__()
+        self.union = union
+        self.reduction = reduction
+
+    def forward(self, x: fuzzy.FuzzySet, y: fuzzy.FuzzySet, t: fuzzy.FuzzySet) -> torch.Tensor:
+    
+        x, y, t = x.data, y.data, t.data
+        loss = 0.5 * (t.unsqueeze(self.intersect.dim) - x) ** 2
+        y_greater_than = (y > t)
+        x_greater_than = (x > t[:,None])
+
+        return (
+            (~x_greater_than * loss * ~y_greater_than).float().mean() 
+            + (loss * y_greater_than).float().mean()
+        )

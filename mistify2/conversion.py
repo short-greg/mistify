@@ -1,5 +1,4 @@
 import torch
-import torch.nn.functional as nn_func
 import torch.nn as nn
 from .fuzzy import FuzzySet
 from .crisp import BinarySet
@@ -298,6 +297,22 @@ class ShapePoints:
     side_step: int
     step: int
     n_pts: int
+
+
+class ConverterDefuzzifier(Defuzzifier):
+
+    def __init__(self, converter: FuzzyConverter):
+        super().__init__()
+        self.converter = converter
+
+    def imply(self, m: FuzzySet) -> ValueWeight:
+        return self.converter.imply(m)
+
+    def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
+        return self.converter.accumulate(value_weight)
+
+    def forward(self, m: FuzzySet) -> torch.Tensor:
+        return self.converter.defuzzify(m)
 
 
 class PolygonFuzzyConverter(FuzzyConverter):

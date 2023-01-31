@@ -157,12 +157,16 @@ class MaxProd(CompositionBase):
         )
 
 
+
 class MinMax(CompositionBase):
 
     def init_weight(self, in_features: int, out_features: int, in_variables: int = None) -> SetParam:
         return FuzzySetParam(
             FuzzySet.negatives(get_comp_weight_size(in_features, out_features, in_variables))
         )
+ 
+    def inner(self):
+        return 
     
     def forward(self, m: FuzzySet):
         # assume inputs are binary
@@ -176,7 +180,7 @@ class FuzzyRelation(CompositionBase):
 
     def __init__(
         self, in_features: int, out_features: int, 
-        in_variables: int=None, to_complement: bool=True, 
+        in_variables: int=None, 
         inner=None, outer=None
     ):
         super().__init__()
@@ -201,10 +205,29 @@ class FuzzyRelation(CompositionBase):
         )
 
 
+class IntersectOn(nn.Module):
+
+    def __init__(self, dim: int):
+        super().__init__()
+        self.dim = dim
+
+    def forward(self, m: FuzzySet) -> FuzzySet:
+        return FuzzySet(torch.min(m.data, dim=self.dim), m.is_batch)
+
+
+class UnionOn(nn.Module):
+
+    def __init__(self, dim: int):
+        super().__init__()
+        self.dim = dim
+
+    def forward(self, m: FuzzySet) -> FuzzySet:
+        return FuzzySet(torch.max(m.data, dim=self.dim), m.is_batch)
+
+
 class MaxMinAgg(nn.Module):
 
     def __init__(self, in_variables: int, in_features: int, out_features: int, agg_features: int, complement_inputs: bool=False):
-
         super().__init__()
         self._max_min = MaxMin(in_features, out_features * agg_features, complement_inputs, in_variables)
         self._agg_features = agg_features
