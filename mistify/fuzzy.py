@@ -189,6 +189,7 @@ class Inner(nn.Module):
         self._f = f
     
     def forward(self, x: FuzzySet, y: FuzzySet) -> torch.Tensor:
+        print(x.data.size(), y.data.size())
         return self._f(x.data.unsqueeze(-1), y.data[None])
 
 
@@ -210,11 +211,12 @@ class FuzzyRelation(FuzzyComposition):
 
     def __init__(
         self, in_features: int, out_features: int, 
+        complement_inputs: bool=False,
         in_variables: int=None, 
         inner: typing.Union[Inner, typing.Callable]=None, 
         outer: typing.Union[Outer, typing.Callable]=None
     ):
-        super().__init__()
+        super().__init__(in_features, out_features, complement_inputs, in_variables)
         inner = inner or Inner(torch.min)
         outer = outer or Outer(torch.max, idx=0)
         if not isinstance(inner, Inner):
@@ -234,9 +236,7 @@ class FuzzyRelation(FuzzyComposition):
 
     def forward(self, m: FuzzySet):
 
-        return FuzzySet(
-            self.outer(self.inner(m, self.weight)), m.is_batch
-        )
+        return self.outer(self.inner(m, self.weight))
 
 
 class IntersectOn(nn.Module):
