@@ -559,6 +559,22 @@ def fuzzy_to_binary(self, fuzzy: FuzzySet, threshold: float=0.5):
     return BinarySet((fuzzy.data > threshold).type_as(fuzzy.data), fuzzy.is_batch)
 
 
+class ToFuzzySet(FuzzyConverter):
+
+    def __init__(self, is_batch: bool=True):
+        super().__init__()
+        self._is_batch = is_batch
+
+    def fuzzify(self, x: torch.Tensor) -> FuzzySet:
+        return FuzzySet(x, self._is_batch)
+    
+    def imply(self, m: FuzzySet) -> ValueWeight:
+        return ValueWeight(m.data, None)
+    
+    def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
+        return value_weight.value
+
+
 # Not sure why i have strides
 # def get_strided_indices(n_points: int, stride: int, step: int=1):
 #     initial_indices = torch.arange(0, n_points).as_strided((n_points - stride + 1, stride), (1, 1))
