@@ -74,6 +74,9 @@ class SetParam(nn.Module):
     def __getitem__(self, idx) -> torch.Tensor:
         return self.data[idx]
 
+    def size(self, dim=None):
+        if dim is None: self._set.data.size()
+        return self._set.data.size(dim)
 
 class CompositionBase(nn.Module):
 

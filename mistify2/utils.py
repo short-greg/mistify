@@ -13,6 +13,8 @@ def reduce(value: torch.Tensor, reduction: str):
         return value.mean()
     elif reduction == 'sum':
         return value.sum()
+    elif reduction == 'batchmean':
+        return value.sum() / value.size(0)
     return value
 
 
@@ -25,4 +27,4 @@ def minmax(x: torch.Tensor, w: torch.Tensor, dim=-2):
 
 
 def maxprod(x: torch.Tensor, w: torch.Tensor, dim=-2):
-    return torch.min(x.unsqueeze(-1) * w[None], dim=dim)[0]
+    return torch.max(x.unsqueeze(-1) * w[None], dim=dim)[0]

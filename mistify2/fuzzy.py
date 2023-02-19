@@ -164,9 +164,6 @@ class MinMax(CompositionBase):
         return FuzzySetParam(
             FuzzySet.negatives(get_comp_weight_size(in_features, out_features, in_variables))
         )
- 
-    def inner(self):
-        return 
     
     def forward(self, m: FuzzySet):
         # assume inputs are binary
@@ -185,7 +182,7 @@ class FuzzyRelation(CompositionBase):
     ):
         super().__init__()
         self.inner = inner or torch.min
-        self.outer = outer or (lambda x: torch.max(x, dim=-2)[0])
+        self.outer = outer or torch.max
 
         self.weight = FuzzySetParam(
             FuzzySet.positives(get_comp_weight_size(in_features, out_features, in_variables))
@@ -200,8 +197,9 @@ class FuzzyRelation(CompositionBase):
 
         return FuzzySet(
             self.outer(
-                self.inner(self.prepare_inputs(m), self.weight.data[None])
-            ), m.is_batch
+                self.inner(self.prepare_inputs(m), self.weight.data[None]),
+                dim=-2
+            )[0], m.is_batch
         )
 
 
