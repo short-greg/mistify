@@ -30,7 +30,6 @@ def check_if_optimizes_theta():
         fuzzy.FuzzySet.rand(*maxmin.weight.data.size(), is_batch=False)
     )
 
-
     maxmin_train2 = fuzzy.MaxMin(8, 4)
     maxprod_train = fuzzy.MaxProd(8, 4)
     maxprod_train.weight = fuzzy.FuzzySetParam(
