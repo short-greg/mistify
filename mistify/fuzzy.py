@@ -188,23 +188,24 @@ class Inner(nn.Module):
         super().__init__()
         self._f = f
     
-    def forward(self, x: FuzzySet, y: FuzzySet) -> torch.Tensor:
-        print(x.data.size(), y.data.size())
-        return self._f(x.data.unsqueeze(-1), y.data[None])
+    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        return self._f(x.unsqueeze(-1), y[None])
 
 
 class Outer(nn.Module):
         
-    def __init__(self, f: typing.Callable[[torch.Tensor], FuzzySet], agg_dim: int=-2, idx: int=None):
+    def __init__(self, f: typing.Callable[[torch.Tensor], FuzzySet], agg_dim: int=-2, idx: int=None, is_batch: bool=True):
         super().__init__()
         if idx is None:
             self._f =  partial(f, dim=agg_dim)
         if idx is not None:
             self._f = lambda x: f(x, dim=agg_dim)[idx]
         self._idx = idx
+        # change from being manually defined
+        self._is_batch = is_batch
     
     def forward(self, x: torch.Tensor) -> FuzzySet:
-        return FuzzySet(self._f(x), is_batch=True)
+        return self._f(x)
 
 
 class FuzzyRelation(FuzzyComposition):
@@ -235,8 +236,7 @@ class FuzzyRelation(FuzzyComposition):
         )
 
     def forward(self, m: FuzzySet):
-
-        return self.outer(self.inner(m, self.weight))
+        return FuzzySet(self.outer(self.inner(m.data, self.weight.param)))
 
 
 class IntersectOn(nn.Module):

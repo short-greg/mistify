@@ -26,7 +26,6 @@ def adamax(x: torch.Tensor, x2: torch.Tensor):
 
 
 def adamin(x: torch.Tensor, x2: torch.Tensor):
-    print(x.size(), x2.size())
     q = torch.clamp(690 / torch.log(torch.min(x, x2)).detach(), max=1000)
     
     return (x ** q + x2 ** q) ** (1 / q) / 2

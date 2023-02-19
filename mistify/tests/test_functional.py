@@ -21,8 +21,8 @@ class TestAda:
         x2 = torch.rand(1, 2, 3)
         assert functional.adamax(x1, x2).size() == torch.Size([3, 2, 3])
 
-class TestSmooth:
 
+class TestSmooth:
 
     def test_smoothmin_results_in_correct_size(self):
         x1 = torch.rand(3, 2, 1)
