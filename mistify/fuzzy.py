@@ -127,14 +127,24 @@ class FuzzySetParam(SetParam):
         super().__init__(set_, requires_grad=requires_grad)
 
 
-class MaxMin(CompositionBase):
+class FuzzyComposition(CompositionBase):
+
+    @abstractmethod
+    def forward(self, m: FuzzySet) -> FuzzySet:
+        raise NotImplementedError
+
+    def clamp(self):
+        self.weight.data.data = torch.clamp(self.weight.data.data, 0, 1)
+
+
+class MaxMin(FuzzyComposition):
 
     def init_weight(self, in_features: int, out_features: int, in_variables: int = None) -> SetParam:
         return FuzzySetParam(
             FuzzySet.positives(get_comp_weight_size(in_features, out_features, in_variables))
         )
-
-    def forward(self, m: FuzzySet):
+    
+    def forward(self, m: FuzzySet) -> FuzzySet:
         # assume inputs are binary
         # binarize the weights
         return FuzzySet(
@@ -142,14 +152,14 @@ class MaxMin(CompositionBase):
         ), m.is_batch)
 
 
-class MaxProd(CompositionBase):
+class MaxProd(FuzzyComposition):
 
     def init_weight(self, in_features: int, out_features: int, in_variables: int = None) -> SetParam:
         return FuzzySetParam(
             FuzzySet.positives(get_comp_weight_size(in_features, out_features, in_variables))
         )
 
-    def forward(self, m: FuzzySet):
+    def forward(self, m: FuzzySet) -> FuzzySet:
         # assume inputs are binary
         # binarize the weights
         return FuzzySet(
@@ -157,8 +167,7 @@ class MaxProd(CompositionBase):
         )
 
 
-
-class MinMax(CompositionBase):
+class MinMax(FuzzyComposition):
 
     def init_weight(self, in_features: int, out_features: int, in_variables: int = None) -> SetParam:
         return FuzzySetParam(
@@ -173,7 +182,7 @@ class MinMax(CompositionBase):
         )
 
 
-class FuzzyRelation(CompositionBase):
+class FuzzyRelation(FuzzyComposition):
 
     def __init__(
         self, in_features: int, out_features: int, 
