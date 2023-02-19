@@ -47,21 +47,22 @@ class SetParam(nn.Module):
 
         super().__init__()
         self._set = set_
-        self._data = nn.parameter.Parameter(
+        self._param = nn.parameter.Parameter(
             set_.data, requires_grad=requires_grad
         )
 
     @property
     def data(self) -> torch.Tensor:
-        return self._data
+        return self._param.data
 
     @data.setter
     def data(self, data: torch.Tensor):        
         self._set.data = data
-        self._data = nn.parameter.Parameter(
-            self._set.data.data, 
-            requires_grad=self._data.requires_grad
-        )
+        self._param.data = self._set.data
+
+    @property
+    def param(self) -> nn.parameter.Parameter:
+        return self._param
 
     @property
     def set(self) -> Set:

@@ -188,7 +188,7 @@ class Inner(nn.Module):
         super().__init__()
         self._f = f
     
-    def forward(self, x: FuzzySet, y: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: FuzzySet, y: FuzzySet) -> torch.Tensor:
         return self._f(x.data.unsqueeze(-1), y.data[None])
 
 
@@ -196,9 +196,10 @@ class Outer(nn.Module):
         
     def __init__(self, f: typing.Callable[[torch.Tensor], FuzzySet], agg_dim: int=-2, idx: int=None):
         super().__init__()
-        self._f =  partial(f, dim=agg_dim)
+        if idx is None:
+            self._f =  partial(f, dim=agg_dim)
         if idx is not None:
-            self._f = lambda x: partial(f)[idx]
+            self._f = lambda x: f(x, dim=agg_dim)[idx]
         self._idx = idx
     
     def forward(self, x: torch.Tensor) -> FuzzySet:
