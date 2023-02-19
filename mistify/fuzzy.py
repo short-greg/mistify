@@ -5,6 +5,7 @@ from .utils import reduce, get_comp_weight_size,  maxmin, minmax, maxprod
 from abc import abstractmethod
 from .base import Set, SetParam, CompositionBase
 import math
+from functools import partial
 
 
 class FuzzySet(Set):
@@ -181,18 +182,46 @@ class MinMax(FuzzyComposition):
             minmax(self.prepare_inputs(m), self.weight.data), m.is_batch
         )
 
+class Inner(nn.Module):
+
+    def __init__(self, f: typing.Callable[[FuzzySet, FuzzySet], torch.Tensor]):
+        super().__init__()
+        self._f = f
+    
+    def forward(self, x: FuzzySet, y: torch.Tensor) -> torch.Tensor:
+        return self._f(x.data.unsqueeze(-1), y.data[None])
+
+
+class Outer(nn.Module):
+        
+    def __init__(self, f: typing.Callable[[torch.Tensor], FuzzySet], agg_dim: int=-2, idx: int=None):
+        super().__init__()
+        self._f =  partial(f, dim=agg_dim)
+        if idx is not None:
+            self._f = lambda x: partial(f)[idx]
+        self._idx = idx
+    
+    def forward(self, x: torch.Tensor) -> FuzzySet:
+        return FuzzySet(self._f(x), is_batch=True)
+
 
 class FuzzyRelation(FuzzyComposition):
 
     def __init__(
         self, in_features: int, out_features: int, 
         in_variables: int=None, 
-        inner=None, outer=None
+        inner: typing.Union[Inner, typing.Callable]=None, 
+        outer: typing.Union[Outer, typing.Callable]=None
     ):
         super().__init__()
-        self.inner = inner or torch.min
-        self.outer = outer or torch.max
-
+        inner = inner or Inner(torch.min)
+        outer = outer or Outer(torch.max, idx=0)
+        if not isinstance(inner, Inner):
+            inner = Inner(inner)
+        if not isinstance(outer, Outer):
+            outer = Outer(outer)
+        self.inner = inner
+        self.outer = outer
         self.weight = FuzzySetParam(
             FuzzySet.positives(get_comp_weight_size(in_features, out_features, in_variables))
         )
@@ -205,10 +234,7 @@ class FuzzyRelation(FuzzyComposition):
     def forward(self, m: FuzzySet):
 
         return FuzzySet(
-            self.outer(
-                self.inner(self.prepare_inputs(m), self.weight.data[None]),
-                dim=-2
-            )[0], m.is_batch
+            self.outer(self.inner(m, self.weight)), m.is_batch
         )
 
 
@@ -284,3 +310,4 @@ class WithFuzzyElse(nn.Module):
             torch.cat([m.data, else_.data], dim=self.else_.dim),
             is_batch=m.is_batch
         )
+
