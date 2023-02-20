@@ -1,7 +1,6 @@
 from .. import membership
 import torch
 import pytest
-from ..fuzzy import FuzzySet
 
 class TestShapeParams:
 
@@ -113,7 +112,7 @@ class TestIncreasingRightTriangle(object):
     def test_scale_returns_shape_with_correct_size(self):
 
         p = torch.rand(3, 4, 2).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         right_triangle = membership.IncreasingRightTriangle(
             membership.ShapeParams(p)
         )
@@ -123,7 +122,7 @@ class TestIncreasingRightTriangle(object):
     def test_mean_core_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 2).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         right_triangle = membership.IncreasingRightTriangle(
             membership.ShapeParams(p)
         )
@@ -133,7 +132,7 @@ class TestIncreasingRightTriangle(object):
     def test_centroids_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 2).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         right_triangle = membership.IncreasingRightTriangle(
             membership.ShapeParams(p)
         )
@@ -143,7 +142,7 @@ class TestIncreasingRightTriangle(object):
     def test_areas_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 2).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         right_triangle = membership.IncreasingRightTriangle(
             membership.ShapeParams(p)
         )
@@ -153,7 +152,7 @@ class TestIncreasingRightTriangle(object):
     def test_truncate_returns_right_trapezoid(self):
 
         p = torch.rand(3, 4, 2).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         right_triangle = membership.IncreasingRightTriangle(
             membership.ShapeParams(p)
         )
@@ -171,12 +170,12 @@ class TestIncreasingRightTrapezoid(object):
             membership.ShapeParams(p)
         )
         m = right_trapezoid.join(x)
-        assert m.data.size() == torch.Size([2, 3, 4])
+        assert m.size() == torch.Size([2, 3, 4])
 
     def test_scale_returns_shape_with_correct_size(self):
 
         p = torch.rand(3, 4, 3).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         right_trapezoid = membership.IncreasingRightTrapezoid(
             membership.ShapeParams(p)
         )
@@ -186,7 +185,7 @@ class TestIncreasingRightTrapezoid(object):
     def test_mean_core_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 3).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         right_trapezoid = membership.IncreasingRightTrapezoid(
             membership.ShapeParams(p)
         )
@@ -196,7 +195,7 @@ class TestIncreasingRightTrapezoid(object):
     def test_centroids_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 3).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         right_trapezoid = membership.IncreasingRightTrapezoid(
             membership.ShapeParams(p)
         )
@@ -206,7 +205,7 @@ class TestIncreasingRightTrapezoid(object):
     def test_areas_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 3).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         right_trapezoid = membership.IncreasingRightTrapezoid(
             membership.ShapeParams(p)
         )
@@ -216,7 +215,7 @@ class TestIncreasingRightTrapezoid(object):
     def test_truncate_returns_right_trapezoid(self):
 
         p = torch.rand(3, 4, 3).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         right_trapezoid = membership.IncreasingRightTrapezoid(
             membership.ShapeParams(p)
         )
@@ -239,7 +238,7 @@ class TestSquare(object):
     def test_scale_returns_shape_with_correct_size(self):
 
         p = torch.rand(3, 4, 2).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         square = membership.Square(
             membership.ShapeParams(p)
         )
@@ -249,7 +248,7 @@ class TestSquare(object):
     def test_mean_core_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 2).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         square = membership.Square(
             membership.ShapeParams(p)
         )
@@ -259,7 +258,7 @@ class TestSquare(object):
     def test_centroids_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 2).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         square = membership.Square(
             membership.ShapeParams(p)
         )
@@ -269,7 +268,7 @@ class TestSquare(object):
     def test_areas_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 2).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         square = membership.Square(
             membership.ShapeParams(p)
         )
@@ -279,7 +278,7 @@ class TestSquare(object):
     def test_truncate_returns_right_trapezoid(self):
 
         p = torch.rand(3, 4, 2).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         square = membership.Square(
             membership.ShapeParams(p)
         )
@@ -302,7 +301,7 @@ class TestDecreasingRightTriangle(object):
     def test_scale_returns_shape_with_correct_size(self):
 
         p = torch.rand(3, 4, 2).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         right_triangle = membership.DecreasingRightTriangle(
             membership.ShapeParams(p)
         )
@@ -312,7 +311,7 @@ class TestDecreasingRightTriangle(object):
     def test_mean_core_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 2).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         right_triangle = membership.DecreasingRightTriangle(
             membership.ShapeParams(p)
         )
@@ -322,7 +321,7 @@ class TestDecreasingRightTriangle(object):
     def test_centroids_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 2).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         right_triangle = membership.DecreasingRightTriangle(
             membership.ShapeParams(p)
         )
@@ -332,7 +331,7 @@ class TestDecreasingRightTriangle(object):
     def test_areas_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 2).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         right_triangle = membership.DecreasingRightTriangle(
             membership.ShapeParams(p)
         )
@@ -342,7 +341,7 @@ class TestDecreasingRightTriangle(object):
     def test_truncate_returns_right_trapezoid(self):
 
         p = torch.rand(3, 4, 2).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         right_triangle = membership.DecreasingRightTriangle(
             membership.ShapeParams(p)
         )
@@ -365,7 +364,7 @@ class TestTriangle(object):
     def test_scale_returns_shape_with_correct_size(self):
 
         p = torch.rand(3, 4, 3).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         triangle = membership.Triangle(
             membership.ShapeParams(p)
         )
@@ -375,7 +374,7 @@ class TestTriangle(object):
     def test_mean_core_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 3).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         right_trapezoid = membership.Triangle(
             membership.ShapeParams(p)
         )
@@ -385,7 +384,7 @@ class TestTriangle(object):
     def test_centroids_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 3).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         right_trapezoid = membership.Triangle(
             membership.ShapeParams(p)
         )
@@ -395,7 +394,7 @@ class TestTriangle(object):
     def test_areas_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 3).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         right_trapezoid = membership.Triangle(
             membership.ShapeParams(p)
         )
@@ -405,7 +404,7 @@ class TestTriangle(object):
     def test_truncate_returns_trapezoid(self):
 
         p = torch.rand(3, 4, 3).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         right_trapezoid = membership.Triangle(
             membership.ShapeParams(p)
         )
@@ -428,7 +427,7 @@ class TestTrapezoid(object):
     def test_scale_returns_shape_with_correct_size(self):
 
         p = torch.rand(3, 4, 4).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         trapezoid = membership.Trapezoid(
             membership.ShapeParams(p)
         )
@@ -438,7 +437,7 @@ class TestTrapezoid(object):
     def test_mean_core_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 4).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         trapezoid = membership.Trapezoid(
             membership.ShapeParams(p)
         )
@@ -448,7 +447,7 @@ class TestTrapezoid(object):
     def test_centroids_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 4).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         trapezoid = membership.Trapezoid(
             membership.ShapeParams(p)
         )
@@ -458,7 +457,7 @@ class TestTrapezoid(object):
     def test_areas_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 4).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         trapezoid = membership.Trapezoid(
             membership.ShapeParams(p)
         )
@@ -468,7 +467,7 @@ class TestTrapezoid(object):
     def test_truncate_returns_trapezoid(self):
 
         p = torch.rand(3, 4, 4).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         trapezoid = membership.Trapezoid(
             membership.ShapeParams(p)
         )
@@ -491,7 +490,7 @@ class TestIsocelesTriangle(object):
     def test_scale_returns_shape_with_correct_size(self):
 
         p = torch.rand(3, 4, 2).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         triangle = membership.IsoscelesTriangle(
             membership.ShapeParams(p)
         )
@@ -501,7 +500,7 @@ class TestIsocelesTriangle(object):
     def test_mean_core_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 2).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         right_trapezoid = membership.IsoscelesTriangle(
             membership.ShapeParams(p)
         )
@@ -511,7 +510,7 @@ class TestIsocelesTriangle(object):
     def test_centroids_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 2).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         right_trapezoid = membership.IsoscelesTriangle(
             membership.ShapeParams(p)
         )
@@ -521,7 +520,7 @@ class TestIsocelesTriangle(object):
     def test_areas_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 2).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         right_trapezoid = membership.IsoscelesTriangle(
             membership.ShapeParams(p)
         )
@@ -531,7 +530,7 @@ class TestIsocelesTriangle(object):
     def test_truncate_returns_trapezoid(self):
 
         p = torch.rand(3, 4, 2).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         right_trapezoid = membership.IsoscelesTriangle(
             membership.ShapeParams(p)
         )
@@ -554,7 +553,7 @@ class TestIsoscelesTrapezoid(object):
     def test_scale_returns_shape_with_correct_size(self):
 
         p = torch.rand(3, 4, 3).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         trapezoid = membership.IsoscelesTrapezoid(
             membership.ShapeParams(p)
         )
@@ -564,7 +563,7 @@ class TestIsoscelesTrapezoid(object):
     def test_mean_core_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 3).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         trapezoid = membership.IsoscelesTrapezoid(
             membership.ShapeParams(p)
         )
@@ -574,7 +573,7 @@ class TestIsoscelesTrapezoid(object):
     def test_centroids_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 3).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         trapezoid = membership.IsoscelesTrapezoid(
             membership.ShapeParams(p)
         )
@@ -584,7 +583,7 @@ class TestIsoscelesTrapezoid(object):
     def test_areas_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 3).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         trapezoid = membership.IsoscelesTrapezoid(
             membership.ShapeParams(p)
         )
@@ -594,7 +593,7 @@ class TestIsoscelesTrapezoid(object):
     def test_truncate_returns_trapezoid(self):
 
         p = torch.rand(3, 4, 3).cumsum(2)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         trapezoid = membership.IsoscelesTrapezoid(
             membership.ShapeParams(p)
         )
@@ -619,7 +618,7 @@ class TestLogistic(object):
 
         b = membership.ShapeParams(torch.rand(3, 4, 1))
         s = membership.ShapeParams(torch.rand(3, 4, 1))
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         logistic = membership.LogisticBell(
             b, s
         )
@@ -630,7 +629,7 @@ class TestLogistic(object):
 
         b = membership.ShapeParams(torch.rand(3, 4, 1))
         s = membership.ShapeParams(torch.rand(3, 4, 1))
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         logistic = membership.LogisticBell(
             b, s
         )
@@ -640,7 +639,7 @@ class TestLogistic(object):
     def test_centroids_returns_tensor_with_correct_size(self):
         b = membership.ShapeParams(torch.rand(3, 4, 1))
         s = membership.ShapeParams(torch.rand(3, 4, 1))
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         logistic = membership.LogisticBell(
             b, s
         )
@@ -650,7 +649,7 @@ class TestLogistic(object):
     def test_areas_returns_tensor_with_correct_size(self):
         b = membership.ShapeParams(torch.rand(3, 4, 1))
         s = membership.ShapeParams(torch.rand(3, 4, 1))
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         logistic = membership.LogisticBell(
             b, s
         )
@@ -660,7 +659,7 @@ class TestLogistic(object):
     def test_truncate_returns_trapezoid(self):
         b = membership.ShapeParams(torch.rand(3, 4, 1))
         s = membership.ShapeParams(torch.rand(3, 4, 1))
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
         logistic = membership.LogisticBell(
             b, s
         )
@@ -674,7 +673,7 @@ class TestLogisticTrapezoid(object):
 
         b = membership.ShapeParams(torch.rand(3, 4, 1))
         s = membership.ShapeParams(torch.rand(3, 4, 1))
-        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+        truncated_m = torch.rand(2, 3, 4)
         x = torch.rand(2, 3)
         logistic = membership.LogisticTrapezoid(
             b, s, truncated_m
@@ -686,8 +685,8 @@ class TestLogisticTrapezoid(object):
 
         b = membership.ShapeParams(torch.rand(3, 4, 1))
         s = membership.ShapeParams(torch.rand(3, 4, 1))
-        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        truncated_m = torch.rand(2, 3, 4)
+        m = torch.rand(2, 3, 4)
         logistic = membership.LogisticTrapezoid(
             b, s, truncated_m
         )
@@ -698,8 +697,8 @@ class TestLogisticTrapezoid(object):
 
         b = membership.ShapeParams(torch.rand(3, 4, 1))
         s = membership.ShapeParams(torch.rand(3, 4, 1))
-        m = FuzzySet(torch.rand(2, 3, 4), True)
-        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
+        truncated_m = torch.rand(2, 3, 4)
 
         logistic = membership.LogisticTrapezoid(
             b, s, truncated_m
@@ -710,8 +709,8 @@ class TestLogisticTrapezoid(object):
     def test_centroids_returns_tensor_with_correct_size(self):
         b = membership.ShapeParams(torch.rand(3, 4, 1))
         s = membership.ShapeParams(torch.rand(3, 4, 1))
-        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        truncated_m = torch.rand(2, 3, 4)
+        m = torch.rand(2, 3, 4)
         logistic = membership.LogisticTrapezoid(
             b, s, truncated_m
         )
@@ -721,8 +720,8 @@ class TestLogisticTrapezoid(object):
     def test_areas_returns_tensor_with_correct_size(self):
         b = membership.ShapeParams(torch.rand(3, 4, 1))
         s = membership.ShapeParams(torch.rand(3, 4, 1))
-        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        truncated_m = torch.rand(2, 3, 4)
+        m = torch.rand(2, 3, 4)
         logistic = membership.LogisticTrapezoid(
             b, s, truncated_m
         )
@@ -732,8 +731,8 @@ class TestLogisticTrapezoid(object):
     def test_truncate_returns_trapezoid(self):
         b = membership.ShapeParams(torch.rand(3, 4, 1))
         s = membership.ShapeParams(torch.rand(3, 4, 1))
-        m = FuzzySet(torch.rand(2, 3, 4), True)
-        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
+        truncated_m = torch.rand(2, 3, 4)
 
         logistic = membership.LogisticTrapezoid(
             b, s, truncated_m
@@ -748,7 +747,7 @@ class TestRightLogistic(object):
 
         b = membership.ShapeParams(torch.rand(3, 4, 1))
         s = membership.ShapeParams(torch.rand(3, 4, 1))
-        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+        truncated_m = torch.rand(2, 3, 4)
         x = torch.rand(2, 3)
         logistic = membership.RightLogistic(
             b, s, True, truncated_m
@@ -760,8 +759,8 @@ class TestRightLogistic(object):
 
         b = membership.ShapeParams(torch.rand(3, 4, 1))
         s = membership.ShapeParams(torch.rand(3, 4, 1))
-        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        truncated_m = torch.rand(2, 3, 4)
+        m = torch.rand(2, 3, 4)
         logistic = membership.RightLogistic(
             b, s, True, truncated_m
         )
@@ -772,8 +771,8 @@ class TestRightLogistic(object):
 
         b = membership.ShapeParams(torch.rand(3, 4, 1))
         s = membership.ShapeParams(torch.rand(3, 4, 1))
-        m = FuzzySet(torch.rand(2, 3, 4), True)
-        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
+        truncated_m = torch.rand(2, 3, 4)
 
         logistic = membership.RightLogistic(
             b, s, True, truncated_m
@@ -784,8 +783,8 @@ class TestRightLogistic(object):
     def test_centroids_returns_tensor_with_correct_size(self):
         b = membership.ShapeParams(torch.rand(3, 4, 1))
         s = membership.ShapeParams(torch.rand(3, 4, 1))
-        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        truncated_m = torch.rand(2, 3, 4)
+        m = torch.rand(2, 3, 4)
         logistic = membership.RightLogistic(
             b, s, True, truncated_m
         )
@@ -795,8 +794,8 @@ class TestRightLogistic(object):
     def test_areas_returns_tensor_with_correct_size(self):
         b = membership.ShapeParams(torch.rand(3, 4, 1))
         s = membership.ShapeParams(torch.rand(3, 4, 1))
-        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        truncated_m = torch.rand(2, 3, 4)
+        m = torch.rand(2, 3, 4)
         logistic = membership.RightLogistic(
             b, s, True, truncated_m
         )
@@ -806,8 +805,8 @@ class TestRightLogistic(object):
     def test_truncate_returns_trapezoid(self):
         b = membership.ShapeParams(torch.rand(3, 4, 1))
         s = membership.ShapeParams(torch.rand(3, 4, 1))
-        m = FuzzySet(torch.rand(2, 3, 4), True)
-        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
+        truncated_m = torch.rand(2, 3, 4)
 
         logistic = membership.RightLogistic(
             b, s, True, truncated_m
@@ -816,18 +815,13 @@ class TestRightLogistic(object):
         assert isinstance(shape, membership.RightLogisticTrapezoid)
 
 
-
-
-
-
-
 class TestRightLogisticTrapezoid(object):
 
     def test_join_returns_fuzzy_set_with_correct_size(self):
 
         b = membership.ShapeParams(torch.rand(3, 4, 1))
         s = membership.ShapeParams(torch.rand(3, 4, 1))
-        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+        truncated_m = torch.rand(2, 3, 4)
         x = torch.rand(2, 3)
         logistic = membership.RightLogisticTrapezoid(
             b, s, True, truncated_m
@@ -839,8 +833,8 @@ class TestRightLogisticTrapezoid(object):
 
         b = membership.ShapeParams(torch.rand(3, 4, 1))
         s = membership.ShapeParams(torch.rand(3, 4, 1))
-        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        truncated_m = torch.rand(2, 3, 4)
+        m = torch.rand(2, 3, 4)
         logistic = membership.RightLogisticTrapezoid(
             b, s, True, truncated_m
         )
@@ -851,8 +845,8 @@ class TestRightLogisticTrapezoid(object):
 
         b = membership.ShapeParams(torch.rand(3, 4, 1))
         s = membership.ShapeParams(torch.rand(3, 4, 1))
-        m = FuzzySet(torch.rand(2, 3, 4), True)
-        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
+        truncated_m = torch.rand(2, 3, 4)
 
         logistic = membership.RightLogisticTrapezoid(
             b, s, True, truncated_m
@@ -863,8 +857,8 @@ class TestRightLogisticTrapezoid(object):
     def test_centroids_returns_tensor_with_correct_size(self):
         b = membership.ShapeParams(torch.rand(3, 4, 1))
         s = membership.ShapeParams(torch.rand(3, 4, 1))
-        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        truncated_m = torch.rand(2, 3, 4)
+        m = torch.rand(2, 3, 4)
         logistic = membership.RightLogisticTrapezoid(
             b, s, True, truncated_m
         )
@@ -874,8 +868,8 @@ class TestRightLogisticTrapezoid(object):
     def test_areas_returns_tensor_with_correct_size(self):
         b = membership.ShapeParams(torch.rand(3, 4, 1))
         s = membership.ShapeParams(torch.rand(3, 4, 1))
-        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
-        m = FuzzySet(torch.rand(2, 3, 4), True)
+        truncated_m = torch.rand(2, 3, 4)
+        m = torch.rand(2, 3, 4)
         logistic = membership.RightLogisticTrapezoid(
             b, s, True, truncated_m
         )
@@ -885,8 +879,8 @@ class TestRightLogisticTrapezoid(object):
     def test_truncate_returns_trapezoid(self):
         b = membership.ShapeParams(torch.rand(3, 4, 1))
         s = membership.ShapeParams(torch.rand(3, 4, 1))
-        m = FuzzySet(torch.rand(2, 3, 4), True)
-        truncated_m = FuzzySet(torch.rand(2, 3, 4), True)
+        m = torch.rand(2, 3, 4)
+        truncated_m = torch.rand(2, 3, 4)
 
         logistic = membership.RightLogisticTrapezoid(
             b, s, True, truncated_m

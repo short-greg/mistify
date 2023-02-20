@@ -98,6 +98,19 @@ class FuzzySet(Set):
         return FuzzySet(self.data[key])
 
 
+def positives(*size: int, dtype=torch.float32, device='cpu') -> torch.Tensor:
+    return torch.ones(*size, dtype=dtype, device=device)
+
+
+def negatives(*size: int, dtype=torch.float32, device='cpu') -> torch.Tensor:
+    return torch.zeros(*size, dtype=dtype, device=device)
+
+
+def intersect(m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+    return torch.min(m1, m2)
+
+
+
 class FuzzyCalcApprox(object):
 
     def intersect(self, x: FuzzySet, y: FuzzySet):
@@ -107,16 +120,12 @@ class FuzzyCalcApprox(object):
         pass
 
 
-def intersect(m: FuzzySet, m2: FuzzySet):
-    return FuzzySet(torch.min(m.data, m2.data))
+def unify(m: torch.Tensor, m2: torch.Tensor):
+    return torch.max(m, m2)
 
 
-def unify(m: FuzzySet, m2: FuzzySet):
-    return FuzzySet(torch.max(m.data, m2.data))
-
-
-def differ(m: FuzzySet, m2: FuzzySet):
-    return FuzzySet((m.data - m2._data).clamp(0.0, 1.0))
+def differ(m: torch.Tensor, m2: torch.Tensor):
+    return (m - m2).clamp(0.0, 1.0)
 
 
 class FuzzySetParam(SetParam):

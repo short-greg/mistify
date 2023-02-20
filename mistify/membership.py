@@ -2,7 +2,7 @@ from abc import abstractmethod, abstractproperty
 import typing
 import torch
 from dataclasses import dataclass
-from .fuzzy import FuzzySet
+from .fuzzy import FuzzySet, intersect, positives
 
 # TODO: 
 # Analyze the classes and design an approach to make
@@ -124,41 +124,44 @@ def check_contains(x: torch.Tensor, pt1: torch.Tensor, pt2: torch.Tensor):
     return (x >= pt1) & (x <= pt2)
 
 
-def calc_m_flat(x, pt1: torch.Tensor, pt2: torch.Tensor, m: FuzzySet):
+def calc_m_flat(x, pt1: torch.Tensor, pt2: torch.Tensor, m: torch.Tensor):
 
-    return m.data * check_contains(x, pt1, pt2).float()
-
-
-def calc_m_linear_increasing(x: torch.Tensor, pt1: torch.Tensor, pt2: torch.Tensor, m: FuzzySet):
-    return (x - pt1) * (m.data / (pt2 - pt1)) * check_contains(x, pt1, pt2).float() 
+    return m * check_contains(x, pt1, pt2).float()
 
 
-def calc_m_linear_decreasing(x: torch.Tensor, pt1: torch.Tensor, pt2: torch.Tensor, m: FuzzySet):
-    return ((x - pt1) * (-m.data / (pt2 - pt1)) + m.data) * check_contains(x, pt1, pt2).float()
+def calc_m_linear_increasing(x: torch.Tensor, pt1: torch.Tensor, pt2: torch.Tensor, m: torch.Tensor):
+    return (x - pt1) * (m / (pt2 - pt1)) * check_contains(x, pt1, pt2).float() 
 
 
-def calc_x_linear_increasing(m0: FuzzySet, pt1: torch.Tensor, pt2: torch.Tensor, m: FuzzySet):
+def calc_m_linear_decreasing(x: torch.Tensor, pt1: torch.Tensor, pt2: torch.Tensor, m: torch.Tensor):
+    return ((x - pt1) * (-m / (pt2 - pt1)) + m) * check_contains(x, pt1, pt2).float()
+
+
+def calc_x_linear_increasing(m0: torch.Tensor, pt1: torch.Tensor, pt2: torch.Tensor, m: torch.Tensor):
     # NOTE: To save on computational costs do not perform checks to see
     # if m0 is greater than m
 
-    m0 = m0.intersect(m)
-    x = m0.data * (pt2 - pt1) / m.data + pt1
+    # TODO: use intersect function
+    m0 = torch.min(m0, m)
+    # m0 = m0.intersect(m)
+    x = m0 * (pt2 - pt1) / m + pt1
     torch.nan_to_num_(x, 0.0, 0.0)
     return x
 
 
-def calc_x_linear_decreasing(m0: FuzzySet, pt1, pt2, m: FuzzySet):
+def calc_x_linear_decreasing(m0: torch.Tensor, pt1, pt2, m: torch.Tensor):
 
-    m0 = m0.intersect(m)
-    x = -(m0.data - 1) * (pt2 - pt1) / m.data + pt1
+    # m0 = m0.intersect(m)
+    m0 = torch.min(m0, m)
+    x = -(m0 - 1) * (pt2 - pt1) / m + pt1
     torch.nan_to_num_(x, 0.0, 0.0)
     return x
 
 
-def calc_m_logistic(x, b, s, m: FuzzySet):
+def calc_m_logistic(x, b, s, m: torch.Tensor):
 
     z = s * (x - b)
-    multiplier = 4 * m.data
+    multiplier = 4 * m
     y = torch.sigmoid(z)
     return multiplier * y * (1 - y)
 
@@ -168,20 +171,20 @@ def calc_x_logistic(y, b, s):
     return -torch.log(1 / y - 1) / s + b
 
 
-def calc_dx_logistic(m0: FuzzySet, s: torch.Tensor, m_base: FuzzySet):
+def calc_dx_logistic(m0: torch.Tensor, s: torch.Tensor, m_base: torch.Tensor):
     
-    m = m0.data / m_base.data
-    dx = -torch.log((-m.data - 2 * torch.sqrt(1 - m) + 2) / (m.data)).float()
+    m = m0 / m_base
+    dx = -torch.log((-m - 2 * torch.sqrt(1 - m) + 2) / (m)).float()
     dx = dx / s
     return dx
 
 
-def calc_area_logistic(s: torch.Tensor, m_base: FuzzySet, left=True):
+def calc_area_logistic(s: torch.Tensor, m_base: torch.Tensor, left=True):
     
-    return 4 * m_base.data / s
+    return 4 * m_base / s
 
 
-def calc_area_logistic_one_side(x: torch.Tensor, b: torch.Tensor, s: torch.Tensor, m_base: FuzzySet):
+def calc_area_logistic_one_side(x: torch.Tensor, b: torch.Tensor, s: torch.Tensor, m_base: torch.Tensor):
     
     z = s * (x - b)
     left = (z < 0).float()
@@ -190,7 +193,7 @@ def calc_area_logistic_one_side(x: torch.Tensor, b: torch.Tensor, s: torch.Tenso
     # flip the probability
     a = left * a + (1 - left) * (1 - a)
 
-    return a * m_base.data * 4 / s
+    return a * m_base * 4 / s
 
 def unsqueeze(x: torch.Tensor):
     return x.unsqueeze(x.dim())
@@ -253,20 +256,20 @@ class Shape(object):
         return self._centroids
     
     @abstractmethod
-    def scale(self, m: FuzzySet) -> 'Shape':
+    def scale(self, m: torch.Tensor) -> 'Shape':
         pass
 
     @abstractmethod
-    def truncate(self, m: FuzzySet) -> 'Shape':
+    def truncate(self, m: torch.Tensor) -> 'Shape':
         pass
 
     @abstractmethod
-    def join(self, x: torch.Tensor) -> FuzzySet:
+    def join(self, x: torch.Tensor) -> torch.Tensor:
         pass
 
-    def _resize_to_m(self, x: torch.Tensor, m: FuzzySet):
-        if m.is_batch and x.size(0) == 1 and m.data.size(0) != 1:
-            return x.repeat(m.data.size(0), *[1] * (m.data.dim() - 1))
+    def _resize_to_m(self, x: torch.Tensor, m: torch.Tensor):
+        if x.size(0) == 1 and m.size(0) != 1:
+            return x.repeat(m.size(0), *[1] * (m.dim() - 1))
         return x    
 
 
@@ -278,9 +281,10 @@ class Polygon(Shape):
 
         assert params.x.size(3) == self.PT, f'Number of points must be {self.PT} not {params.x.size(3)}'
         self._params = params
-        self._m = m or FuzzySet.positives(
+        # Change to fuzzy.positives
+        self._m = m if m is not None else torch.ones(
             self._params.batch_size, self._params.set_size, 
-            self._params.n_terms, device=params.x.device, is_batch=True
+            self._params.n_terms, device=params.x.device,        
         )
 
         super().__init__(self._params.set_size, self._params.n_terms)
@@ -290,16 +294,16 @@ class IncreasingRightTriangle(Polygon):
 
     PT = 2
 
-    def join(self, x: torch.Tensor) -> FuzzySet:
-        return FuzzySet(calc_m_linear_increasing(
-            unsqueeze(x), self._params.pt(0), self._params.pt(1), self._m.data
-        ), x.dim() == 2)
+    def join(self, x: torch.Tensor) -> torch.Tensor:
+        return calc_m_linear_increasing(
+            unsqueeze(x), self._params.pt(0), self._params.pt(1), self._m
+        )
 
     def _calc_areas(self):
         
         return self._resize_to_m(
             0.5 * (self._params.pt(1)
-            - self._params.pt(0)) * self._m.data, self._m
+            - self._params.pt(0)) * self._m, self._m
         )
 
     def _calc_mean_cores(self):
@@ -313,23 +317,25 @@ class IncreasingRightTriangle(Polygon):
             p1 * self._params.pt(0) + p2 * self._params.pt(1), self._m
         )
     
-    def scale(self, m: FuzzySet):
+    def scale(self, m: torch.Tensor) -> 'IncreasingRightTriangle':
 
-        updated_m = m.intersect(self._m)
+        print(type(m), type(self._m))
+        updated_m = intersect(m, self._m)
+        print(updated_m)
         
         return IncreasingRightTriangle(
             self._params, updated_m
         )
 
-    def truncate(self, m: FuzzySet):
+    def truncate(self, m: torch.Tensor) -> 'IncreasingRightTrapezoid':
         # TODO: FINISH
-        updated_m = m.intersect(self._m)
+        updated_m = intersect(self._m, m)
 
         pt = calc_x_linear_increasing(
             updated_m, self._params.pt(0), self._params.pt(1), self._m
         )
         params = self._params.insert(
-            pt, 1, to_unsqueeze=True, equalize_to=updated_m.data
+            pt, 1, to_unsqueeze=True, equalize_to=updated_m
         )
         return IncreasingRightTrapezoid(
             params, updated_m
@@ -342,15 +348,15 @@ class DecreasingRightTriangle(Polygon):
     
     def join(self, x: torch.Tensor):
     
-        return FuzzySet(calc_m_linear_decreasing(
-            unsqueeze(x), self._params.pt(0), self._params.pt(1), self._m.data
-        ), x.dim() == 2)
+        return calc_m_linear_decreasing(
+            unsqueeze(x), self._params.pt(0), self._params.pt(1), self._m
+        )
 
     def _calc_areas(self):
         
         return self._resize_to_m((
             0.5 * (self._params.pt(1)
-            - self._params.pt(0)) * self._m.data
+            - self._params.pt(0)) * self._m
         ), self._m)
 
     def _calc_mean_cores(self):
@@ -363,23 +369,22 @@ class DecreasingRightTriangle(Polygon):
             + 1 / 3 * self._params.pt(1), self._m
         )
     
-    def scale(self, m: FuzzySet):
-        updated_m = self._m.intersect(m)
+    def scale(self, m: torch.Tensor):
+        updated_m = intersect(self._m, m)
         
         return DecreasingRightTriangle(
             self._params, updated_m
         )
 
-    def truncate(self, m: FuzzySet):
-        
-        updated_m = m.intersect(self._m)
+    def truncate(self, m: torch.Tensor):
+        updated_m = intersect(self._m, m)
 
         pt = calc_x_linear_decreasing(
             updated_m, self._params.pt(0), self._params.pt(1), self._m
         )
 
         # print('Truncate Right Triangle: ', pt.size(), updated_m.data.size(), self._params.x.size())
-        params = self._params.insert(pt, 1, to_unsqueeze=True, equalize_to=updated_m.data)
+        params = self._params.insert(pt, 1, to_unsqueeze=True, equalize_to=updated_m)
         return DecreasingRightTrapezoid(
             params, updated_m
         )
@@ -390,16 +395,16 @@ class Square(Polygon):
     PT = 2
 
     def join(self, x: torch.Tensor):
-        return FuzzySet((
+        return (
             (x[:,:,None] >= self._params.pt(0)) 
             & (x[:,:,None] <= self._params.pt(1))
-        ).type_as(x) * self._m.data)
+        ).type_as(x) * self._m
 
     def _calc_areas(self):
         
         return self._resize_to_m((
             (self._params.pt(1) 
-            - self._params.pt(0)) * self._m.data
+            - self._params.pt(0)) * self._m
         ), self._m)
 
     def _calc_mean_cores(self):
@@ -412,16 +417,15 @@ class Square(Polygon):
             self._params.pt(0) + self._params.pt(1)
         ), self._m)
     
-    def scale(self, m: FuzzySet):
-
-        updated_m = m.intersect(self._m)
+    def scale(self, m: torch.Tensor) -> 'Square':
+        updated_m = intersect(m, self._m)
         
         return Square(
             self._params, updated_m
         )
 
-    def truncate(self, m: FuzzySet):
-        updated_m = m.intersect(self._m)
+    def truncate(self, m: torch.Tensor) -> 'Square':
+        updated_m = intersect(m, self._m)
 
         return Square(
             self._params, updated_m
@@ -435,18 +439,18 @@ class Triangle(Polygon):
     def join(self, x: torch.Tensor):
         
         m1 = calc_m_linear_increasing(
-            unsqueeze(x), self._params.pt(0), self._params.pt(1), self._m.data
+            unsqueeze(x), self._params.pt(0), self._params.pt(1), self._m
         )
         m2 = calc_m_linear_decreasing(
-            unsqueeze(x), self._params.pt(1), self._params.pt(2), self._m.data
+            unsqueeze(x), self._params.pt(1), self._params.pt(2), self._m
         )
-        return FuzzySet(torch.max(m1, m2))
+        return intersect(m1, m2)
 
     def _calc_areas(self):
         
         return self._resize_to_m((
             0.5 * (self._params.pt(2) 
-            - self._params.pt(0)) * self._m.data
+            - self._params.pt(0)) * self._m
         ), self._m)
 
     def _calc_mean_cores(self):
@@ -457,16 +461,15 @@ class Triangle(Polygon):
             self._params.pt(0) + self._params.pt(1) + self._params.pt(2)
         ), self._m)
     
-    def scale(self, m: FuzzySet):
+    def scale(self, m: torch.Tensor) -> 'Triangle':
 
-        updated_m = self._m.intersect(m)
-        
+        updated_m = intersect(self._m, m)        
         return Triangle(
             self._params, updated_m
         )
 
-    def truncate(self, m: FuzzySet):
-        updated_m = self._m.intersect(m)
+    def truncate(self, m: torch.Tensor) -> 'Trapezoid':
+        updated_m = intersect(self._m, m)
 
         pt1 = calc_x_linear_increasing(updated_m, self._params.pt(0), self._params.pt(1), self._m)
         pt2 = calc_x_linear_decreasing(updated_m, self._params.pt(1), self._params.pt(2), self._m)
@@ -474,7 +477,7 @@ class Triangle(Polygon):
             [pt1.unsqueeze(3), pt2.unsqueeze(3)], dim=3
         )
         params= self._params.replace(
-            to_replace, 1, False, equalize_to=updated_m.data
+            to_replace, 1, False, equalize_to=updated_m
         )
 
         return Trapezoid(
@@ -486,22 +489,22 @@ class Trapezoid(Polygon):
 
     PT = 4
 
-    def join(self, x: torch.Tensor) -> FuzzySet:
+    def join(self, x: torch.Tensor) -> torch.Tensor:
 
         x = unsqueeze(x)
         m1 = calc_m_linear_increasing(x, self._params.pt(0), self._params.pt(1), self._m)
         m2 = calc_m_flat(x, self._params.pt(1), self._params.pt(2), self._m)
         m3 = calc_m_linear_decreasing(x, self._params.pt(2), self._params.pt(3), self._m)
 
-        return FuzzySet(torch.max(torch.max(
+        return torch.max(torch.max(
             m1, m2
-        ), m3), m1.dim() == 3)
+        ), m3)
 
     def _calc_areas(self):
         
         return self._resize_to_m((
             0.5 * (self._params.pt(2) 
-            - self._params.pt(0)) * self._m.data
+            - self._params.pt(0)) * self._m
         ), self._m)
 
     def _calc_mean_cores(self):
@@ -521,13 +524,13 @@ class Trapezoid(Polygon):
         ) / (d1 + d2 + d3), self._m)
 
     def scale(self, m: torch.Tensor) -> 'Trapezoid':
-        updated_m = self._m.intersect(m)
+        updated_m = intersect(self._m, m)
         return Trapezoid(
             self._params, updated_m
         )
 
     def truncate(self, m: torch.Tensor) -> 'Trapezoid':
-        updated_m = self._m.intersect(m)
+        updated_m = intersect(self._m, m)
 
         # m = ShapeParams(m, True, m.dim() == 3)
         left_x = calc_x_linear_increasing(
@@ -538,7 +541,7 @@ class Trapezoid(Polygon):
             updated_m, self._params.pt(2), self._params.pt(3), self._m
         )
 
-        params = self._params.replace(left_x, 1, to_unsqueeze=True, equalize_to=updated_m.data)
+        params = self._params.replace(left_x, 1, to_unsqueeze=True, equalize_to=updated_m)
         params = params.replace(right_x, 2, to_unsqueeze=True)
 
         return Trapezoid(
@@ -554,9 +557,9 @@ class Logistic(Shape):
         self._biases = biases
         self._scales = scales
 
-        self._m = m or FuzzySet.positives(
+        self._m = m if m is not None else positives(
             self._biases.batch_size, self._biases.set_size, 
-            self._biases.n_terms, device=biases.x.device, is_batch=True
+            self._biases.n_terms, device=biases.x.device
         )
 
         super().__init__(
@@ -585,14 +588,14 @@ class Logistic(Shape):
 
 class LogisticBell(Logistic):
 
-    def join(self, x: torch.Tensor) -> FuzzySet:
+    def join(self, x: torch.Tensor) -> torch.Tensor:
         z = self._scales.pt(0) * (unsqueeze(x) - self._biases.pt(0))
         sig = torch.sigmoid(z)
         # not 4 / s
-        return 4  * (1 - sig) * sig * self._m.data
+        return 4  * (1 - sig) * sig * self._m
 
     def _calc_areas(self):
-        return self._resize_to_m(4 * self._m.data / self._biases.pt(0), self._m)
+        return self._resize_to_m(4 * self._m / self._biases.pt(0), self._m)
         
     def _calc_mean_cores(self):
         return self._resize_to_m(self._biases.pt(0), self._m)
@@ -601,7 +604,7 @@ class LogisticBell(Logistic):
         return self._resize_to_m(self._biases.pt(0), self._m)
 
     def scale(self, m: torch.Tensor) -> 'LogisticBell':
-        updated_m = self._m.intersect(m)
+        updated_m = intersect(self._m, m)
         return LogisticBell(
             self._biases, self._scales, updated_m
         )
@@ -617,14 +620,14 @@ class LogisticTrapezoid(Logistic):
     
     def __init__(
         self, biases: ShapeParams, scales: ShapeParams, 
-        truncated_m: FuzzySet=None, scaled_m: FuzzySet=None
+        truncated_m: torch.Tensor=None, scaled_m: torch.Tensor=None
     ):
         super().__init__(biases, scales, scaled_m)
 
         if truncated_m is None:
-            truncated_m = FuzzySet.positives(*self._m.data.size(), device=self._m.data.device)
+            truncated_m = positives(*self._m.size(), device=self._m.device)
 
-        self._truncated_m = truncated_m.intersect(self._m)
+        self._truncated_m = intersect(truncated_m, self._m)
         
         dx = unsqueeze(calc_dx_logistic(self._truncated_m, self._scales.pt(0), self._m))
         self._dx = ShapeParams(dx)
@@ -638,15 +641,15 @@ class LogisticTrapezoid(Logistic):
         return self._dx
     
     @property
-    def m(self) -> FuzzySet:
+    def m(self) -> torch.Tensor:
         return self._truncated_m
 
-    def join(self, x: torch.Tensor) -> 'FuzzySet':
+    def join(self, x: torch.Tensor) -> 'torch.Tensor':
         x = unsqueeze(x)
         inside = check_contains(x, self._pts.pt(0), self._pts.pt(1)).float()
         m1 = calc_m_logistic(x, self._biases.pt(0), self._scales.pt(0), self._m) * (1 - inside)
-        m2 = self._truncated_m.data * inside
-        return FuzzySet(torch.max(m1, m2), self._m.is_batch)
+        m2 = self._truncated_m * inside
+        return torch.max(m1, m2)
 
     def _calc_areas(self):
         # symmetrical so multiply by 2
@@ -660,17 +663,17 @@ class LogisticTrapezoid(Logistic):
     def _calc_centroids(self):
         return self._resize_to_m(self._biases.pt(0), self._m)
 
-    def scale(self, m: FuzzySet) -> 'LogisticTrapezoid':
-        updated_m = self._m.intersect(m)
+    def scale(self, m: torch.Tensor) -> 'LogisticTrapezoid':
+        updated_m = intersect(self._m, m)
         # TODO: check if multiplication is correct
-        truncated_m = FuzzySet(self._truncated_m.data * updated_m.data)
+        truncated_m = self._truncated_m * updated_m
 
         return LogisticTrapezoid(
             self._biases, self._scales, truncated_m, updated_m
         )
 
-    def truncate(self, m: FuzzySet) -> 'LogisticTrapezoid':
-        truncated_m = self._truncated_m.intersect(m)
+    def truncate(self, m: torch.Tensor) -> 'LogisticTrapezoid':
+        truncated_m = intersect(self._truncated_m, m)
         return LogisticTrapezoid(
             self._biases, self._scales, truncated_m, self._m
         )
@@ -680,7 +683,7 @@ class RightLogistic(Logistic):
     
     def __init__(
         self, biases: ShapeParams, scales: ShapeParams, is_right: bool=True,
-        m: FuzzySet= None
+        m: torch.Tensor= None
     ):
         super().__init__(biases, scales, m)
         self._is_right = is_right
@@ -694,31 +697,31 @@ class RightLogistic(Logistic):
 
     def join(self, x: torch.Tensor):
         x = unsqueeze(x)
-        return FuzzySet(calc_m_logistic(
+        return calc_m_logistic(
             x, self._biases.pt(0), 
             self._scales.pt(0), self._m
-        ) * self._on_side(x).float(), self._m.is_batch)
+        ) * self._on_side(x).float()
 
     def _calc_areas(self):
-        return self._resize_to_m(2 * self._m.data / self._biases.pt(0), self._m)
+        return self._resize_to_m(2 * self._m / self._biases.pt(0), self._m)
 
     def _calc_mean_cores(self):
         return self._resize_to_m(self._biases.pt(0), self._m)
 
     def _calc_centroids(self):
         base_y = 0.75 if self._is_right else 0.25
-        x = torch.logit(torch.tensor(base_y, dtype=torch.float, device=self._m.data.device)) / self._scales.pt(0) + self._biases.pt(0)
+        x = torch.logit(torch.tensor(base_y, dtype=torch.float, device=self._m.device)) / self._scales.pt(0) + self._biases.pt(0)
         return self._resize_to_m(x, self._m)
 
-    def scale(self, m: FuzzySet) -> 'RightLogistic':
-        updated_m = self._m.intersect(m)
+    def scale(self, m: torch.Tensor) -> 'RightLogistic':
+        updated_m = intersect(self._m, m)
         
         return RightLogistic(
             self._biases, self._scales, self._is_right, updated_m
         )
 
     def truncate(self, m: torch.Tensor) -> 'LogisticTrapezoid':
-        truncated_m = self._m.intersect(m)
+        truncated_m = intersect(self._m, m)
         return RightLogisticTrapezoid(
             self._biases, self._scales, self._is_right, truncated_m, self._m
         )
@@ -735,15 +738,15 @@ class RightLogisticTrapezoid(Logistic):
 
     def __init__(
         self, biases: ShapeParams, scales: ShapeParams, is_right: bool, 
-        truncated_m: FuzzySet=None, scaled_m: FuzzySet=None
+        truncated_m: torch.Tensor=None, scaled_m: torch.Tensor=None
         
     ):
         super().__init__(biases, scales, scaled_m)
 
         if truncated_m is None:
-            truncated_m = torch.ones(self._m.x.size(), device=self._m.x.device)
+            truncated_m = positives(self._m.size(), device=self._m.device)
 
-        self._truncated_m = self._m.intersect(truncated_m)
+        self._truncated_m = intersect(self._m, truncated_m)
         dx = unsqueeze(calc_dx_logistic(self._truncated_m, self._scales.pt(0), self._m))
         self._dx = ShapeParams(dx)
         self._is_right = is_right
@@ -767,7 +770,7 @@ class RightLogisticTrapezoid(Logistic):
             logistic_contains = x <= self._pts.pt(0)
         return square_contains.float(), logistic_contains.float()
 
-    def join(self, x: torch.Tensor) -> 'FuzzySet':
+    def join(self, x: torch.Tensor) -> 'torch.Tensor':
         x = unsqueeze(x)
         
         square_contains, logistic_contains = self._contains(x)
@@ -775,14 +778,14 @@ class RightLogisticTrapezoid(Logistic):
         m1 = calc_m_logistic(
             x, self._biases.pt(0), self._scales.pt(0), self._m
         ) * logistic_contains
-        m2 = self._m.data * square_contains
-        return FuzzySet(torch.max(m1, m2), self._m.is_batch)
+        m2 = self._m * square_contains
+        return torch.max(m1, m2)
 
     def _calc_areas(self):
         a1 = self._resize_to_m(calc_area_logistic_one_side(
             self._pts.pt(0), self._biases.pt(0), self._scales.pt(0), 
             self._m), self._m)
-        a2 = 0.5 * (self._biases.pt(0) + self._pts.pt(0)) * self._m.data
+        a2 = 0.5 * (self._biases.pt(0) + self._pts.pt(0)) * self._m
         return self._resize_to_m(a1 + a2, self._m)
 
     def _calc_mean_cores(self):
@@ -791,7 +794,7 @@ class RightLogisticTrapezoid(Logistic):
     def _calc_centroids(self):
 
         # area up to "dx"
-        print('Centroids: ', self._scales.x.size(), self._dx.x.size())
+        # print('Centroids: ', self._scales.x.size(), self._dx.x.size())
         p = torch.sigmoid(self._scales.pt(0) * (-self._dx.pt(0)))
         centroid_logistic = self._biases.pt(0) + torch.logit(p / 2) / self._scales.pt(0)
         centroid_square = self._biases.pt(0) - self._dx.pt(0) / 2
@@ -801,20 +804,21 @@ class RightLogisticTrapezoid(Logistic):
             return self._biases.pt(0) + self._biases.pt(0) - centroid
         return self._resize_to_m(centroid, self._m)
 
-    def scale(self, m: FuzzySet) -> 'RightLogisticTrapezoid':
-        updated_m = self._m.intersect(m)
+    def scale(self, m: torch.Tensor) -> 'RightLogisticTrapezoid':
+
+        updated_m = intersect(self._m, m)
 
         # TODO: Confirm if this is correct
         # I think it should be intersecting rather than multiplying
-        truncated_m = FuzzySet(self._truncated_m.data * updated_m.data, updated_m.is_batch)
+        truncated_m = self._truncated_m * updated_m
 
         return RightLogisticTrapezoid(
             self._biases, self._scales, self._is_right, truncated_m, updated_m
         )
 
-    def truncate(self, m: FuzzySet) -> 'RightLogisticTrapezoid':
+    def truncate(self, m: torch.Tensor) -> 'RightLogisticTrapezoid':
 
-        truncated_m = self._truncated_m.intersect(m)
+        truncated_m = intersect(self._truncated_m, m)
         return RightLogisticTrapezoid(
             self._biases, self._scales, self._is_right, truncated_m, self._m
         )
@@ -832,7 +836,7 @@ class IsoscelesTriangle(Polygon):
 
     PT = 2
 
-    def join(self, x: torch.Tensor) -> FuzzySet:
+    def join(self, x: torch.Tensor) -> torch.Tensor:
 
         left_m = calc_m_linear_increasing(
             unsqueeze(x), self._params.pt(0), self._params.pt(1), self._m
@@ -848,7 +852,7 @@ class IsoscelesTriangle(Polygon):
         
         return self._resize_to_m(
             0.5 * (self._params.pt(0)
-            - self._params.pt(1)) * self._m.data, self._m
+            - self._params.pt(1)) * self._m, self._m
         )
 
     def _calc_mean_cores(self):
@@ -857,15 +861,15 @@ class IsoscelesTriangle(Polygon):
     def _calc_centroids(self):
         return self._resize_to_m(self._params.pt(1), self._m)
 
-    def scale(self, m: FuzzySet) -> 'IsoscelesTriangle':
-        updated_m = self._m.intersect(m)
+    def scale(self, m: torch.Tensor) -> 'IsoscelesTriangle':
+        updated_m = intersect(self._m, m)
         return IsoscelesTriangle(
             self._params, updated_m
         )
 
-    def truncate(self, m: FuzzySet) -> 'IsoscelesTrapezoid':
+    def truncate(self, m: torch.Tensor) -> 'IsoscelesTrapezoid':
         
-        updated_m = self._m.intersect(m)
+        updated_m = intersect(self._m, m)
         pt1 = calc_x_linear_increasing(updated_m, self._params.pt(0), self._params.pt(1), self._m)
         pt2 = calc_x_linear_decreasing(
             updated_m, self._params.pt(1), self._params.pt(1) + self._params.pt(1) - self._params.pt(0), self._m)
@@ -875,7 +879,7 @@ class IsoscelesTriangle(Polygon):
         )
 
         params = self._params.replace(
-            to_replace, 1, False, updated_m.data
+            to_replace, 1, False, updated_m
         )
         return IsoscelesTrapezoid(
             params, updated_m
@@ -886,7 +890,7 @@ class IsoscelesTrapezoid(Polygon):
 
     PT = 3
 
-    def join(self, x: torch.Tensor) -> 'FuzzySet':
+    def join(self, x: torch.Tensor) -> 'torch.Tensor':
 
         x = unsqueeze(x)
         left_m = calc_m_linear_increasing(
@@ -913,7 +917,7 @@ class IsoscelesTrapezoid(Polygon):
     def _calc_areas(self):
         
         return self._resize_to_m(
-            0.5 * (self.a + self.b) * self._m.data, self._m
+            0.5 * (self.a + self.b) * self._m, self._m
         )
 
     def _calc_mean_cores(self):
@@ -923,11 +927,11 @@ class IsoscelesTrapezoid(Polygon):
         return self.mean_cores
 
     def scale(self, m: torch.Tensor) -> 'IsoscelesTrapezoid':
-        updated_m = self._m.intersect(m)
+        updated_m = intersect(self._m, m)
         return IsoscelesTrapezoid(self._params, updated_m)
 
     def truncate(self, m: torch.Tensor) -> 'IsoscelesTrapezoid':
-        updated_m = self._m.intersect(m)
+        updated_m = intersect(self._m, m)
 
         left_x = calc_x_linear_increasing(
             updated_m, self._params.pt(0), self._params.pt(1), self._m
@@ -936,7 +940,7 @@ class IsoscelesTrapezoid(Polygon):
         right_x = self._params.pt(2) + self._params.pt(1) - left_x
 
         params = self._params.replace(
-            left_x, 1, True, updated_m.data
+            left_x, 1, True, updated_m
         )
         params = params.replace(
             right_x, 2, True
@@ -948,11 +952,11 @@ class IncreasingRightTrapezoid(Polygon):
 
     PT = 3
 
-    def join(self, x: torch.Tensor) -> 'FuzzySet':
+    def join(self, x: torch.Tensor) -> 'torch.Tensor':
         m = calc_m_linear_increasing(
-            unsqueeze(x), self._params.pt(0), self._params.pt(1), self._m.data
+            unsqueeze(x), self._params.pt(0), self._params.pt(1), self._m
         )
-        m2 = calc_m_flat(unsqueeze(x), self._params.pt(1), self._params.pt(2), self._m.data)
+        m2 = calc_m_flat(unsqueeze(x), self._params.pt(1), self._params.pt(2), self._m)
 
         return torch.max(m, m2)
     
@@ -969,7 +973,7 @@ class IncreasingRightTrapezoid(Polygon):
     def _calc_areas(self):
         
         return self._resize_to_m(
-            0.5 * (self.a + self.b) * self._m.data, self._m
+            0.5 * (self.a + self.b) * self._m, self._m
         )
 
     def _calc_mean_cores(self):
@@ -987,16 +991,16 @@ class IncreasingRightTrapezoid(Polygon):
             d2 * (1 / 2 * self._params.pt(2) + 1 / 2 * self._params.pt(1))
         ) / (d1 + d2), self._m)
 
-    def scale(self, m: FuzzySet) -> 'IncreasingRightTrapezoid':
-        return IncreasingRightTrapezoid(self._params, m.intersect(self._m))
+    def scale(self, m: torch.Tensor) -> 'IncreasingRightTrapezoid':
+        return IncreasingRightTrapezoid(self._params, intersect(m, self._m))
 
-    def truncate(self, m: FuzzySet) -> 'IncreasingRightTrapezoid':
-        updated_m = m.intersect(self._m)
+    def truncate(self, m: torch.Tensor) -> 'IncreasingRightTrapezoid':
+        updated_m = intersect(m, self._m)
         
         x = calc_x_linear_increasing(
             updated_m, self._params.pt(0), self._params.pt(1), self._m
         )
-        params = self._params.replace(x, 1, True, updated_m.data)
+        params = self._params.replace(x, 1, True, updated_m)
         return IncreasingRightTrapezoid(params, updated_m)
 
 
@@ -1004,12 +1008,12 @@ class DecreasingRightTrapezoid(Polygon):
 
     PT = 3
 
-    def join(self, x: torch.Tensor) -> 'FuzzySet':
+    def join(self, x: torch.Tensor) -> 'torch.Tensor':
 
         m = calc_m_linear_decreasing(
-            unsqueeze(x), self._params.pt(0), self._params.pt(1), self._m.data
+            unsqueeze(x), self._params.pt(0), self._params.pt(1), self._m
         )
-        m2 = calc_m_flat(unsqueeze(x), self._params.pt(1), self._params.pt(2), self._m.data)
+        m2 = calc_m_flat(unsqueeze(x), self._params.pt(1), self._params.pt(2), self._m)
 
         return torch.max(m, m2)
     
@@ -1026,7 +1030,7 @@ class DecreasingRightTrapezoid(Polygon):
     def _calc_areas(self):
         
         return self._resize_to_m((
-            0.5 * (self.a + self.b) * self._m.data
+            0.5 * (self.a + self.b) * self._m
         ), self._m)
 
     def _calc_mean_cores(self):
@@ -1043,14 +1047,14 @@ class DecreasingRightTrapezoid(Polygon):
             d2 * (1 / 3 * self._params.pt(2) + 2 / 3 * self._params.pt(1))
         ) / (d1 + d2), self._m)
 
-    def scale(self, m: FuzzySet) -> 'DecreasingRightTrapezoid':
-        return DecreasingRightTrapezoid(self._params, m.intersect(self._m))
+    def scale(self, m: torch.Tensor) -> 'DecreasingRightTrapezoid':
+        return DecreasingRightTrapezoid(self._params, intersect(m, self._m))
 
-    def truncate(self, m: FuzzySet) -> 'DecreasingRightTrapezoid':
-        updated_m = m.intersect(self._m)
+    def truncate(self, m: torch.Tensor) -> 'DecreasingRightTrapezoid':
+        updated_m = intersect(m, self._m)
         
         x = calc_x_linear_decreasing(
             updated_m, self._params.pt(0), self._params.pt(1), self._m
         )
-        params = self._params.replace(x, 1, True, updated_m.data)
+        params = self._params.replace(x, 1, True, updated_m)
         return DecreasingRightTrapezoid(params, updated_m)
