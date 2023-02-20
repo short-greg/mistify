@@ -156,7 +156,7 @@ class FuzzyRelation(FuzzyComposition):
         return positives(get_comp_weight_size(in_features, out_features, in_variables))
                          
     def forward(self, m: torch.Tensor):
-        return self.outer(self.inner(m, self.weight))
+        return self.outer(self.inner(self.prepare_inputs(m), self.weight))
 
 
 class IntersectOn(nn.Module):

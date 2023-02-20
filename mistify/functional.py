@@ -22,13 +22,14 @@ def smooth_min_on(x: torch.Tensor, dim: int, a: float) -> torch.Tensor:
 
 def adamax(x: torch.Tensor, x2: torch.Tensor):
     q = torch.clamp(-690 / torch.log(torch.min(x, x2)), min=-1000).detach()    
-    return ((x ** q + x2 ** q) ** (1 / q) / 2)
+    return ((x ** q + x2 ** q) / 2) ** (1 / q)
 
 
 def adamin(x: torch.Tensor, x2: torch.Tensor):
     q = torch.clamp(690 / torch.log(torch.min(x, x2)).detach(), max=1000)
-    
-    return (x ** q + x2 ** q) ** (1 / q) / 2
+    result = ((x ** q + x2 ** q) / 2) ** (1 / q)
+
+    return result
 
 
 def adamax_on(x: torch.Tensor, dim: int):

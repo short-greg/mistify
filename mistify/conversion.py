@@ -201,7 +201,6 @@ class SigmoidFuzzyConverter(FuzzyConverter):
     def imply(self, m: torch.Tensor) -> ValueWeight:
 
         #     # x = ln(y/(1-y))
-        print(m.size(), self.weight.size(), self.bias.size())
         return ValueWeight(
             torch.logit(m) / (self.weight[None]) + self.bias[None], 
             m

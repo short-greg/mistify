@@ -14,7 +14,7 @@ class CompositionBase(nn.Module):
         self._out_features = out_features
         self._complement_inputs = complement_inputs
         if complement_inputs:
-            in_features *= 2
+            in_features = in_features * 2
         self._multiple_variables = in_variables is not None
         self.weight = torch.nn.parameter.Parameter(
             self.init_weight(in_features, out_features, in_variables)

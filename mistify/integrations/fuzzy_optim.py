@@ -6,8 +6,8 @@ import torch
 def check_if_output_is_valid():
     maxmin = fuzzy.MaxMin(2, 4)
     loss = optim.MaxMinLoss(maxmin)
-    x = fuzzy.FuzzySet.rand(4, 2)
-    t = fuzzy.FuzzySet.rand(4, 4)
+    x = fuzzy.rand(4, 2)
+    t = fuzzy.rand(4, 4)
     y = maxmin.forward(x)
     result = loss.forward(x, y, t)
     print(result)
@@ -30,7 +30,7 @@ def check_if_optimizes_theta():
     # maxmin_train2.weight = fuzzy.FuzzySetParam(
     #     fuzzy.FuzzySet.rand(*maxmin.weight.data.size(), is_batch=False)
     # )
-    loss = optim.MaxMinLoss(maxmin_train, default_optim=optim.ToOptim.THETA)
+    loss = optim.MaxMinLoss(maxmin_train, reduction='none', default_optim=optim.ToOptim.THETA)
     loss2 = optim.MaxProdLoss(maxprod_train, default_optim=optim.ToOptim.THETA)
     x = fuzzy.rand(128, 8)
     
@@ -53,7 +53,7 @@ def check_if_optimizes_theta():
 
             print('?', (x.data < 0).any())
             # t = fuzzy.FuzzySet.rand(4, 4)
-            result = loss.forward(x_i, y, t_i)
+            result = loss.forward(x_i, y, t_i).mean() / len(x_i)
             result2 = ((y2 - t_i.detach()) ** 2).mean()
             result3 = loss2.forward(x_i, y3, t_i)
 
