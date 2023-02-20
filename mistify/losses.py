@@ -161,7 +161,7 @@ class UnionOnLoss(nn.Module):
 
     def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
     
-        loss = 0.5 * (t.unsqueeze(self.intersect.dim) - x) ** 2
+        loss = 0.5 * (t.unsqueeze(self.union.dim) - x) ** 2
         y_greater_than = (y > t)
         x_greater_than = (x > t[:,None])
 
@@ -194,10 +194,11 @@ class MaxMinLoss(nn.Module):
 
     def set_chosen(self, inner_values: torch.Tensor):
 
-        _, idx = torch.max(inner_values, dim=1, keepdim=True)
-        chosen = torch.zeros(inner_values.size(), dtype=torch.bool)
-        chosen.scatter_(1, idx,  1.0)
-        return chosen
+        val, idx = torch.max(inner_values, dim=1, keepdim=True)
+        return inner_values == val
+        # chosen = torch.zeros(inner_values.size(), dtype=torch.bool, device=inner_values.device)
+        # chosen.scatter_(1, idx,  1.0)
+        # return chosen
     
     def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         

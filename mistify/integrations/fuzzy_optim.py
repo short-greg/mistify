@@ -1,5 +1,5 @@
 from .. import fuzzy
-from .. import optim
+from .. import losses as optim
 import torch
 
 
@@ -18,31 +18,23 @@ from torch.utils import data as data_utils
 def check_if_optimizes_theta():
     torch.manual_seed(1)
     maxmin = fuzzy.MaxMin(8, 4)
-    maxmin.weight = fuzzy.FuzzySetParam(
-        fuzzy.FuzzySet.rand(*maxmin.weight.data.size(), is_batch=False)
-    )
+    maxmin.weight.data = fuzzy.rand(*maxmin.weight.data.size())
     maxprod = fuzzy.MaxProd(8, 4)
-    maxprod.weight = fuzzy.FuzzySetParam(
-        fuzzy.FuzzySet.rand(*maxprod.weight.data.size(), is_batch=False)
-    )
+    maxprod.weight.data = fuzzy.rand(*maxprod.weight.data.size())
     maxmin_train = fuzzy.MaxMin(8, 4)
-    maxmin_train.weight = fuzzy.FuzzySetParam(
-        fuzzy.FuzzySet.rand(*maxmin.weight.data.size(), is_batch=False)
-    )
+    # maxmin_train.weight.data = fuzzy.rand(*maxmin.weight.data.size())
 
     maxmin_train2 = fuzzy.MaxMin(8, 4)
     maxprod_train = fuzzy.MaxProd(8, 4)
-    maxprod_train.weight = fuzzy.FuzzySetParam(
-        fuzzy.FuzzySet.rand(*maxprod.weight.data.size(), is_batch=False)
-    )
+    maxprod_train.weight.data = fuzzy.rand(*maxprod.weight.data.size())
     # maxmin_train2.weight = fuzzy.FuzzySetParam(
     #     fuzzy.FuzzySet.rand(*maxmin.weight.data.size(), is_batch=False)
     # )
-    loss = optim.MaxMinLoss2(maxmin_train, default_optim=optim.ToOptim.THETA)
-    loss2 = optim.MaxProdLoss2(maxprod_train, default_optim=optim.ToOptim.THETA)
-    x = fuzzy.FuzzySet.rand(128, 8)
+    loss = optim.MaxMinLoss(maxmin_train, default_optim=optim.ToOptim.THETA)
+    loss2 = optim.MaxProdLoss(maxprod_train, default_optim=optim.ToOptim.THETA)
+    x = fuzzy.rand(128, 8)
     
-    t = maxprod.forward(x)
+    t = maxmin.forward(x)
 
     dataset = data_utils.TensorDataset(x.data, t.data)
     optimizer = torch.optim.SGD(maxmin_train.parameters(), lr=1e0, weight_decay=0.0)
@@ -52,8 +44,6 @@ def check_if_optimizes_theta():
         data_loader = data_utils.DataLoader(dataset, batch_size=128, shuffle=True)
 
         for x_i, t_i in data_loader:
-            x_i = fuzzy.FuzzySet(x_i, True)
-            t_i = fuzzy.FuzzySet(t_i, True)
             optimizer.zero_grad()
             optimizer2.zero_grad()
             optimizer3.zero_grad()
@@ -64,16 +54,16 @@ def check_if_optimizes_theta():
             print('?', (x.data < 0).any())
             # t = fuzzy.FuzzySet.rand(4, 4)
             result = loss.forward(x_i, y, t_i)
-            result2 = ((y2.data - t_i.data.detach()) ** 2).mean()
+            result2 = ((y2 - t_i.detach()) ** 2).mean()
             result3 = loss2.forward(x_i, y3, t_i)
 
             # before = parameters_to_vector(maxmin_train.parameters())
             result.backward()
             result2.backward()
             result3.backward()
-            error = ((y.data - t_i.data).abs()).mean()
-            error2 = ((y2.data - t_i.data).abs()).mean()
-            error3 = ((y3.data - t_i.data).abs()).mean()
+            error = ((y - t_i).abs()).mean()
+            error2 = ((y2 - t_i).abs()).mean()
+            error3 = ((y3 - t_i).abs()).mean()
             # print('---', x.data, y.data, t.data)
             print('Output Error: ', error.item())
             print('Output Error2: ', error2.item())

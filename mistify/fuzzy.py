@@ -151,7 +151,6 @@ class FuzzyRelation(FuzzyComposition):
             outer = Outer(outer)
         self.inner = inner
         self.outer = outer
-        self.weight = positives(get_comp_weight_size(in_features, out_features, in_variables))
 
     def init_weight(self, in_features: int, out_features: int, in_variables: int = None) -> torch.Tensor:
         return positives(get_comp_weight_size(in_features, out_features, in_variables))
