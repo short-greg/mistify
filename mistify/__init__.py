@@ -5,3 +5,5 @@ from . import losses
 from . import utils
 from . import functional
 from . import fuzzy
+from . import binary
+from . import ternary

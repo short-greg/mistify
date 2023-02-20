@@ -10,7 +10,7 @@ class TestStepCrispConverter:
 
         converter = conversion.StepCrispConverter(2, 3)
         crisp_set = converter.crispify(torch.rand(3, 2))
-        assert isinstance(crisp_set, crisp.BinarySet)
+        assert isinstance(crisp_set, torch.Tensor)
 
     def test_crispify_converts_to_binary_set_with_correct_size(self):
 
@@ -47,7 +47,7 @@ class TestSigmoidFuzzyConverter:
 
         converter = conversion.SigmoidFuzzyConverter(2, 3)
         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
-        assert isinstance(fuzzy_set, fuzzy.FuzzySet)
+        assert isinstance(fuzzy_set, torch.Tensor)
 
     def test_fuzzify_converts_to_fuzzy_set_with_correct_size(self):
 
@@ -91,11 +91,11 @@ class TestSigmoidDefuzzifier:
 
 class TestIsoscelesFuzzyConverter:
     
-    def test_fuzzify_converts_to_binary_set(self):
+    def test_fuzzify_converts_to_fuzzy_set(self):
 
         converter = conversion.IsoscelesFuzzyConverter(2, 3)
         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
-        assert isinstance(fuzzy_set, fuzzy.FuzzySet)
+        assert isinstance(fuzzy_set, torch.Tensor)
 
     def test_fuzzify_converts_to_fuzzy_set_with_correct_size(self):
 
@@ -132,7 +132,7 @@ class TestTriangleFuzzyConverter:
 
         converter = conversion.TriangleFuzzyConverter(2, 3)
         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
-        assert isinstance(fuzzy_set, fuzzy.FuzzySet)
+        assert isinstance(fuzzy_set, torch.Tensor)
 
     def test_fuzzify_converts_to_fuzzy_set_with_correct_size(self):
 
@@ -165,11 +165,11 @@ class TestTriangleFuzzyConverter:
 
 class TestTrapezoidFuzzyConverter:
     
-    def test_fuzzify_converts_to_binary_set(self):
+    def test_fuzzify_converts_to_fuzzy_set(self):
 
         converter = conversion.TriangleFuzzyConverter(2, 3)
         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
-        assert isinstance(fuzzy_set, fuzzy.FuzzySet)
+        assert isinstance(fuzzy_set, torch.Tensor)
 
     def test_fuzzify_converts_to_fuzzy_set_with_correct_size(self):
 
@@ -202,11 +202,11 @@ class TestTrapezoidFuzzyConverter:
 
 class TestLogisticFuzzyConverter:
     
-    def test_fuzzify_converts_to_binary_set(self):
+    def test_fuzzify_converts_to_fuzzy_set(self):
 
         converter = conversion.LogisticFuzzyConverter(2, 3)
         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
-        assert isinstance(fuzzy_set, fuzzy.FuzzySet)
+        assert isinstance(fuzzy_set, torch.Tensor)
 
     def test_fuzzify_converts_to_fuzzy_set_with_correct_size(self):
 

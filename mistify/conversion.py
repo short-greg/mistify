@@ -1,7 +1,5 @@
 import torch
 import torch.nn as nn
-from .fuzzy import FuzzySet
-from .crisp import BinarySet
 from abc import abstractmethod
 from dataclasses import dataclass
 import typing
@@ -23,29 +21,29 @@ class ValueWeight:
         yield self.value
         yield self.weight
     
-    def __post_init__(self):
-        if isinstance(self.weight, FuzzySet):
-            self.weight = self.weight.data
+    # def __post_init__(self):
+    #     if isinstance(self.weight, FuzzySet):
+    #         self.weight = self.weight.data
 
 
 class FuzzyConverter(nn.Module):
 
     @abstractmethod
-    def fuzzify(self, x: torch.Tensor) -> FuzzySet:
+    def fuzzify(self, x: torch.Tensor) -> torch.Tensor:
         pass
 
     @abstractmethod
-    def imply(self, m: FuzzySet) -> ValueWeight:
+    def imply(self, m: torch.Tensor) -> ValueWeight:
         pass
 
     @abstractmethod
     def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
         pass
 
-    def defuzzify(self, m: FuzzySet) -> torch.Tensor:
+    def defuzzify(self, m: torch.Tensor) -> torch.Tensor:
         return self.accumulate(self.imply(m))
 
-    def forward(self, x: torch.Tensor) -> FuzzySet:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.fuzzify(x)
 
     def get_accumulator(self, accumulator: typing.Union['Accumulator', str]):
@@ -62,42 +60,42 @@ class FuzzyConverter(nn.Module):
 class CrispConverter(nn.Module):
 
     @abstractmethod
-    def crispify(self, x: torch.Tensor) -> BinarySet:
+    def crispify(self, x: torch.Tensor) -> torch.Tensor:
         pass
 
     @abstractmethod
-    def imply(self, m: FuzzySet) -> ValueWeight:
+    def imply(self, m: torch.Tensor) -> ValueWeight:
         pass
 
     @abstractmethod
     def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
         pass
 
-    def decrispify(self, m: BinarySet) -> torch.Tensor:
+    def decrispify(self, m: torch.Tensor) -> torch.Tensor:
         return self.accumulate(self.imply(m))
 
-    def forward(self, x: torch.Tensor) -> BinarySet:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.crispify(x)
 
 
 class Crispifier(nn.Module):
 
     @abstractmethod
-    def forward(self, x: torch.Tensor) -> BinarySet:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         pass
 
 
 class Fuzzifier(nn.Module):
 
     @abstractmethod
-    def forward(self, x: torch.Tensor) -> FuzzySet:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         pass
 
 
 class Defuzzifier(nn.Module):
 
     @abstractmethod
-    def imply(self, m: FuzzySet) -> ValueWeight:
+    def imply(self, m: torch.Tensor) -> ValueWeight:
         pass
 
     @abstractmethod
@@ -105,21 +103,21 @@ class Defuzzifier(nn.Module):
         pass
 
     @abstractmethod
-    def forward(self, m: FuzzySet) -> torch.Tensor:
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
         return self.accumulate(self.imply(m))
 
 
 class Decrispifier(nn.Module):
 
     @abstractmethod
-    def imply(self, m: FuzzySet) -> ValueWeight:
+    def imply(self, m: torch.Tensor) -> ValueWeight:
         pass
 
     @abstractmethod
     def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
         pass
 
-    def fowrard(self, m: BinarySet) -> torch.Tensor:
+    def fowrard(self, m: torch.Tensor) -> torch.Tensor:
         return self.accumulate(self.imply(m))
 
 
@@ -168,13 +166,13 @@ class StepCrispConverter(CrispConverter):
 
         self._accumulator = accumulator or MaxValueAcc()
 
-    def crispify(self, x: torch.Tensor) -> BinarySet:
-        return BinarySet((x[:,:,None] >= self.threshold[None]).type_as(x), True)
+    def crispify(self, x: torch.Tensor) -> torch.Tensor:
+        return (x[:,:,None] >= self.threshold[None]).type_as(x)
 
-    def imply(self, m: BinarySet) -> ValueWeight:
+    def imply(self, m: torch.Tensor) -> ValueWeight:
         
         return ValueWeight(
-            m.data * self.threshold[None], m.data
+            m * self.threshold[None], m
         )
 
     def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
@@ -195,18 +193,18 @@ class SigmoidFuzzyConverter(FuzzyConverter):
         self.eps = eps
         self._accumulator = accumulator or MaxAcc()
 
-    def fuzzify(self, x: torch.Tensor) -> FuzzySet:
-        return FuzzySet(torch.sigmoid(
+    def fuzzify(self, x: torch.Tensor) -> torch.Tensor:
+        return torch.sigmoid(
             -(x[:,:,None] - self.bias[None]) * self.weight[None]
-        ), True)
+        )
 
-    def imply(self, m: FuzzySet) -> ValueWeight:
+    def imply(self, m: torch.Tensor) -> ValueWeight:
 
         #     # x = ln(y/(1-y))
-        print(m.data.size(), self.weight.size(), self.bias.size())
+        print(m.size(), self.weight.size(), self.bias.size())
         return ValueWeight(
-            torch.logit(m.data) / (self.weight[None]) + self.bias[None], 
-            m.data
+            torch.logit(m) / (self.weight[None]) + self.bias[None], 
+            m
         )
 
         # return ValueWeight((-torch.log(
@@ -224,7 +222,7 @@ class SigmoidDefuzzifier(Defuzzifier):
         super().__init__()
         self._converter = converter
 
-    def forward(self, m: FuzzySet):
+    def forward(self, m: torch.Tensor):
         return self._converter.defuzzify(m)
     
     @classmethod
@@ -305,13 +303,13 @@ class ConverterDefuzzifier(Defuzzifier):
         super().__init__()
         self.converter = converter
 
-    def imply(self, m: FuzzySet) -> ValueWeight:
+    def imply(self, m: torch.Tensor) -> ValueWeight:
         return self.converter.imply(m)
 
     def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
         return self.converter.accumulate(value_weight)
 
-    def forward(self, m: FuzzySet) -> torch.Tensor:
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
         return self.converter.defuzzify(m)
 
 
@@ -351,11 +349,11 @@ class PolygonFuzzyConverter(FuzzyConverter):
         return scaled_params
     
     def _join(self, x: torch.Tensor):
-        return FuzzySet(torch.cat(
-            [shape.join(x).data for shape, _ in self.create_shapes() ],dim=2
-        ))
+        return torch.cat(
+            [shape.join(x) for shape, _ in self.create_shapes() ],dim=2
+        )
     
-    def create_shapes(self, m: FuzzySet=None) -> typing.Iterator[typing.Tuple[Shape, FuzzySet]]:
+    def create_shapes(self, m: torch.Tensor=None) -> typing.Iterator[typing.Tuple[Shape, torch.Tensor]]:
         left = memb.ShapeParams(
             self._params[:,:self._shape_pts.n_side_pts].view(self._n_variables, 1, -1))
         yield self._left_cls(left), m[:,:,:1] if m is not None else None
@@ -375,7 +373,7 @@ class PolygonFuzzyConverter(FuzzyConverter):
         )
         yield self._right_cls(right), m[:,:,-1:] if m is not None else None
     
-    def _imply(self, m: torch.Tensor) -> FuzzySet:
+    def _imply(self, m: torch.Tensor) -> torch.Tensor:
         xs = []
         for shape, m_i in self.create_shapes(m):
             if self.truncate:
@@ -391,8 +389,8 @@ class PolygonFuzzyConverter(FuzzyConverter):
     def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
         return self.accumulator.forward(value_weight)
 
-    def imply(self, m: FuzzySet) -> ValueWeight:
-        return ValueWeight(self._imply(m).data, m.data)
+    def imply(self, m: torch.Tensor) -> ValueWeight:
+        return ValueWeight(self._imply(m), m)
 
 
 class IsoscelesFuzzyConverter(PolygonFuzzyConverter):
@@ -503,11 +501,11 @@ class LogisticFuzzyConverter(FuzzyConverter):
         return scaled_params
     
     def _join(self, x: torch.Tensor):
-        return FuzzySet(torch.cat(
-            [shape.join(x).data for shape, _ in self.create_shapes() ],dim=2
-        ))
+        return torch.cat(
+            [shape.join(x) for shape, _ in self.create_shapes() ],dim=2
+        )
     
-    def create_shapes(self, m: FuzzySet=None) -> typing.Iterator[typing.Tuple[Shape, FuzzySet]]:
+    def create_shapes(self, m: torch.Tensor=None) -> typing.Iterator[typing.Tuple[Shape, torch.Tensor]]:
         left_biases = memb.ShapeParams(
             self._biases[:,:1].view(self._n_variables, 1, 1))
         left_scales = memb.ShapeParams(
@@ -530,7 +528,7 @@ class LogisticFuzzyConverter(FuzzyConverter):
         
         yield memb.RightLogistic(right_biases, right_scales, True), m[:,:,-1:] if m is not None else None
     
-    def _imply(self, m: torch.Tensor) -> FuzzySet:
+    def _imply(self, m: torch.Tensor) -> torch.Tensor:
         xs = []
         for shape, m_i in self.create_shapes(m):
             if self.truncate:
@@ -545,34 +543,14 @@ class LogisticFuzzyConverter(FuzzyConverter):
     def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
         return self.accumulator.forward(value_weight)
 
-    def imply(self, m: FuzzySet) -> ValueWeight:
-        return ValueWeight(self._imply(m).data, m.data)
+    def imply(self, m: torch.Tensor) -> ValueWeight:
+        return ValueWeight(self._imply(m), m)
 
 
-def binary_to_fuzzy(binary: crisp.BinarySet):
+def fuzzy_to_binary(fuzzy: torch.Tensor, threshold: float=0.5):
 
-    return FuzzySet(binary.data, binary.is_batch)
+    return (fuzzy > threshold).type_as(fuzzy)
 
-
-def fuzzy_to_binary(self, fuzzy: FuzzySet, threshold: float=0.5):
-
-    return BinarySet((fuzzy.data > threshold).type_as(fuzzy.data), fuzzy.is_batch)
-
-
-class ToFuzzySet(FuzzyConverter):
-
-    def __init__(self, is_batch: bool=True):
-        super().__init__()
-        self._is_batch = is_batch
-
-    def fuzzify(self, x: torch.Tensor) -> FuzzySet:
-        return FuzzySet(x, self._is_batch)
-    
-    def imply(self, m: FuzzySet) -> ValueWeight:
-        return ValueWeight(m.data, None)
-    
-    def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
-        return value_weight.value
 
 
 # Not sure why i have strides

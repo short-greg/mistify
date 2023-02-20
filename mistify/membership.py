@@ -2,7 +2,7 @@ from abc import abstractmethod, abstractproperty
 import typing
 import torch
 from dataclasses import dataclass
-from .fuzzy import FuzzySet, intersect, positives
+from .fuzzy import intersect, positives
 
 # TODO: 
 # Analyze the classes and design an approach to make

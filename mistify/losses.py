@@ -10,11 +10,32 @@ import torch.nn as nn
 # Local
 from .utils import reduce
 from . import conversion
-from . import fuzzy, crisp
+from . import fuzzy, binary
 import torch.nn.functional as nn_func
 
 # The performance of these will be slow so I possibly
 # need to split up the calculation
+
+
+
+class MistifyLoss(nn.Module):
+
+    def __init__(self, reduction: str='mean'):
+        super().__init__()
+        self._reduction = reduction
+        if reduction not in ('mean', 'sum', 'batchmean', 'none'):
+            raise ValueError(f"Reduction {reduction} is not a valid reduction")        
+
+    def reduce(self, y: torch.Tensor):
+
+        if self._reduction == 'mean':
+            return y.mean()
+        elif self._reduction == 'sum':
+            return y.sum()
+        elif self._reduction == 'batchmean':
+            return y.view(y.size(0), -1).mean(dim=1)
+        elif self._reduction == 'none':
+            return y
 
 
 class ToOptim(Enum):
@@ -41,9 +62,8 @@ class BinaryWeightLoss(nn.Module):
         """
         self._to_binary = to_binary
 
-    def step(self, x: crisp.BinarySet, y: crisp.BinarySet, t: crisp.BinarySet):
+    def step(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor):
 
-        x, y, t = x.data, y.data, t.data
         # assessment, y, result = get_y_and_assessment(objective, x, t, result)
         # y = to_binary.forward(x)
         change = (y != t).type_as(y)
@@ -67,8 +87,7 @@ class BinaryXLoss(nn.Module):
         """
         self._to_binary = to_binary
 
-    def step(self, x: crisp.BinarySet, y: crisp.BinarySet, t: crisp.BinarySet):
-        x, y, t = x.data, y.data, t.data
+    def step(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor):
 
         # assessment, y, result = get_y_and_assessment(objective, x, t, result)
         # y = to_binary.forward(x)
@@ -123,8 +142,7 @@ class IntersectOnLoss(nn.Module):
         self.intersect = intersect
         self.reduction = reduction
 
-    def forward(self, x: fuzzy.FuzzySet, y: fuzzy.FuzzySet, t: fuzzy.FuzzySet) -> torch.Tensor:
-        x, y, t = x.data, y.data, t.data
+    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         loss = 0.5 * (t.unsqueeze(self.intersect.dim) - x) ** 2
         y_greater_than = (y > t).float()  
         x_greater_than = (x > t[:,None]).float()
@@ -141,9 +159,8 @@ class UnionOnLoss(nn.Module):
         self.union = union
         self.reduction = reduction
 
-    def forward(self, x: fuzzy.FuzzySet, y: fuzzy.FuzzySet, t: fuzzy.FuzzySet) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
     
-        x, y, t = x.data, y.data, t.data
         loss = 0.5 * (t.unsqueeze(self.intersect.dim) - x) ** 2
         y_greater_than = (y > t)
         x_greater_than = (x > t[:,None])
@@ -182,14 +199,14 @@ class MaxMinLoss(nn.Module):
         chosen.scatter_(1, idx,  1.0)
         return chosen
     
-    def forward(self, x: fuzzy.FuzzySet, y: fuzzy.FuzzySet, t: fuzzy.FuzzySet) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         
         if self._maxmin.to_complement:
             x = torch.cat([x, 1 - x], dim=1)
-        x = x.data[:,:,None]
-        y = y.data[:,None]
-        t = t.data[:,None]
-        w = self._maxmin.weight.data[None]
+        x = x[:,:,None]
+        y = y[:,None]
+        t = t[:,None]
+        w = self._maxmin.weight[None]
         inner_values = self.calc_inner_values(x, w)
         chosen = self.set_chosen(inner_values)
         with torch.no_grad():
@@ -249,16 +266,16 @@ class MaxProdLoss(nn.Module):
     
     def clamp(self):
 
-        self._maxprod.weight.data.data = torch.clamp(self._maxprod.weight.data, 0, 1).detach()
+        self._maxprod.weight.data = torch.clamp(self._maxprod.weight.data, 0, 1).detach()
     
-    def forward(self, x: fuzzy.FuzzySet, y: fuzzy.FuzzySet, t: fuzzy.FuzzySet) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         
         if self._maxprod.to_complement:
             x = torch.cat([x, 1 - x], dim=1)
-        x = x.data[:,:,None]
-        y = y.data[:,None]
-        t = t.data[:,None]
-        w = self._maxprod.weight.data[None]
+        x = x[:,:,None]
+        y = y[:,None]
+        t = t[:,None]
+        w = self._maxprod.weight[None]
 
         if not self._default_optim.theta():
             w = w.detach()
@@ -279,6 +296,142 @@ class MaxProdLoss(nn.Module):
             )
 
         return loss
+
+
+
+
+# class BinaryThetaLoss(MistifyLoss):
+
+#     def __init__(self, lr: float=0.5):
+#         """initializer
+
+#         Args:
+#             binary (Binary): Composition layer to optimize
+#             lr (float, optional): learning rate value between 0 and 1. Defaults to 0.5.
+#         """
+#         self.lr = lr
+
+#     def _calculate_positives(self, x: torch.Tensor, t: torch.Tensor):
+#         positive = (t == 1)
+#         return (
+#             (x[:,:,None] == t[:,None]) & positive[:,None]
+#         ).type_as(x).sum(dim=0)
+
+#     def _calculate_negatives(self, x: torch.Tensor, t: torch.Tensor):
+#         negative = (t != 1)
+#         return (
+#             (x[:,:,None] != t[:,None]) & negative[:,None]
+#         ).type_as(x).sum(dim=0)
+    
+#     def _update_score(self, score, positives: torch.Tensor, negatives: torch.Tensor):
+#         cur_score = positives / (negatives + positives)
+#         cur_score[cur_score.isnan() | cur_score.isinf()] = 0.0
+#         if score is not None and self.lr is not None:
+#             return (1 - self.lr) * score + self.lr * cur_score
+#         return cur_score
+    
+#     def _calculate_maximums(self, x: torch.Tensor, t: torch.Tensor, score: torch.Tensor):
+#         positive = (t == 1)
+#         y: torch.Tensor = torch.max(torch.min(x[:,:,None], score[None]), dim=1)[0]
+#         return ((score[None] == y[:,None]) & positive[:,None]).type_as(x).sum(dim=0)
+    
+#     def _update_weight(self, relation: BinaryComposition, maximums: torch.Tensor, negatives: torch.Tensor):
+#         cur_weight = maximums / (maximums + negatives)
+#         cur_weight[cur_weight.isnan() | cur_weight.isinf()] = 0.0
+#         return cur_weight
+#         # if self.lr is not None:
+#         #     relation.weight = nn.parameter.Parameter(
+#         #         (1 - self.lr) * relation.weight + self.lr * cur_weight
+#         #     )
+#         # else:
+#         #     relation.weight = cur_weight
+
+#     def forward(self, relation: BinaryComposition, x: torch.Tensor, t: torch.Tensor, state: dict):
+#         # TODO: Ensure doesn't need to be mean
+#         score = state['score']
+#         with torch.no_grad():
+#             positives = self._calculate_positives(x, t)
+#             negatives = self._calculate_negatives(x, t)
+#             score = self._update_score(score, positives, negatives)
+#             state['score'] = score
+#             maximums = self._calculate_maximums(x, t, score)
+#             target_weight = self._update_weight(relation, maximums, negatives)
+#         return self._reduction((target_weight - relation.weight).abs())
+
+
+# class BinaryXLoss(MistifyLoss):
+
+#     def __init__(self, lr: float=None):
+#         """initializer
+
+#         Args:
+#             lr (float, optional): learning rate value between 0 and 1. Defaults to 0.5.
+#         """
+#         self.lr = lr
+    
+#     def _calculate_positives(self, w: torch.Tensor, t: torch.Tensor):
+#         positive = (t == 1)
+#         return (
+#             (w[None] == t[:,None]) & positive[:,None]
+#         ).type_as(w).sum(dim=2)
+
+#     def _calculate_negatives(self, w: torch.Tensor, t: torch.Tensor):
+#         negative = (t != 1)
+#         return (
+#             (w[None] != t[:,None]) & negative[:,None]
+#         ).type_as(w).sum(dim=2)
+    
+#     def _calculate_score(self, positives: torch.Tensor, negatives: torch.Tensor):
+#         cur_score = positives / (negatives + positives)
+#         cur_score[cur_score.isnan()] == 0.0
+#         return cur_score
+    
+#     def _calculate_maximums(self, score: torch.Tensor, w: torch.Tensor, t: torch.Tensor):
+#         positive = (t == 1)
+        
+#         y: torch.Tensor = torch.max(torch.min(w[None,], score[:,:,None]), dim=1)[0]
+#         return ((score[:,:,None] == y[:,None]) & positive[:,None]).type_as(score).sum(dim=2)
+    
+#     def _update_base_inputs(self, binary: BinaryComposition, maximums: torch.Tensor, positives: torch.Tensor, negatives: torch.Tensor):
+
+#         if binary.to_complement:
+#             maximums.view(maximums.size(0), 2, -1)
+#             negatives.view(negatives.size(0), 2, -1)
+#             # only use the maximums + negatives
+#             # is okay for other positives to be 1 since it is an
+#             # "or" neuron
+#             base = (
+#                 maximums[:,0] / (maximums[:,0] + negatives[:,0])
+#             )
+#             # negatives for the complements must have 1 as the input 
+#             complements = (
+#                 negatives[:,1] / (positives[:,1] + negatives[:,1])
+#             )
+
+#             return ((0.5 * complements + 0.5 * base))
+
+#         cur_inputs = (maximums / (maximums + negatives))
+#         cur_inputs[cur_inputs.isnan()] = 0.0
+#         return cur_inputs
+    
+#     def _update_inputs(self, state: dict, base_inputs: torch.Tensor):
+#         if self.lr is not None:
+#             base_inputs = (1 - self.lr) * state['base_inputs'] + self.lr * base_inputs        
+#         return (base_inputs >= 0.5).type_as(base_inputs)
+
+#     def forward(self, binary: BinaryComposition, x: torch.Tensor, t: torch.Tensor, state: dict):
+
+#         # TODO: Update so it is a "loss"
+#         w = binary.weight
+#         with torch.no_grad():
+#             positives = self._calculate_positives(w, t)
+#             negatives = self._calculate_negatives(w, t)
+#             score = self._calculate_score(positives, negatives)
+#             maximums = self._calculate_maximums(score, w, t)
+#             base_inputs = self._update_base_inputs(binary, maximums, positives, negatives)
+#             x_prime = self._update_inputs(state, base_inputs)
+#         return self._reduction((x_prime - x).abs())
+
 
 
 # class FuzzyCompLoss(nn.Module):
