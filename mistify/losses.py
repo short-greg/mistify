@@ -194,7 +194,7 @@ class MaxMinLoss(MistifyLoss):
 
     def set_chosen(self, inner_values: torch.Tensor):
 
-        val, idx = torch.max(inner_values, dim=1, keepdim=True)
+        val, idx = torch.max(inner_values, dim=-2, keepdim=True)
         return inner_values == val
         # chosen = torch.zeros(inner_values.size(), dtype=torch.bool, device=inner_values.device)
         # chosen.scatter_(1, idx,  1.0)
@@ -202,7 +202,7 @@ class MaxMinLoss(MistifyLoss):
     
     def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         
-        x = x[:,:,None]
+        x = x.unsqueeze(x.dim())
         y = y[:,None]
         t = t[:,None]
         w = self._maxmin.weight[None]
@@ -257,13 +257,13 @@ class MinMaxLoss(MistifyLoss):
 
     def set_chosen(self, inner_values: torch.Tensor):
 
-        val, idx = torch.min(inner_values, dim=1, keepdim=True)
+        val, idx = torch.min(inner_values, dim=-2, keepdim=True)
         return inner_values == val
     
     def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         
         # TODO: Update so that the number of dimensions is more flexible
-        x = x[:,:,None]
+        x = x.unsqueeze(x.dim())
         y = y[:,None]
         t = t[:,None]
         w = self._minmax.weight[None]
@@ -319,10 +319,13 @@ class MaxProdLoss(MistifyLoss):
 
     def set_chosen(self, inner_values: torch.Tensor):
 
-        _, idx = torch.max(inner_values, dim=1, keepdim=True)
-        chosen = torch.zeros(inner_values.size(), dtype=torch.bool)
-        chosen.scatter_(1, idx,  1.0)
-        return chosen
+        val, _ = torch.max(inner_values, dim=-2, keepdim=True)
+        return inner_values == val
+
+        # _, idx = torch.max(inner_values, dim=-2, keepdim=True)
+        # chosen = torch.zeros(inner_values.size(), dtype=torch.bool)
+        # chosen.scatter_(1, idx,  1.0)
+        # return chosen
     
     def clamp(self):
 
@@ -330,7 +333,7 @@ class MaxProdLoss(MistifyLoss):
     
     def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         
-        x = x[:,:,None]
+        x = x.unsqueeze(x.dim())
         y = y[:,None]
         t = t[:,None]
         w = self._maxprod.weight[None]
