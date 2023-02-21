@@ -3,18 +3,52 @@ import torch.nn as nn
 from abc import abstractmethod
 
 
+
+def maxmin(x: torch.Tensor, w: torch.Tensor, dim=-2):
+    return torch.max(torch.min(x.unsqueeze(-1), w[None]), dim=dim)[0]
+
+
+def minmax(x: torch.Tensor, w: torch.Tensor, dim=-2):
+    return torch.min(torch.max(x.unsqueeze(-1), w[None]), dim=dim)[0]
+
+
+def maxprod(x: torch.Tensor, w: torch.Tensor, dim=-2):
+    return torch.max(x.unsqueeze(-1) * w[None], dim=dim)[0]
+
+
+class ComplementBase(nn.Module):
+
+    def __init__(self, concatenate_dim: int=None):
+        super().__init__()
+        self.concatenate_dim = concatenate_dim
+
+    def postprocess(self, m: torch.Tensor, m_out: torch.Tensor):
+        if self.concatenate_dim is None:
+            return
+        
+        return torch.cat(
+            [m, m_out], dim=self.concatenate_dim
+        )
+    
+    @abstractmethod
+    def complement(self, m: torch.Tensor):
+        raise NotImplementedError
+
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        return self.postprocess(m, self.complement(m))
+
+
 class CompositionBase(nn.Module):
 
     def __init__(
-        self, in_features: int, out_features: int, 
-        complement_inputs: bool=False, in_variables: int=None
+        self, in_features: int, out_features: int, in_variables: int=None
     ):
         super().__init__()
         self._in_features = in_features
         self._out_features = out_features
-        self._complement_inputs = complement_inputs
-        if complement_inputs:
-            in_features = in_features * 2
+        # self._complement_inputs = complement_inputs
+        # if complement_inputs:
+        #     in_features = in_features * 2
         self._multiple_variables = in_variables is not None
         self.weight = torch.nn.parameter.Parameter(
             self.init_weight(in_features, out_features, in_variables)
@@ -24,15 +58,15 @@ class CompositionBase(nn.Module):
     def init_weight(self, in_features: int, out_features: int, in_variables: int=None) -> torch.Tensor:
         pass
 
-    def prepare_inputs(self, m: torch.Tensor) -> torch.Tensor:
-        if self._complement_inputs:
-            return torch.cat([m, 1 - m], dim=-1)
+    # def prepare_inputs(self, m: torch.Tensor) -> torch.Tensor:
+    #     if self._complement_inputs:
+    #         return torch.cat([m, 1 - m], dim=-1)
         
-        return m
+    #     return m
     
-    @property
-    def to_complement(self) -> bool:
-        return self._complement_inputs
+    # @property
+    # def to_complement(self) -> bool:
+    #     return self._complement_inputs
 
 
 

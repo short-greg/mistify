@@ -2,8 +2,8 @@ import typing
 import torch
 import torch.nn as nn
 import typing
-from .base import CompositionBase
-from .utils import get_comp_weight_size, maxmin
+from .base import CompositionBase, maxmin, ComplementBase
+from .utils import get_comp_weight_size
 
 # Add in TernarySet as a type of crisp set
 # with
@@ -50,7 +50,13 @@ class TernaryComposition(CompositionBase):
         return positives(get_comp_weight_size(in_features, out_features, in_variables))
 
     def forward(self, m: torch.Tensor):
-        return maxmin(self.prepare_inputs(m), self.weight.data[None]).round()
+        return maxmin(m, self.weight.data[None]).round()
+
+
+class TernaryComplement(ComplementBase):
+
+    def complement(self, m: torch.Tensor):
+        return -m
 
 
 # class TernarySet(Set):

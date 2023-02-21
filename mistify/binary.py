@@ -1,7 +1,7 @@
 import torch
 
-from .base import CompositionBase
-from .utils import get_comp_weight_size, maxmin
+from .base import CompositionBase, maxmin, ComplementBase
+from .utils import get_comp_weight_size
 
 
 def rand(*size: int, dtype=torch.float32, device='cpu'):
@@ -38,8 +38,13 @@ class BinaryComposition(CompositionBase):
         return positives(get_comp_weight_size(in_features, out_features, in_variables))
 
     def forward(self, m: torch.Tensor):
-        return maxmin(self.prepare_inputs(m), self.weight).round()
+        return maxmin(m, self.weight).round()
 
+
+class BinaryComplement(ComplementBase):
+
+    def complement(self, m: torch.Tensor):
+        return 1 - m
 
 
 # class BinarySet(Set):

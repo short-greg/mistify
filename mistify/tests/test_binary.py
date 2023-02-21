@@ -9,13 +9,9 @@ class TestCrispComposition(object):
         crisp_set = binary.rand(4, 2)
         assert composition.forward(crisp_set).size() == torch.Size([4, 4])
     
-    def test_forward_outputs_correct_size_with_complement(self):
-        composition = binary.BinaryComposition(2, 4, True)
-        crisp_set = binary.rand(4, 2)
-        assert composition.forward(crisp_set).size() == torch.Size([4, 4])
 
     def test_forward_outputs_correct_size_with_multiple_variablse(self):
-        composition = binary.BinaryComposition(2, 4, True, in_variables=2)
+        composition = binary.BinaryComposition(2, 4, in_variables=2)
         crisp_set = binary.rand(4, 2, 2)
         assert composition.forward(crisp_set).size() == torch.Size([4, 2, 4])
 

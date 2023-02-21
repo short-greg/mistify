@@ -17,7 +17,6 @@ import torch.nn.functional as nn_func
 # need to split up the calculation
 
 
-
 class MistifyLoss(nn.Module):
 
     def __init__(self, reduction: str='mean'):
@@ -36,6 +35,10 @@ class MistifyLoss(nn.Module):
             return y.view(y.size(0), -1).mean(dim=1)
         elif self._reduction == 'none':
             return y
+        
+    @abstractmethod
+    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
 
 
 class ToOptim(Enum):
@@ -98,80 +101,77 @@ class BinaryXLoss(nn.Module):
         return loss
 
 
-class FuzzyCompToAllLoss(nn.Module):
+class IntersectOnLoss(MistifyLoss):
 
-    def __init__(self, inner, outer, reduction='mean'):
-        super().__init__()
-        self.reduction = reduction
-        self.inner = inner
-        self.outer = outer
-
-    def forward(self, x: torch.Tensor, t: torch.Tensor, chosen: torch.Tensor):
-
-        chosen_clone = chosen.clone()
-        chosen_clone[chosen == 1] = -torch.inf
-        chosen_clone[chosen == 0] = 1.0
-
-        # input_difference[chosen.long()] = -torch.inf
-        # TODO: Figure out how to handle this
-        result = self.outer(
-            (t - x) * chosen_clone, dim=0)[0]
-        # , torch.tensor(0.0)
-        # )
-        result[result.isinf()] = 0.0
-        return reduce(result.mean(), self.reduction)
-
-
-class FuzzyLoss(nn.Module):
-    
-    def __init__(self, reduction='samplemean'):
-        super().__init__()
-        self.reduction = reduction
-
-    def forward(self, x: torch.Tensor, t: torch.Tensor, mask: torch.BoolTensor):
-        return reduce(
-            torch.pow(((x - t.detach()) * mask.float()), 2), 
-            self.reduction
-        )
-
-
-class IntersectOnLoss(nn.Module):
-
-    def __init__(self, intersect: fuzzy.IntersectOn, reduction: str='mean'):
+    def __init__(self, intersect: fuzzy.IntersectOn, reduction: str='mean', not_chosen_weight: float=1.0):
         super().__init__()
         self.intersect = intersect
         self.reduction = reduction
+        self.not_chosen_weight = not_chosen_weight
+        self._mse = nn.MSELoss(reduction='none')
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
-        loss = 0.5 * (t.unsqueeze(self.intersect.dim) - x) ** 2
-        y_greater_than = (y > t).float()  
-        x_greater_than = (x > t[:,None]).float()
-
-        return (
-            (x_greater_than * loss * y_greater_than).float().mean() + (loss * ~y_greater_than).float().mean()
-        )
-
-
-class UnionOnLoss(nn.Module):
-
-    def __init__(self, union: fuzzy.UnionOn, reduction: str='mean'):
-        super().__init__()
-        self.union = union
-        self.reduction = reduction
-
-    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+    def calc_loss(self, x: torch.Tensor, t: torch.Tensor, mask: torch.BoolTensor=None, weight: torch.Tensor=None):
+        
+        result = self._mse.forward(x, t)
+        if mask is not None:
+            result = result * mask.float()
+        if weight is not None:
+            result = result * weight
+        return 0.5 * reduce(result, self.reduction)
     
-        loss = 0.5 * (t.unsqueeze(self.union.dim) - x) ** 2
-        y_greater_than = (y > t)
-        x_greater_than = (x > t[:,None])
+    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        if not self.intersect.keepdim:
+            y = y.unsqueeze(self.intersect.dim)
+            t = t.unsqueeze(self.intersect.dim)
+
+        with torch.no_grad():
+            x_less_than = (x < t)
+            x_t = x - torch.relu(y - t)
+            chosen = x == y
 
         return (
-            (~x_greater_than * loss * ~y_greater_than).float().mean() 
-            + (loss * y_greater_than).float().mean()
+            self.calc_loss(x, t.detach(), x_less_than)
+            + self.calc_loss(x, x_t.detach(), chosen)
+            + self.calc_loss(x, x_t.detach(), ~chosen, self.not_chosen_weight)
         )
 
 
-class MaxMinLoss(nn.Module):
+class UnionOnLoss(MistifyLoss):
+
+    def __init__(self, intersect: fuzzy.IntersectOn, reduction: str='mean', not_chosen_weight: float=1.0):
+        super().__init__()
+        self.intersect = intersect
+        self.reduction = reduction
+        self.not_chosen_weight = not_chosen_weight
+        self._mse = nn.MSELoss(reduction='none')
+
+    def calc_loss(self, x: torch.Tensor, t: torch.Tensor, mask: torch.BoolTensor=None, weight: torch.Tensor=None):
+        
+        result = self._mse.forward(x, t)
+        if mask is not None:
+            result = result * mask.float()
+        if weight is not None:
+            result = result * weight
+        return 0.5 * reduce(result, self.reduction)
+    
+    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        if not self.intersect.keepdim:
+            y = y.unsqueeze(self.intersect.dim)
+            t = t.unsqueeze(self.intersect.dim)
+
+        with torch.no_grad():
+            x_greater_than = (x > t)
+            x_t = x + torch.relu(t - y)
+            chosen = x == y
+
+        return (
+            self.calc_loss(x, t.detach(), x_greater_than)
+            + self.calc_loss(x, x_t.detach(), chosen)
+            + self.calc_loss(x, x_t.detach(), ~chosen, self.not_chosen_weight)
+        )
+
+
+class MaxMinLoss(MistifyLoss):
 
     def __init__(self, maxmin: fuzzy.MaxMin, reduction='batchmean', not_chosen_weight: float=None, default_optim: ToOptim=ToOptim.BOTH):
         super().__init__()
@@ -202,8 +202,6 @@ class MaxMinLoss(nn.Module):
     
     def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         
-        if self._maxmin.to_complement:
-            x = torch.cat([x, 1 - x], dim=1)
         x = x[:,:,None]
         y = y[:,None]
         t = t[:,None]
@@ -236,7 +234,68 @@ class MaxMinLoss(nn.Module):
         return loss
 
 
-class MaxProdLoss(nn.Module):
+class MinMaxLoss(MistifyLoss):
+
+    def __init__(self, minmax: fuzzy.MinMax, reduction='batchmean', not_chosen_weight: float=None, default_optim: ToOptim=ToOptim.BOTH):
+        super().__init__()
+        self._minmax = minmax
+        self.reduction = reduction
+        self._default_optim = default_optim
+        self._mse = nn.MSELoss(reduction='none')
+        self.not_chosen_weight = not_chosen_weight or 1.0
+
+    def calc_loss(self, x: torch.Tensor, t: torch.Tensor, mask: torch.BoolTensor=None, weight: torch.Tensor=None):
+        result = 0.5 * self._mse.forward(x, t)
+        if mask is not None:
+            result = result * mask.float()
+        if weight is not None:
+            result = result * weight
+        return reduce(result, self.reduction)
+    
+    def calc_inner_values(self, x: torch.Tensor, w: torch.Tensor):
+        return torch.min(x, w)
+
+    def set_chosen(self, inner_values: torch.Tensor):
+
+        val, idx = torch.min(inner_values, dim=1, keepdim=True)
+        return inner_values == val
+    
+    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        
+        # TODO: Update so that the number of dimensions is more flexible
+        x = x[:,:,None]
+        y = y[:,None]
+        t = t[:,None]
+        w = self._minmax.weight[None]
+        inner_values = self.calc_inner_values(x, w)
+        chosen = self.set_chosen(inner_values)
+        with torch.no_grad():
+            dy = nn_func.relu(y - t)
+
+        if self._default_optim.theta():
+            with torch.no_grad():
+                w_target = torch.min(torch.max(w - dy, x), w)
+
+            loss = (
+                self.calc_loss(w, t.detach(), inner_values < t) +
+                self.calc_loss(w, w_target.detach(), chosen) +
+                self.calc_loss(w, w_target.detach(), ~chosen, self.not_chosen_weight)
+            )
+        if self._default_optim.x():
+            with torch.no_grad():
+                x_target = torch.min(torch.max(x - dy, w), x)
+
+            cur_loss = (
+                self.calc_loss(x, t.detach(), inner_values < t) +
+                self.calc_loss(x, x_target.detach(), chosen) +
+                self.calc_loss(x, x_target.detach(), ~chosen, self.not_chosen_weight) 
+            )
+            loss = cur_loss if loss is None else loss + cur_loss
+
+        return loss
+
+
+class MaxProdLoss(MistifyLoss):
 
     def __init__(self, maxprod: fuzzy.MaxProd, reduction='batchmean', not_chosen_weight: float=None, default_optim: ToOptim=ToOptim.BOTH):
         super().__init__()
@@ -271,8 +330,6 @@ class MaxProdLoss(nn.Module):
     
     def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         
-        if self._maxprod.to_complement:
-            x = torch.cat([x, 1 - x], dim=1)
         x = x[:,:,None]
         y = y[:,None]
         t = t[:,None]
@@ -299,6 +356,41 @@ class MaxProdLoss(nn.Module):
         return loss
 
 
+# class FuzzyCompToAllLoss(nn.Module):
+
+#     def __init__(self, inner, outer, reduction='mean'):
+#         super().__init__()
+#         self.reduction = reduction
+#         self.inner = inner
+#         self.outer = outer
+
+#     def forward(self, x: torch.Tensor, t: torch.Tensor, chosen: torch.Tensor):
+
+#         chosen_clone = chosen.clone()
+#         chosen_clone[chosen == 1] = -torch.inf
+#         chosen_clone[chosen == 0] = 1.0
+
+#         # input_difference[chosen.long()] = -torch.inf
+#         # TODO: Figure out how to handle this
+#         result = self.outer(
+#             (t - x) * chosen_clone, dim=0)[0]
+#         # , torch.tensor(0.0)
+#         # )
+#         result[result.isinf()] = 0.0
+#         return reduce(result.mean(), self.reduction)
+
+
+# class FuzzyLoss(nn.Module):
+    
+#     def __init__(self, reduction='samplemean'):
+#         super().__init__()
+#         self.reduction = reduction
+
+#     def forward(self, x: torch.Tensor, t: torch.Tensor, mask: torch.BoolTensor):
+#         return reduce(
+#             torch.pow(((x - t.detach()) * mask.float()), 2), 
+#             self.reduction
+#         )
 
 
 # class BinaryThetaLoss(MistifyLoss):

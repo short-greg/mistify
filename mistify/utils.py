@@ -17,15 +17,3 @@ def reduce(value: torch.Tensor, reduction: str):
     elif reduction == 'batchmean':
         return value.sum() / value.size(0)
     return value
-
-
-def maxmin(x: torch.Tensor, w: torch.Tensor, dim=-2):
-    return torch.max(torch.min(x.unsqueeze(-1), w[None]), dim=dim)[0]
-
-
-def minmax(x: torch.Tensor, w: torch.Tensor, dim=-2):
-    return torch.min(torch.max(x.unsqueeze(-1), w[None]), dim=dim)[0]
-
-
-def maxprod(x: torch.Tensor, w: torch.Tensor, dim=-2):
-    return torch.max(x.unsqueeze(-1) * w[None], dim=dim)[0]

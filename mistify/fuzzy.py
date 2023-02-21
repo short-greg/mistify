@@ -1,9 +1,9 @@
 import typing
 import torch
 import torch.nn as nn
-from .utils import reduce, get_comp_weight_size,  maxmin, minmax, maxprod
+from .utils import reduce, get_comp_weight_size
 from abc import abstractmethod
-from .base import CompositionBase
+from .base import CompositionBase, ComplementBase, maxmin, minmax, maxprod
 import math
 from functools import partial
 
@@ -46,25 +46,6 @@ def rand(*size: int,  dtype=torch.float32, device='cpu'):
     return (torch.rand(*size, device=device, dtype=dtype))
 
 
-# class FuzzyCalcApprox(object):
-
-#     def intersect(self, x: FuzzySet, y: FuzzySet):
-#         pass
-
-#     def union(self, x: FuzzySet, y: FuzzySet):
-#         pass
-
-
-
-# class FuzzySetParam(SetParam):
-
-#     def __init__(self, set_: torch.Tensor, requires_grad: bool=True):
- 
-#         # if isinstance(set_, torch.Tensor):
-#         #     set_ = FuzzySet(set_)
-#         super().__init__(set_, requires_grad=requires_grad)
-
-
 class FuzzyComposition(CompositionBase):
 
     @abstractmethod
@@ -83,7 +64,7 @@ class MaxMin(FuzzyComposition):
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         # assume inputs are binary
         # binarize the weights
-        return maxmin(self.prepare_inputs(m), self.weight)
+        return maxmin(m, self.weight)
 
 
 class MaxProd(FuzzyComposition):
@@ -94,7 +75,7 @@ class MaxProd(FuzzyComposition):
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         # assume inputs are binary
         # binarize the weights
-        return maxprod(self.prepare_inputs(m), self.weight)
+        return maxprod(m, self.weight)
 
 
 class MinMax(FuzzyComposition):
@@ -105,7 +86,7 @@ class MinMax(FuzzyComposition):
     def forward(self, m: torch.Tensor):
         # assume inputs are binary
         # binarize the weights
-        return minmax(self.prepare_inputs(m), self.weight)
+        return minmax(m, self.weight)
 
 
 class Inner(nn.Module):
@@ -133,16 +114,21 @@ class Outer(nn.Module):
         return self._f(x)
 
 
+class FuzzyComplement(ComplementBase):
+
+    def complement(self, m: torch.Tensor):
+        return 1 - m
+
+
 class FuzzyRelation(FuzzyComposition):
 
     def __init__(
         self, in_features: int, out_features: int, 
-        complement_inputs: bool=False,
         in_variables: int=None, 
         inner: typing.Union[Inner, typing.Callable]=None, 
         outer: typing.Union[Outer, typing.Callable]=None
     ):
-        super().__init__(in_features, out_features, complement_inputs, in_variables)
+        super().__init__(in_features, out_features, in_variables)
         inner = inner or Inner(torch.min)
         outer = outer or Outer(torch.max, idx=0)
         if not isinstance(inner, Inner):
@@ -156,39 +142,37 @@ class FuzzyRelation(FuzzyComposition):
         return positives(get_comp_weight_size(in_features, out_features, in_variables))
                          
     def forward(self, m: torch.Tensor):
-        return self.outer(self.inner(self.prepare_inputs(m), self.weight))
+        return self.outer(self.inner(m, self.weight))
 
 
 class IntersectOn(nn.Module):
 
-    def __init__(self, dim: int):
+    def __init__(self, dim: int, keepdim: bool=False):
         super().__init__()
         self.dim = dim
+        self.keepdim = keepdim
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
-        return torch.min(m, dim=self.dim)
+        return torch.min(m, dim=self.dim, keepdim=self.keepdim)
 
 
 class UnionOn(nn.Module):
 
-    def __init__(self, dim: int):
+    def __init__(self, dim: int, keepdim: bool=False):
         super().__init__()
         self.dim = dim
+        self.keepdim = keepdim
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
-        return torch.max(m, dim=self.dim)
+        return torch.max(m, dim=self.dim, keepdim=self.keepdim)
 
 
 class MaxMinAgg(nn.Module):
 
-    def __init__(self, in_variables: int, in_features: int, out_features: int, agg_features: int, complement_inputs: bool=False):
+    def __init__(self, in_variables: int, in_features: int, out_features: int, agg_features: int):
         super().__init__()
-        self._max_min = MaxMin(in_features, out_features * agg_features, complement_inputs, in_variables)
+        self._max_min = MaxMin(in_features, out_features * agg_features, in_variables)
         self._agg_features = agg_features
-    
-    @property
-    def to_complement(self) -> bool:
-        return self._max_min._complement_inputs
     
     def forward(self, m: torch.Tensor):
         data = self._max_min.forward(m)
@@ -224,6 +208,25 @@ class WithFuzzyElse(nn.Module):
 
         else_ = self.else_.forward(m)
         return torch.cat([m, else_], dim=self.else_.dim)
+
+
+# class FuzzyCalcApprox(object):
+
+#     def intersect(self, x: FuzzySet, y: FuzzySet):
+#         pass
+
+#     def union(self, x: FuzzySet, y: FuzzySet):
+#         pass
+
+
+
+# class FuzzySetParam(SetParam):
+
+#     def __init__(self, set_: torch.Tensor, requires_grad: bool=True):
+ 
+#         # if isinstance(set_, torch.Tensor):
+#         #     set_ = FuzzySet(set_)
+#         super().__init__(set_, requires_grad=requires_grad)
 
 
 
