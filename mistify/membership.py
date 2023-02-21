@@ -319,9 +319,9 @@ class IncreasingRightTriangle(Polygon):
     
     def scale(self, m: torch.Tensor) -> 'IncreasingRightTriangle':
 
-        print(type(m), type(self._m))
+        # print(type(m), type(self._m))
         updated_m = intersect(m, self._m)
-        print(updated_m)
+        # print(updated_m)
         
         return IncreasingRightTriangle(
             self._params, updated_m
