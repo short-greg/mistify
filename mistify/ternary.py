@@ -2,7 +2,7 @@ import typing
 import torch
 import torch.nn as nn
 import typing
-from .base import CompositionBase, maxmin, ComplementBase
+from .core import CompositionBase, maxmin, ComplementBase
 from .utils import get_comp_weight_size
 
 # Add in TernarySet as a type of crisp set

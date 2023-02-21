@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from .utils import reduce, get_comp_weight_size
 from abc import abstractmethod
-from .base import CompositionBase, ComplementBase, maxmin, minmax, maxprod
+from .core import CompositionBase, ComplementBase, maxmin, minmax, maxprod
 import math
 from functools import partial
 

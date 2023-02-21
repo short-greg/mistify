@@ -3,6 +3,48 @@ import torch.nn as nn
 from abc import abstractmethod
 
 
+def smooth_max(x: torch.Tensor, x2: torch.Tensor, a: float) -> torch.Tensor:
+    z1 = ((x + 1) ** a).detach()
+    z2 = ((x2 + 1) ** a).detach()
+    return (x * z1 + x2 * z2) / (z1 + z2)
+
+def smooth_max_on(x: torch.Tensor, dim: int, a: float) -> torch.Tensor:
+    z = ((x + 1) ** a).detach()
+    return (x * z).sum(dim=dim) / z.sum(dim=dim)
+
+
+def smooth_min(x: torch.Tensor, x2: torch.Tensor, a: float) -> torch.Tensor:
+    return smooth_max(x, x2, -a)
+
+
+def smooth_min_on(x: torch.Tensor, dim: int, a: float) -> torch.Tensor:
+    return smooth_max_on(x, dim, -a)
+
+# This was originally set to -690 but that resulted in problems
+# unless I use double precision
+
+def adamax(x: torch.Tensor, x2: torch.Tensor):
+    q = torch.clamp(-69 / torch.log(torch.max(x, x2)), max=1000, min=-1000).detach()  
+    return ((x ** q + x2 ** q) / 2) ** (1 / q)
+
+
+def adamin(x: torch.Tensor, x2: torch.Tensor):
+    q = torch.clamp(69 / torch.log(torch.min(x, x2)).detach(), max=1000, min=-1000)
+    result = ((x ** q + x2 ** q) / 2) ** (1 / q)
+    return result
+
+
+def adamax_on(x: torch.Tensor, dim: int):
+
+    q = torch.clamp(-69 / torch.log(torch.max(x, dim=dim)[0]).detach(), max=1000, min=-1000)
+    return (torch.sum(x ** q.unsqueeze(dim), dim=dim) / x.size(dim)) ** (1 / q)
+
+
+def adamin_on(x: torch.Tensor, dim: int):
+
+    q = torch.clamp(69 / torch.log(torch.min(x, dim=dim)[0]).detach(), max=1000, min=-1000)
+    return (torch.sum(x ** q.unsqueeze(dim), dim=dim) / x.size(dim)) ** (1 / q)
+
 
 def maxmin(x: torch.Tensor, w: torch.Tensor, dim=-2):
     return torch.max(torch.min(x.unsqueeze(-1), w[None]), dim=dim)[0]
