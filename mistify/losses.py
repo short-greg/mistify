@@ -13,6 +13,7 @@ from . import conversion
 from . import fuzzy, binary
 import torch.nn.functional as nn_func
 
+import typing
 # The performance of these will be slow so I possibly
 # need to split up the calculation
 
@@ -173,13 +174,21 @@ class UnionOnLoss(MistifyLoss):
 
 class MaxMinLoss(MistifyLoss):
 
-    def __init__(self, maxmin: fuzzy.MaxMin, reduction='batchmean', not_chosen_weight: float=None, default_optim: ToOptim=ToOptim.BOTH):
+    def __init__(
+        self, maxmin: fuzzy.MaxMin, reduction='batchmean', not_chosen_weight: typing.Union[float, typing.Tuple[float, float]]=None, 
+        default_optim: ToOptim=ToOptim.BOTH
+    ):
         super().__init__()
         self._maxmin = maxmin
         self.reduction = reduction
         self._default_optim = default_optim
         self._mse = nn.MSELoss(reduction='none')
-        self.not_chosen_weight = not_chosen_weight or 1.0
+        if not_chosen_weight is None:
+            not_chosen_weight = 1.0, 1.0
+        elif not isinstance(not_chosen_weight, tuple):
+            not_chosen_weight = not_chosen_weight, not_chosen_weight
+
+        self.not_chosen_theta_weight, self.not_chosen_x_weight = not_chosen_weight
 
     def calc_loss(self, x: torch.Tensor, t: torch.Tensor, mask: torch.BoolTensor=None, weight: torch.Tensor=None):
         result = 0.5 * self._mse.forward(x, t)
@@ -218,7 +227,7 @@ class MaxMinLoss(MistifyLoss):
             loss = (
                 self.calc_loss(w, t.detach(), inner_values > t) +
                 self.calc_loss(w, w_target.detach(), chosen) +
-                self.calc_loss(w, w_target.detach(), ~chosen, self.not_chosen_weight)
+                self.calc_loss(w, w_target.detach(), ~chosen, self.not_chosen_theta_weight)
             )
         if self._default_optim.x():
             with torch.no_grad():
@@ -227,7 +236,7 @@ class MaxMinLoss(MistifyLoss):
             cur_loss = (
                 self.calc_loss(x, t.detach(), inner_values > t) +
                 self.calc_loss(x, x_target.detach(), chosen) +
-                self.calc_loss(x, x_target.detach(), ~chosen, self.not_chosen_weight) 
+                self.calc_loss(x, x_target.detach(), ~chosen, self.not_chosen_x_weight) 
             )
             loss = cur_loss if loss is None else loss + cur_loss
 

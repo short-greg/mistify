@@ -22,9 +22,9 @@ def check_if_optimizes_theta():
     maxprod = fuzzy.MaxProd(8, 4)
     maxprod.weight.data = fuzzy.rand(*maxprod.weight.data.size())
     maxmin_train = fuzzy.MaxMin(8, 4)
+    maxmin_train2 = fuzzy.MaxMin(8, 4)
     # maxmin_train.weight.data = fuzzy.rand(*maxmin.weight.data.size())
 
-    maxmin_train2 = fuzzy.MaxMin(8, 4)
     maxprod_train = fuzzy.MaxProd(8, 4)
     maxprod_train.weight.data = fuzzy.rand(*maxprod.weight.data.size())
     # maxmin_train2.weight = fuzzy.FuzzySetParam(
