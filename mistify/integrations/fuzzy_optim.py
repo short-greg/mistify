@@ -1,5 +1,5 @@
 from .. import fuzzy
-from .. import losses as optim
+from ..depracated import losses as optim
 import torch
 
 

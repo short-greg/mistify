@@ -1,6 +1,5 @@
 import pytest
 from .. import conversion
-from .. import crisp, fuzzy
 import torch
 
 

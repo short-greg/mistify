@@ -7,7 +7,6 @@ from . import membership as memb
 from .membership import Shape
 import typing
 import torch.nn.functional
-from . import crisp
 
 
 @dataclass

@@ -1,6 +1,67 @@
 import torch
 import torch.nn as nn
 from abc import abstractmethod
+from enum import Enum
+
+
+class ToOptim(Enum):
+
+    X = 'x'
+    THETA = 'theta'
+    BOTH = 'both'
+
+    def x(self) -> bool:
+        return self in (ToOptim.X, ToOptim.BOTH)
+
+    def theta(self) -> bool:
+        return self in (ToOptim.THETA, ToOptim.BOTH)
+
+
+class MistifyLoss(nn.Module):
+
+    def __init__(self, module: nn.Module, reduction: str='mean'):
+        super().__init__()
+        self.reduction = reduction
+        self._module = module
+        if reduction not in ('mean', 'sum', 'batchmean', 'none'):
+            raise ValueError(f"Reduction {reduction} is not a valid reduction")
+
+    @property
+    def module(self) -> nn.Module:
+        return self._module 
+
+    def reduce(self, y: torch.Tensor):
+
+        if self.reduction == 'mean':
+            return y.mean()
+        elif self.reduction == 'sum':
+            return y.sum()
+        elif self.reduction == 'batchmean':
+            return y.view(y.size(0), -1).mean(dim=1)
+        elif self.reduction == 'none':
+            return y
+        
+    @abstractmethod
+    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
+
+
+def get_comp_weight_size(in_features: int, out_features: int, in_variables: int=None):
+
+    if in_variables is None or in_variables == 0:
+        return torch.Size([in_features, out_features])
+    return torch.Size([in_variables, in_features, out_features])
+
+
+# def reduce(value: torch.Tensor, reduction: str):
+
+#     if reduction == 'mean':
+#         return value.mean()
+#     elif reduction == 'sum':
+#         return value.sum()
+#     elif reduction == 'batchmean':
+#         return value.sum() / value.size(0)
+#     return value
 
 
 def smooth_max(x: torch.Tensor, x2: torch.Tensor, a: float) -> torch.Tensor:

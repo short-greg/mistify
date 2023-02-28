@@ -1,4 +1,4 @@
-from mistify.integrations import fuzzy_optim, adaptive_max
+from mistify.integrations import fuzzy_optim, adaptive_max, fuzzy_optim2
 import sys
 
 if __name__ == '__main__':
@@ -11,3 +11,5 @@ if __name__ == '__main__':
         adaptive_max.check_if_adamax_on_is_close_to_max()
         adaptive_max.check_if_adamin_is_close_to_min()
         adaptive_max.check_if_adamin_on_is_close_to_min()
+    if sys.argv[1] == "maxmin_x":
+        fuzzy_optim2.check_if_maxmin_optimizes_theta_with_two_layers()
