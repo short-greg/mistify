@@ -37,7 +37,7 @@ class MistifyLoss(nn.Module):
         elif self.reduction == 'sum':
             return y.sum()
         elif self.reduction == 'batchmean':
-            return y.view(y.size(0), -1).sum(dim=1) / len(y)
+            return y.sum() / len(y)
         elif self.reduction == 'none':
             return y
         

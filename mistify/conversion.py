@@ -218,10 +218,10 @@ class SigmoidDefuzzifier(Defuzzifier):
     def __init__(self, converter: SigmoidFuzzyConverter):
 
         super().__init__()
-        self._converter = converter
+        self.converter = converter
 
     def forward(self, m: torch.Tensor):
-        return self._converter.defuzzify(m)
+        return self.converter.defuzzify(m)
     
     @classmethod
     def build(cls, out_variables: int, out_terms: int, eps: float=1e-7):
