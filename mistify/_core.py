@@ -53,17 +53,6 @@ def get_comp_weight_size(in_features: int, out_features: int, in_variables: int=
     return torch.Size([in_variables, in_features, out_features])
 
 
-# def reduce(value: torch.Tensor, reduction: str):
-
-#     if reduction == 'mean':
-#         return value.mean()
-#     elif reduction == 'sum':
-#         return value.sum()
-#     elif reduction == 'batchmean':
-#         return value.sum() / value.size(0)
-#     return value
-
-
 def smooth_max(x: torch.Tensor, x2: torch.Tensor, a: float) -> torch.Tensor:
     z1 = ((x + 1) ** a).detach()
     z2 = ((x2 + 1) ** a).detach()
@@ -81,8 +70,6 @@ def smooth_min(x: torch.Tensor, x2: torch.Tensor, a: float) -> torch.Tensor:
 def smooth_min_on(x: torch.Tensor, dim: int, a: float) -> torch.Tensor:
     return smooth_max_on(x, dim, -a)
 
-# This was originally set to -690 but that resulted in problems
-# unless I use double precision
 
 def adamax(x: torch.Tensor, x2: torch.Tensor):
     q = torch.clamp(-69 / torch.log(torch.max(x, x2)), max=1000, min=-1000).detach()  
