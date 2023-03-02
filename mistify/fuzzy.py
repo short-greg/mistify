@@ -330,6 +330,8 @@ class MaxMinLoss(MistifyLoss):
         loss = None
         if self._default_optim.theta():
             with torch.no_grad():
+
+                # value will not exceed the x
                 w_target = torch.max(torch.min(w + dy, x), w)
                 w_target_2 = w - d_inner
 
@@ -342,7 +344,15 @@ class MaxMinLoss(MistifyLoss):
         if self._default_optim.x():
             with torch.no_grad():
                 # x_target = torch.max(torch.min(x + dy, w), x)
-                x_target = x + dy
+                # this is wrong.. y can end up targetting a value greater than
+                # one because of this...
+                # x=0.95, w=0.1 -> y=0.75 t=0.8 ... x will end up targetting 1.0
+                # this is also a conundrum because i may want to reduce the value of
+                # x.. But the value is so high it does not get reduced
+
+                # value will not exceed the target if smaller than target
+                # if larger than target will not change
+                x_target = torch.max(x, torch.min(x + dy, t))
                 w_target_2 = x - d_inner
 
             cur_loss = (
