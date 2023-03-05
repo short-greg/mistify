@@ -9,6 +9,13 @@ class TestBasicSigmoidFuzzySytem:
     class BasicSigmoidFuzzySystem(nn.Module):
 
         def __init__(self, in_features: int, in_terms: int, hidden_terms: typing.List[int]):
+            """
+
+            Args:
+                in_features (int): 
+                in_terms (int): 
+                hidden_terms (typing.List[int]): 
+            """
             super().__init__()
             print(in_terms, in_features)
             self.converter = conversion.SigmoidFuzzyConverter(in_features, in_terms)

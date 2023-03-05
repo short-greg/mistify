@@ -1,3 +1,7 @@
+"""
+Classes for calculating the membership 
+"""
+
 from abc import abstractmethod, abstractproperty
 import typing
 import torch
@@ -21,6 +25,8 @@ def resize_to(x1: torch.Tensor, x2: torch.Tensor, dim=0):
 
 
 class ShapeParams:
+    """Parameters to specify the Shapes
+    """
     
     # batch, set, index
     param: torch.Tensor
@@ -31,25 +37,62 @@ class ShapeParams:
         assert x.dim() == 4
         self._x = x
 
-    def sub(self, index: typing.Union[int, typing.Tuple[int, int]]):
+    def sub(self, index: typing.Union[int, typing.Tuple[int, int]]) -> 'ShapeParams':
+        """Extract a subset of the parameters
+
+        Args:
+            index (typing.Union[int, typing.Tuple[int, int]]): Index to extract with
+
+        Returns:
+            ShapeParams: Subset of the shape parameters
+        """
         if isinstance(index, int):
             index = slice(index, index + 1)
         else:
             index = slice(*index)
         return ShapeParams(self._x[:, :, :, index])
 
-    def pt(self, index: int):
+    def pt(self, index: int) -> torch.Tensor:
+        """Retrieve a given point in the shape parameters
+
+        Args:
+            index (int): The point to retrieve
+
+        Returns:
+            torch.Tensor: _description_
+        """
+
         assert isinstance(index, int)
         return self._x[:,:,:,index]
 
-    def sample(self, index: int):
+    def sample(self, index: int) -> torch.Tensor:
+        """Retrieve one sample from the shape parameters
+
+        Args:
+            index (int): The sampel to retrieve
+
+        Returns:
+            torch.Tensor: 
+        """
         return self._x[index]
 
-    def samples(self, indices):
+    def samples(self, indices) -> torch.Tensor:
+        """Retrieve multiple samples
+
+        Args:
+            indices (typing.Iterable[int]): The indices of the samples to retrieve
+
+        Returns:
+            torch.Tensor: The samples to retrieve
+        """
         return self._x[indices]
         
     @property
     def x(self) -> torch.Tensor:
+        """
+        Returns:
+            torch.Tensor: The data stored in the ShapeParams
+        """
         return self._x
 
     @property
@@ -195,11 +238,14 @@ def calc_area_logistic_one_side(x: torch.Tensor, b: torch.Tensor, s: torch.Tenso
 
     return a * m_base * 4 / s
 
+
 def unsqueeze(x: torch.Tensor):
     return x.unsqueeze(x.dim())
 
 
 class Shape(object):
+    """Shape to calculate membership for
+    """
 
     def __init__(self, n_variables: int, n_terms: int):
 
@@ -232,42 +278,96 @@ class Shape(object):
         return self._areas
 
     @abstractmethod
-    def _calc_mean_cores(self):
+    def _calc_mean_cores(self) -> torch.Tensor:
+        """
+        Returns:
+            torch.Tensor: The mean of the core of the shape
+        """
         pass
 
     @property
     def mean_cores(self) -> torch.Tensor:
+        """
+        Returns:
+            torch.Tensor: The mean of the core of the shape
+        """
         if self._mean_cores is None:
             self._mean_cores = self._calc_mean_cores()
         return self._mean_cores
 
     @abstractmethod
     def _calc_centroids(self) -> torch.Tensor:
+        """
+        Returns:
+            torch.Tensor: The centroid of the shape
+        """
         pass
 
     @abstractproperty
     def m(self):
+        """
+        Returns:
+            torch.Tensor: 
+        """
         pass
 
     @property
     def centroids(self) -> torch.Tensor:
+        """
+        Returns:
+            torch.Tensor: Centroid for the 
+        """
         if self._centroids is None:
             self._centroids = self._calc_centroids()
         return self._centroids
     
     @abstractmethod
     def scale(self, m: torch.Tensor) -> 'Shape':
+        """Scale the shape by a membership tensor
+
+        Args:
+            m (torch.Tensor): Membership tensor to scale by
+
+        Returns:
+            Shape: Scaled shape
+        """
         pass
 
     @abstractmethod
     def truncate(self, m: torch.Tensor) -> 'Shape':
+        """Truncate the shape by a membership tensor
+
+        Args:
+            m (torch.Tensor): Membership tensor to truncate by
+
+        Returns:
+            Shape: Scaled shape
+        """
         pass
 
     @abstractmethod
     def join(self, x: torch.Tensor) -> torch.Tensor:
+        """Calculate the membership of the value x
+
+        Args:
+            x (torch.Tensor): Tensor to cacluate membership for
+
+        Returns:
+            torch.Tensor: membership tensor
+        """
         pass
 
-    def _resize_to_m(self, x: torch.Tensor, m: torch.Tensor):
+    def _resize_to_m(self, x: torch.Tensor, m: torch.Tensor) -> torch.Tensor:
+        """Convenience method to resize x to ahve the same batch size
+        as m
+
+        Args:
+            x (torch.Tensor): Tensor to resize batch size for
+            m (torch.Tensor): Tensor to resize based on
+
+        Returns:
+            torch.Tensor: Resized tensor
+        """
         if x.size(0) == 1 and m.size(0) != 1:
             return x.repeat(m.size(0), *[1] * (m.dim() - 1))
         return x    
