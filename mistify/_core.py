@@ -1,3 +1,11 @@
+"""
+Core modules for Mistify
+
+MistifyLoss: 
+
+Functions: Standard functions used by mistify
+CompositionBase: 
+"""
 import torch
 import torch.nn as nn
 from abc import abstractmethod
@@ -5,6 +13,9 @@ from enum import Enum
 
 
 class ToOptim(Enum):
+    """
+    Specify whehther to optimize x, theta or both
+    """
 
     X = 'x'
     THETA = 'theta'
@@ -18,6 +29,8 @@ class ToOptim(Enum):
 
 
 class MistifyLoss(nn.Module):
+    """Loss to use in modules for Mistify
+    """
 
     def __init__(self, module: nn.Module, reduction: str='mean'):
         super().__init__()
@@ -54,77 +67,218 @@ def get_comp_weight_size(in_features: int, out_features: int, in_variables: int=
 
 
 def smooth_max(x: torch.Tensor, x2: torch.Tensor, a: float) -> torch.Tensor:
+    """Smooth approximation to the max function of two tensors
+
+    Args:
+        x (torch.Tensor): Tensor to take max of
+        x2 (torch.Tensor): Other tensor to take max of
+        a (float): Value to 
+
+    Returns:
+        torch.Tensor: Tensor containing the maximum of x1 and x2
+    """
     z1 = ((x + 1) ** a).detach()
     z2 = ((x2 + 1) ** a).detach()
     return (x * z1 + x2 * z2) / (z1 + z2)
 
-def smooth_max_on(x: torch.Tensor, dim: int, a: float) -> torch.Tensor:
+def smooth_max_on(x: torch.Tensor, dim: int, a: float, keepdim: bool=False) -> torch.Tensor:
+    """Take smooth max over specified dimension
+
+    Args:
+        x (torch.Tensor): 
+        dim (int): Dimension to take max over
+        a (float): Smoothing value. The larger the value the smoother
+
+    Returns:
+        torch.Tensor: Result of the smooth max
+    """
     z = ((x + 1) ** a).detach()
-    return (x * z).sum(dim=dim) / z.sum(dim=dim)
+    return (x * z).sum(dim=dim, keepdim=keepdim) / z.sum(dim=dim, keepdim=keepdim)
 
 
 def smooth_min(x: torch.Tensor, x2: torch.Tensor, a: float) -> torch.Tensor:
+    """Take smooth m over specified dimension
+
+    Args:
+        x (torch.Tensor): 
+        dim (int): Dimension to take max over
+        a (float): Smoothing value. The larger the value the smoother
+
+    Returns:
+        torch.Tensor: Result of the smooth max
+    """
     return smooth_max(x, x2, -a)
 
 
-def smooth_min_on(x: torch.Tensor, dim: int, a: float) -> torch.Tensor:
-    return smooth_max_on(x, dim, -a)
+def smooth_min_on(x: torch.Tensor, dim: int, a: float, keepdim: bool=False) -> torch.Tensor:
+    """Take smooth min over specified dimension
+
+    Args:
+        x (torch.Tensor): 
+        dim (int): Dimension to take max over
+        a (float): Smoothing value. The larger the value the smoother
+        keepdim (bool): Whether to keep the dimension or not
+
+    Returns:
+        torch.Tensor: Result of the smooth max
+    """
+    return smooth_max_on(x, dim, -a, keepdim=keepdim)
 
 
-def adamax(x: torch.Tensor, x2: torch.Tensor):
+def adamax(x: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
+    """Smooth approximation to the max function of two tensors
+
+    Args:
+        x (torch.Tensor): Tensor to take max of
+        x2 (torch.Tensor): Other tensor to take max of
+    
+    Returns:
+        torch.Tensor: Tensor containing the maximum of x1 and x2
+    """
     q = torch.clamp(-69 / torch.log(torch.max(x, x2)), max=1000, min=-1000).detach()  
     return ((x ** q + x2 ** q) / 2) ** (1 / q)
 
 
-def adamin(x: torch.Tensor, x2: torch.Tensor):
+def adamin(x: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
+    """Smooth approximation to the min function of two tensors
+
+    Args:
+        x (torch.Tensor): Tensor to take max of
+        x2 (torch.Tensor): Other tensor to take max of
+    
+    Returns:
+        torch.Tensor: Tensor containing the maximum of x1 and x2
+    """
     q = torch.clamp(69 / torch.log(torch.min(x, x2)).detach(), max=1000, min=-1000)
     result = ((x ** q + x2 ** q) / 2) ** (1 / q)
     return result
 
 
-def adamax_on(x: torch.Tensor, dim: int):
+def adamax_on(x: torch.Tensor, dim: int, keepdim: bool=False) -> torch.Tensor:
+    """Take smooth max over specified dimension
 
+    Args:
+        x (torch.Tensor): 
+        dim (int): Dimension to take max over
+        a (float): Smoothing value. The larger the value the smoother
+
+    Returns:
+        torch.Tensor: Result of the smooth max
+    """
     q = torch.clamp(-69 / torch.log(torch.max(x, dim=dim)[0]).detach(), max=1000, min=-1000)
-    return (torch.sum(x ** q.unsqueeze(dim), dim=dim) / x.size(dim)) ** (1 / q)
+    return (torch.sum(x ** q.unsqueeze(dim), dim=dim, keepdim=keepdim) / x.size(dim)) ** (1 / q)
 
 
-def adamin_on(x: torch.Tensor, dim: int):
+def adamin_on(x: torch.Tensor, dim: int, keepdim: bool=False) -> torch.Tensor:
+    """Take smooth min over specified dimension
 
+    Args:
+        x (torch.Tensor): 
+        dim (int): Dimension to take max over
+        keepdim (bool): Whether to keep the dimension or not
+
+    Returns:
+        torch.Tensor: Result of the smooth max
+    """
     q = torch.clamp(69 / torch.log(torch.min(x, dim=dim)[0]).detach(), max=1000, min=-1000)
-    return (torch.sum(x ** q.unsqueeze(dim), dim=dim) / x.size(dim)) ** (1 / q)
+    return (torch.sum(x ** q.unsqueeze(dim), dim=dim, keepdim=keepdim) / x.size(dim)) ** (1 / q)
 
 
-def maxmin(x: torch.Tensor, w: torch.Tensor, dim=-2):
+def maxmin(x: torch.Tensor, w: torch.Tensor, dim=-2) -> torch.Tensor:
+    """Take max min between two tensors to compute the relation
+
+    Args:
+        x (torch.Tensor): Input tensor
+        w (torch.Tensor): Weight tensor to calculate relation of
+        dim (int, optional): Dimension to aggregate. Defaults to -2.
+
+    Returns:
+        torch.Tensor: The relation between two tensors
+    """
     return torch.max(torch.min(x.unsqueeze(-1), w[None]), dim=dim)[0]
 
 
-def minmax(x: torch.Tensor, w: torch.Tensor, dim=-2):
+def minmax(x: torch.Tensor, w: torch.Tensor, dim=-2) -> torch.Tensor:
+    """Take min max between two tensors to compute the relation
+
+    Args:
+        x (torch.Tensor): Input tensor
+        w (torch.Tensor): Weight tensor to calculate relation of
+        dim (int, optional): Dimension to aggregate. Defaults to -2.
+
+    Returns:
+        torch.Tensor: The relation between two tensors
+    """
     return torch.min(torch.max(x.unsqueeze(-1), w[None]), dim=dim)[0]
 
 
-def maxprod(x: torch.Tensor, w: torch.Tensor, dim=-2):
+def maxprod(x: torch.Tensor, w: torch.Tensor, dim=-2) -> torch.Tensor:
+    """Take max prod between two tensors to compute the relation
+
+    Args:
+        x (torch.Tensor): Input tensor
+        w (torch.Tensor): Weight tensor to calculate relation of
+        dim (int, optional): Dimension to aggregate. Defaults to -2.
+
+    Returns:
+        torch.Tensor: The relation between two tensors
+    """
     return torch.max(x.unsqueeze(-1) * w[None], dim=dim)[0]
 
 
 class ComplementBase(nn.Module):
+    """Base complement class for calculating complement of a set
+    """
 
     def __init__(self, concatenate_dim: int=None):
+        """initializer
+
+        Args:
+            concatenate_dim (int, optional): 
+              Dim to concatenate the complement with. If None, it does not concatenate.
+              Defaults to None.
+        """
         super().__init__()
         self.concatenate_dim = concatenate_dim
 
-    def postprocess(self, m: torch.Tensor, m_out: torch.Tensor):
+    def postprocess(self, m: torch.Tensor, m_complement: torch.Tensor) -> torch.Tensor:
+        """Postprocess the complement
+
+        Args:
+            m (torch.Tensor): The input tensor
+            m_complement (torch.Tensor): The complemented tensor
+
+        Returns:
+            torch.Tensor: The postprocessed tensor
+        """
         if self.concatenate_dim is None:
-            return
+            return m_complement
         
         return torch.cat(
-            [m, m_out], dim=self.concatenate_dim
+            [m, m_complement], dim=self.concatenate_dim
         )
     
     @abstractmethod
-    def complement(self, m: torch.Tensor):
+    def complement(self, m: torch.Tensor) -> torch.Tensor:
+        """Take complemento f tensor
+
+        Args:
+            m (torch.Tensor): Tensor to take complement of
+
+        Returns:
+            torch.Tensor: Complemented tensor
+        """
         raise NotImplementedError
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
+        """Take complement of tesor
+
+        Args:
+            m (torch.Tensor): 
+
+        Returns:
+            torch.Tensor: 
+        """
         return self.postprocess(m, self.complement(m))
 
 
@@ -133,12 +287,16 @@ class CompositionBase(nn.Module):
     def __init__(
         self, in_features: int, out_features: int, in_variables: int=None
     ):
+        """Base class for taking relations between two tensor
+
+        Args:
+            in_features (int): Number of input features (i.e. terms)
+            out_features (int): Number of outputs features (i.e. terms)
+            in_variables (int, optional): Number of linguistic variables in. Defaults to None.
+        """
         super().__init__()
         self._in_features = in_features
         self._out_features = out_features
-        # self._complement_inputs = complement_inputs
-        # if complement_inputs:
-        #     in_features = in_features * 2
         self._multiple_variables = in_variables is not None
         self.weight = torch.nn.parameter.Parameter(
             self.init_weight(in_features, out_features, in_variables)
@@ -147,93 +305,3 @@ class CompositionBase(nn.Module):
     @abstractmethod
     def init_weight(self, in_features: int, out_features: int, in_variables: int=None) -> torch.Tensor:
         pass
-
-    # def prepare_inputs(self, m: torch.Tensor) -> torch.Tensor:
-    #     if self._complement_inputs:
-    #         return torch.cat([m, 1 - m], dim=-1)
-        
-    #     return m
-    
-    # @property
-    # def to_complement(self) -> bool:
-    #     return self._complement_inputs
-
-
-
-# class Set(object):
-    
-#     def __init__(self, data: torch.Tensor, is_batch: bool=None):
-
-#         if is_batch is None:
-#             is_batch = False if data.dim() <= 1 else True
-
-#         self._data = data
-#         if is_batch and data.dim() == 1:
-#             raise ValueError(f'Is batch cannot be set to true if data dimensionality is 1')
-        
-#         if is_batch: 
-#             self._value_size = None if data.dim() == 2 else data.shape[1:-1]
-#         else:
-#             self._value_size = None if data.dim() == 1 else data.shape[1:-1]
-
-#         self._is_batch = is_batch
-#         self._n_values = data.shape[-1]
-    
-#     @property
-#     def data(self) -> torch.Tensor:
-#         return self._data
-    
-#     @property
-#     def is_batch(self) -> bool:
-#         return self._is_batch
-
-#     def dim(self) -> int:
-#         return self.data.dim()
-
-#     @property
-#     def n_samples(self) -> int:
-#         if self._is_batch:
-#             return self.data.size(0)
-#         return None
-#     # TODO: Consider whether to move some of these methods out of here
-
-# class SetParam(nn.Module):
-
-#     def __init__(self, set_: Set, requires_grad: bool=True):
-
-#         super().__init__()
-#         self._set = set_
-#         self._param = nn.parameter.Parameter(
-#             set_.data, requires_grad=requires_grad
-#         )
-
-#     @property
-#     def data(self) -> torch.Tensor:
-#         return self._param.data
-
-#     @data.setter
-#     def data(self, data: torch.Tensor):        
-#         self._set.data = data
-#         self._param.data = self._set.data
-
-#     @property
-#     def param(self) -> nn.parameter.Parameter:
-#         return self._param
-
-#     @property
-#     def set(self) -> Set:
-#         return self._set
-    
-#     @set.setter
-#     def set(self, set_: 'Set'):
-#         self.data = set_.data
-    
-#     def __getitem__(self, idx) -> torch.Tensor:
-#         return self.data[idx]
-
-#     def size(self, dim=None):
-#         if dim is None: self._set.data.size()
-#         return self._set.data.size(dim)
-
-
-
