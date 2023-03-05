@@ -1,9 +1,10 @@
+"""
+
+"""
 # 1st party
 import typing
 from abc import abstractmethod
-import math
 from functools import partial
-
 
 # 3rd party
 import torch
@@ -13,19 +14,55 @@ from torch.nn import functional as nn_func
 # local
 from ._core import CompositionBase, ComplementBase, maxmin, minmax, maxprod, MistifyLoss, ToOptim, get_comp_weight_size
 
-def unify(m: torch.Tensor, m2: torch.Tensor):
+
+def unify(m: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+    """
+
+    Args:
+        m (torch.Tensor): 
+        m2 (torch.Tensor): 
+
+    Returns:
+        torch.Tensor: 
+    """
     return torch.max(m, m2)
 
 
-def differ(m: torch.Tensor, m2: torch.Tensor):
+def differ(m: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+    """
+
+    Args:
+        m (torch.Tensor): 
+        m2 (torch.Tensor): 
+
+    Returns:
+        torch.Tensor: 
+    """
     return (m - m2).clamp(0.0, 1.0)
 
 
 def positives(*size: int, dtype=torch.float32, device='cpu') -> torch.Tensor:
+    """
+    Args:
+        dtype (_type_, optional): . Defaults to torch.float32.
+        device (str, optional): . Defaults to 'cpu'.
+
+    Returns:
+        torch.Tensor: 
+    """
     return torch.ones(*size, dtype=dtype, device=device)
 
 
 def negatives(*size: int, dtype=torch.float32, device='cpu') -> torch.Tensor:
+    """
+
+    Args:
+        dtype (_type_, optional): . Defaults to torch.float32.
+        device (str, optional): . Defaults to 'cpu'.
+
+    Returns:
+        torch.Tensor: 
+    """
     return torch.zeros(*size, dtype=dtype, device=device)
 
 
@@ -487,115 +524,3 @@ class MaxProdLoss(MistifyLoss):
             )
 
         return loss
-
-
-
-
-# class FuzzyCalcApprox(object):
-
-#     def intersect(self, x: FuzzySet, y: FuzzySet):
-#         pass
-
-#     def union(self, x: FuzzySet, y: FuzzySet):
-#         pass
-
-
-
-# class FuzzySetParam(SetParam):
-
-#     def __init__(self, set_: torch.Tensor, requires_grad: bool=True):
- 
-#         # if isinstance(set_, torch.Tensor):
-#         #     set_ = FuzzySet(set_)
-#         super().__init__(set_, requires_grad=requires_grad)
-
-
-
-# class FuzzySet(Set):
-
-#     def transpose(self, first_dim, second_dim) -> 'FuzzySet':
-#         assert self._value_size is not None
-#         return FuzzySet(self._data.transpose(first_dim, second_dim), self._is_batch)
-
-#     def intersect_on(self, dim: int=-1):
-#         return FuzzySet(torch.min(self.data, dim=dim)[0], self.is_batch)
-
-#     def unify_on(self, dim: int=-1):
-#         return FuzzySet(torch.max(self.data, dim=dim)[0], self.is_batch)
-
-    
-#     def inclusion(self, other: 'FuzzySet') -> 'FuzzySet':
-#         return FuzzySet(
-#             (1 - other.data) + torch.min(self.data, other.data), self._is_batch
-#         )
-
-#     def exclusion(self, other: 'FuzzySet') -> 'FuzzySet':
-#         return FuzzySet(
-#             (1 - self.data) + torch.min(self.data, other.data), self._is_batch
-#         )
-    
-#     def differ(self, other: 'FuzzySet'):
-#         return FuzzySet(torch.clamp(self.data - other.data, 0, 1), self.is_batch)
-#     def unify(self, other: 'FuzzySet'):
-#         return FuzzySet(torch.max(self.data, other.data), self.is_batch)
-
-#     def intersect(self, other: 'FuzzySet'):
-#         return FuzzySet(torch.min(self.data, other.data), self._is_batch)
-
-#     def __sub__(self, other: 'FuzzySet'):
-#         return self.differ(other)
-
-#     def __mul__(self, other: 'FuzzySet'):
-#         return intersect(self, other)
-
-#     def __add__(self, other: 'FuzzySet'):
-#         return self.unify(other)
-    
-#     def convert_variables(self, *size_after: int):
-        
-#         if self._is_batch:
-#             return FuzzySet(
-#                 self._data.view(self._data.size(0), *size_after, -1), True
-#             )
-#         return self.__class__(
-#             self._data.view(*size_after, -1), False
-#         )
-
-#     def reshape(self, *size: int):
-#         return FuzzySet(
-#             self.data.reshape(*size), self.is_batch
-#         )
-
-#     @classmethod
-#     def negatives(cls, *size: int, is_batch: bool=None, dtype=torch.float32, device='cpu'):
-
-#         return FuzzySet(
-#             torch.zeros(*size, dtype=dtype, device=device), is_batch
-#         )
-    
-#     @classmethod
-#     def positives(cls, *size: int, dtype=torch.float32, is_batch: bool=None, device='cpu'):
-
-#         return FuzzySet(
-#             torch.ones(*size, dtype=dtype, device=device), 
-#             is_batch
-#         )
-
-#     @classmethod
-#     def rand(cls, *size: int, is_batch: bool=None, dtype=torch.float32, device='cpu'):
-
-#         return FuzzySet(
-#             (torch.rand(*size, device=device)).type(dtype), 
-#             is_batch
-#         )
-
-#     def transpose(self, first_dim, second_dim) -> 'FuzzySet':
-#         assert self._value_size is not None
-#         return FuzzySet(self._data.transpose(first_dim, second_dim), self._is_batch)
-
-#     @property
-#     def shape(self) -> torch.Size:
-#         return self._data.shape
-
-#     def __getitem__(self, key):
-#         return FuzzySet(self.data[key])

@@ -1,12 +1,16 @@
-import torch
-import torch.nn as nn
+# 1st party
 from abc import abstractmethod
 from dataclasses import dataclass
 import typing
+
+# 3rd party
+import torch
+import torch.nn as nn
+import torch.nn.functional
+
+# local
 from . import membership as memb
 from .membership import Shape
-import typing
-import torch.nn.functional
 
 
 @dataclass
@@ -26,6 +30,8 @@ class ValueWeight:
 
 
 class FuzzyConverter(nn.Module):
+    """Convert tensor to fuzzy set
+    """
 
     @abstractmethod
     def fuzzify(self, x: torch.Tensor) -> torch.Tensor:
@@ -57,6 +63,8 @@ class FuzzyConverter(nn.Module):
 
 
 class CrispConverter(nn.Module):
+    """Convert tensor to crisp set
+    """
 
     @abstractmethod
     def crispify(self, x: torch.Tensor) -> torch.Tensor:
@@ -312,6 +320,8 @@ class ConverterDefuzzifier(Defuzzifier):
 
 
 class PolygonFuzzyConverter(FuzzyConverter):
+    """Convert 
+    """
 
     def __init__(
         self, n_variables: int, n_terms: int, shape_pts: ShapePoints,
