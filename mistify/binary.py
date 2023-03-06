@@ -40,6 +40,8 @@ class BinaryComposition(CompositionBase):
     def forward(self, m: torch.Tensor):
         return maxmin(m, self.weight).round()
 
+    def clamp_weights(self):
+        self.weight.data = self.weight.data.clamp(0, 1)
 
 class BinaryComplement(ComplementBase):
 

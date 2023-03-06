@@ -303,6 +303,10 @@ class CompositionBase(nn.Module):
         self.weight = torch.nn.parameter.Parameter(
             self.init_weight(in_features, out_features, in_variables)
         )
+
+    @abstractmethod
+    def clamp_weights(self):
+        pass
     
     @abstractmethod
     def init_weight(self, in_features: int, out_features: int, in_variables: int=None) -> torch.Tensor:

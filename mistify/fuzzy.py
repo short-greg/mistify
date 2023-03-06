@@ -75,7 +75,6 @@ def intersect_on(m: torch.Tensor, dim: int=-1) -> torch.Tensor:
 def unify_on(m: torch.Tensor, dim: int=-1):
     return torch.max(m, dim=dim)[0]
 
-
 def inclusion(m1: torch.Tensor, m2: torch.Tensor) -> 'torch.Tensor':
     return (1 - m2) + torch.min(m1, m2)
 
@@ -94,7 +93,7 @@ class FuzzyComposition(CompositionBase):
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError
 
-    def clamp(self):
+    def clamp_weights(self):
         self.weight.data = torch.clamp(self.weight.data, 0, 1)
 
 

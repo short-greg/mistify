@@ -135,6 +135,9 @@ class TernaryComposition(CompositionBase):
         """
         return maxmin(m, self.weight.data[None]).round()
 
+    def clamp_weights(self):
+        self.weight.data = self.weight.data.clamp(-1, 1)
+
 
 class TernaryComplement(ComplementBase):
 
