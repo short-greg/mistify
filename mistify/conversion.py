@@ -199,6 +199,7 @@ class SigmoidFuzzyConverter(FuzzyConverter):
         )
         self.eps = eps
         self._accumulator = accumulator or MaxAcc()
+        self.eps = 1e-7
 
     def fuzzify(self, x: torch.Tensor) -> torch.Tensor:
         return torch.sigmoid(
@@ -207,6 +208,7 @@ class SigmoidFuzzyConverter(FuzzyConverter):
 
     def imply(self, m: torch.Tensor) -> ValueWeight:
 
+        m = torch.clamp(m, self.eps, 1 - self.eps)
         #     # x = ln(y/(1-y))
         return ValueWeight(
             torch.logit(m) / (self.weight[None]) + self.bias[None], 
