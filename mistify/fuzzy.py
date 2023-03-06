@@ -438,22 +438,27 @@ class MinMaxLoss(MistifyLoss):
         chosen = self.set_chosen(inner_values)
         with torch.no_grad():
             dy = nn_func.relu(y - t)
+            d_inner = nn_func.relu(t - inner_values)
 
+        loss = None
         if self._default_optim.theta():
             with torch.no_grad():
                 w_target = torch.min(torch.max(w - dy, x), w)
+                w_target_2 = d_inner - w
 
             loss = (
-                self.calc_loss(w, t.detach(), inner_values < t) +
+                self.calc_loss(w, w_target_2.detach()) +
                 self.calc_loss(w, w_target.detach(), chosen) +
                 self.calc_loss(w, w_target.detach(), ~chosen, self.not_chosen_weight)
             )
         if self._default_optim.x():
             with torch.no_grad():
-                x_target = torch.min(torch.max(x - dy, w), x)
+                x_target = torch.min(x, torch.max(x - dy, t))
+                # x_target = torch.min(torch.max(x - dy, w), x)
+                w_target_2 = d_inner - x
 
             cur_loss = (
-                self.calc_loss(x, t.detach(), inner_values < t) +
+                self.calc_loss(x, w_target_2.detach()) +
                 self.calc_loss(x, x_target.detach(), chosen) +
                 self.calc_loss(x, x_target.detach(), ~chosen, self.not_chosen_weight) 
             )

@@ -110,7 +110,9 @@ def smooth_min(x: torch.Tensor, x2: torch.Tensor, a: float) -> torch.Tensor:
     return smooth_max(x, x2, -a)
 
 
-def smooth_min_on(x: torch.Tensor, dim: int, a: float, keepdim: bool=False) -> torch.Tensor:
+def smooth_min_on(
+        x: torch.Tensor, dim: int, a: float, keepdim: bool=False
+    ) -> torch.Tensor:
     """Take smooth min over specified dimension
 
     Args:
@@ -135,7 +137,7 @@ def adamax(x: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
     Returns:
         torch.Tensor: Tensor containing the maximum of x1 and x2
     """
-    q = torch.clamp(-69 / torch.log(torch.max(x, x2)), max=1000, min=-1000).detach()  
+    q = torch.clamp(-69 / torch.log(torch.min(x, x2)), max=1000, min=-1000).detach()  
     return ((x ** q + x2 ** q) / 2) ** (1 / q)
 
 
@@ -165,7 +167,7 @@ def adamax_on(x: torch.Tensor, dim: int, keepdim: bool=False) -> torch.Tensor:
     Returns:
         torch.Tensor: Result of the smooth max
     """
-    q = torch.clamp(-69 / torch.log(torch.max(x, dim=dim)[0]).detach(), max=1000, min=-1000)
+    q = torch.clamp(-69 / torch.log(torch.min(x, dim=dim)[0]).detach(), max=1000, min=-1000)
     return (torch.sum(x ** q.unsqueeze(dim), dim=dim, keepdim=keepdim) / x.size(dim)) ** (1 / q)
 
 

@@ -1,7 +1,4 @@
 # 1st party
-import typing
-import typing
-
 
 # 3rd party
 import torch
@@ -149,5 +146,4 @@ class TernaryComplement(ComplementBase):
         Returns:
             torch.Tensor: The complement of the ternary set
         """
-
         return -m
