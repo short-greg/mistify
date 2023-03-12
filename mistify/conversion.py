@@ -23,10 +23,6 @@ class ValueWeight:
 
         yield self.value
         yield self.weight
-    
-    # def __post_init__(self):
-    #     if isinstance(self.weight, FuzzySet):
-    #         self.weight = self.weight.data
 
 
 class FuzzyConverter(nn.Module):

@@ -333,7 +333,7 @@ class MaxMinLoss(MistifyLoss):
         self.not_chosen_x_weight = not_chosen_x_weight
 
     def calc_loss(self, x: torch.Tensor, t: torch.Tensor, mask: torch.BoolTensor=None, weight: torch.Tensor=None):
-        result = 0.5 * self._mse.forward(x, t)
+        result = 0.5 * (x - t) ** 2
         if mask is not None:
             result = result * mask.float()
         if weight is not None:
@@ -362,6 +362,18 @@ class MaxMinLoss(MistifyLoss):
         with torch.no_grad():
             dy = nn_func.relu(t - y)
             d_inner = nn_func.relu(inner_values - t)
+
+        # inner > t.. okay
+        # inner < t...
+        #   w > t.... max(w - dy, t)
+        #   w < t.... min(w + dy, t)
+        #   w < t
+        
+        # x is the same... 
+        # (w > t).float() * max(w - dy, t) + (w < t).float() * min(w + dy, t)
+        # torch.relu(w - dy)  
+        # sign(w - t) * max()
+        # Still need not chosen weigt
 
         loss = None
         if self._default_optim.theta():
@@ -393,6 +405,109 @@ class MaxMinLoss(MistifyLoss):
 
             cur_loss = (
                 self.calc_loss(x, w_target_2.detach()) +
+                self.calc_loss(x, x_target.detach(), chosen) +
+                self.calc_loss(x, x_target.detach(), ~chosen, self.not_chosen_x_weight) 
+            )
+            loss = cur_loss if loss is None else loss + cur_loss
+
+        return loss
+
+
+class MaxMinLoss2(MistifyLoss):
+
+    def __init__(
+        self, maxmin: MaxMin, reduction='batchmean', not_chosen_x_weight: float=1.0, not_chosen_theta_weight: float=1.0, 
+        default_optim: ToOptim=ToOptim.BOTH
+    ):
+        super().__init__(maxmin, reduction)
+        self._maxmin = maxmin
+        self._default_optim = default_optim
+        self._mse = nn.MSELoss(reduction='none')
+        self.not_chosen_theta_weight = not_chosen_theta_weight
+        self.not_chosen_x_weight = not_chosen_x_weight
+
+    def calc_loss(self, x: torch.Tensor, t: torch.Tensor, mask: torch.BoolTensor=None, weight: torch.Tensor=None):
+        result = 0.5 * (x - t) ** 2
+        if mask is not None:
+            result = result * mask.float()
+        if weight is not None:
+            result = result * weight
+        return self.reduce(result)
+    
+    def calc_inner_values(self, x: torch.Tensor, w: torch.Tensor):
+        return torch.min(x, w)
+
+    def set_chosen(self, inner_values: torch.Tensor):
+
+        val, idx = torch.max(inner_values, dim=-2, keepdim=True)
+        return inner_values == val
+        # chosen = torch.zeros(inner_values.size(), dtype=torch.bool, device=inner_values.device)
+        # chosen.scatter_(1, idx,  1.0)
+        # return chosen
+    
+    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        
+        x = x.unsqueeze(x.dim())
+        y = y[:,None]
+        t = t[:,None]
+        w = self._maxmin.weight[None]
+        inner_values = self.calc_inner_values(x, w)
+        chosen = self.set_chosen(inner_values)
+        with torch.no_grad():
+            dy = nn_func.relu(t - y)
+            d_inner = nn_func.relu(inner_values - t)
+
+        # inner > t.. okay
+        # inner < t...
+        #   w > t.... max(w - dy, t)
+        #   w < t.... min(w + dy, t)
+        #   w < t
+        
+        # x is the same... 
+        # (w > t).float() * max(w - dy, t) + (w < t).float() * min(w + dy, t)
+        # torch.relu(w - dy)  
+        # sign(w - t) * max()
+        # Still need not chosen weigt
+
+        loss = None
+        if self._default_optim.theta():
+            with torch.no_grad():
+
+                # value will not exceed the x
+                greater_than = w > t
+
+                w_target = (
+                    greater_than.float() * torch.max(w - dy, t)
+                    + (~greater_than).float() * torch.min(w + dy, t)
+                )
+                w_target_2 = w - d_inner
+
+            loss = (
+                self.calc_loss(w, w_target_2.detach()) +
+                # self.calc_loss(w, t.detach(), inner_values > t) +
+                self.calc_loss(w, w_target.detach(), chosen) +
+                self.calc_loss(w, w_target.detach(), ~chosen, self.not_chosen_theta_weight)
+            )
+        if self._default_optim.x():
+            with torch.no_grad():
+                # x_target = torch.max(torch.min(x + dy, w), x)
+                # this is wrong.. y can end up targetting a value greater than
+                # one because of this...
+                # x=0.95, w=0.1 -> y=0.75 t=0.8 ... x will end up targetting 1.0
+                # this is also a conundrum because i may want to reduce the value of
+                # x.. But the value is so high it does not get reduced
+
+                # value will not exceed the target if smaller than target
+                # if larger than target will not change
+                greater_than = x > t
+                x_target = (
+                    greater_than.float() * torch.max(x - dy, t)
+                    + (~greater_than).float() * torch.min(x + dy, t)
+                )
+                x_target_2 = x - d_inner
+
+            cur_loss = (
+                self.calc_loss(x, x_target_2.detach()) +
                 self.calc_loss(x, x_target.detach(), chosen) +
                 self.calc_loss(x, x_target.detach(), ~chosen, self.not_chosen_x_weight) 
             )
