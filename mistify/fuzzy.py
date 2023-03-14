@@ -161,6 +161,16 @@ class FuzzyComplement(ComplementBase):
         return 1 - m
 
 
+def cat_complement(m: torch.Tensor, dim: int=-1):
+    return torch.cat(
+        [m, 1 - m], dim=dim
+    )
+
+
+def complement(m: torch.Tensor):
+    return 1 - m
+
+
 class FuzzyRelation(FuzzyComposition):
 
     def __init__(
@@ -333,7 +343,7 @@ class MaxMinLoss(MistifyLoss):
         self.not_chosen_x_weight = not_chosen_x_weight
 
     def calc_loss(self, x: torch.Tensor, t: torch.Tensor, mask: torch.BoolTensor=None, weight: torch.Tensor=None):
-        result = 0.5 * (x - t) ** 2
+        result = 0.5 * ((x - t) ** 2)
         if mask is not None:
             result = result * mask.float()
         if weight is not None:
@@ -427,11 +437,12 @@ class MaxMinLoss2(MistifyLoss):
         self.not_chosen_x_weight = not_chosen_x_weight
 
     def calc_loss(self, x: torch.Tensor, t: torch.Tensor, mask: torch.BoolTensor=None, weight: torch.Tensor=None):
-        result = 0.5 * (x - t) ** 2
+        result = 0.5 * ((x - t) ** 2)
         if mask is not None:
             result = result * mask.float()
         if weight is not None:
             result = result * weight
+        
         return self.reduce(result)
     
     def calc_inner_values(self, x: torch.Tensor, w: torch.Tensor):
@@ -482,6 +493,7 @@ class MaxMinLoss2(MistifyLoss):
                 )
                 w_target_2 = w - d_inner
 
+            # print('W loss:')
             loss = (
                 self.calc_loss(w, w_target_2.detach()) +
                 # self.calc_loss(w, t.detach(), inner_values > t) +
@@ -504,14 +516,21 @@ class MaxMinLoss2(MistifyLoss):
                     greater_than.float() * torch.max(x - dy, t)
                     + (~greater_than).float() * torch.min(x + dy, t)
                 )
+                # print('Target: ', x[0, 0]) 
+                # print(t[0]) 
+                # print(y[0]) 
+                # print(x_target[0, 0])
                 x_target_2 = x - d_inner
 
+            # print('X loss:')
             cur_loss = (
                 self.calc_loss(x, x_target_2.detach()) +
                 self.calc_loss(x, x_target.detach(), chosen) +
                 self.calc_loss(x, x_target.detach(), ~chosen, self.not_chosen_x_weight) 
             )
+            # print(cur_loss.sum() / len(cur_loss))
             loss = cur_loss if loss is None else loss + cur_loss
+            # print(loss.sum() / len(loss))
 
         return loss
 
