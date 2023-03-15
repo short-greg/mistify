@@ -3,16 +3,16 @@ from abc import abstractmethod
 from enum import Enum
 
 # 3rd Party
-import torch
-import torch.nn as nn
+#import torch
+#import torch.nn as nn
 
 
 # Local
-from ..utils import reduce
-from .. import conversion
-from .. import fuzzy, binary
-import torch.nn.functional as nn_func
-import typing
+# from ..utils import reduce
+#from .. import conversion
+# from .. import fuzzy, binary
+# import torch.nn.functional as nn_func
+#import typing
 # The performance of these will be slow so I possibly
 # need to split up the calculation
 

@@ -11,5 +11,15 @@ if __name__ == '__main__':
         adaptive_max.check_if_adamax_on_is_close_to_max()
         adaptive_max.check_if_adamin_is_close_to_min()
         adaptive_max.check_if_adamin_on_is_close_to_min()
-    if sys.argv[1] == "maxmin_x":
-        fuzzy_optim2.check_if_maxmin_optimizes_theta_with_two_layers()
+    if sys.argv[1] == "union_on":
+        fuzzy_optim2.check_if_unionon_optimizes_x()
+    if sys.argv[1] == "intersect_on":
+        fuzzy_optim2.check_if_intersecton_optimizes_x()
+    if sys.argv[1] == "maxmin2":
+        fuzzy_optim2.check_if_maxmin2_optimizes_w()
+    if sys.argv[1] == "minmax2":
+        fuzzy_optim2.check_if_minmax2_optimizes_w()
+    if sys.argv[1] == "minmax2_x":
+        fuzzy_optim2.check_if_minmax2_optimizes_x()
+    # if sys.argv[1] == "maxmin_x":
+    #    fuzzy_optim2.check_if_maxmin_optimizes_theta_with_two_layers()

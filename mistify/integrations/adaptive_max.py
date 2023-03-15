@@ -1,5 +1,5 @@
 from .. import fuzzy
-from .. import utils
+# from .. import utils
 from .. import _core
 import torch
 
