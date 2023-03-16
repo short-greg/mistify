@@ -21,5 +21,13 @@ if __name__ == '__main__':
         fuzzy_optim2.check_if_minmax2_optimizes_w()
     if sys.argv[1] == "minmax2_x":
         fuzzy_optim2.check_if_minmax2_optimizes_x()
+    if sys.argv[1] == "maxmin3_w":
+        fuzzy_optim2.check_if_maxmin3_optimizes_w()
+    if sys.argv[1] == "maxmin3_x":
+        fuzzy_optim2.check_if_maxmin3_optimizes_x()
+    if sys.argv[1] == "minmax3_w":
+        fuzzy_optim2.check_if_minmax3_optimizes_w()
+    if sys.argv[1] == "minmax3_x":
+        fuzzy_optim2.check_if_minmax3_optimizes_x()
     # if sys.argv[1] == "maxmin_x":
     #    fuzzy_optim2.check_if_maxmin_optimizes_theta_with_two_layers()

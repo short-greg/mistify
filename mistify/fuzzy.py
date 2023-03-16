@@ -327,6 +327,129 @@ class UnionOnLoss(FuzzyLoss):
         )
 
 
+
+class MaxMinLoss3(FuzzyLoss):
+
+    def __init__(
+        self, maxmin: MaxMin, reduction='batchmean', not_chosen_x_weight: float=1.0, not_chosen_theta_weight: float=1.0, 
+        default_optim: ToOptim=ToOptim.BOTH
+    ):
+        super().__init__(maxmin, reduction)
+        self._maxmin = maxmin
+        self._default_optim = default_optim
+        self.not_chosen_theta_weight = not_chosen_theta_weight
+        self.not_chosen_x_weight = not_chosen_x_weight
+    
+    def calc_inner_values(self, x: torch.Tensor, w: torch.Tensor):
+        return torch.min(x, w)
+
+    def set_chosen(self, inner_values: torch.Tensor):
+
+        val, idx = torch.max(inner_values, dim=-2, keepdim=True)
+        return inner_values == val
+        # chosen = torch.zeros(inner_values.size(), dtype=torch.bool, device=inner_values.device)
+        # chosen.scatter_(1, idx,  1.0)
+        # return chosen
+    
+    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        
+        x = x.unsqueeze(x.dim())
+        y = y[:,None]
+        t = t[:,None]
+        w = self._maxmin.weight[None]
+        inner_values = self.calc_inner_values(x, w)
+        chosen = self.set_chosen(inner_values)
+        with torch.no_grad():
+            d_less = nn_func.relu(t - inner_values).min(dim=-2, keepdim=True)[0]
+            d_greater = nn_func.relu(inner_values - t)
+
+        loss = None
+        if self._default_optim.theta():
+            with torch.no_grad():
+                # greater_than = w > t
+                w_target = w + torch.sign(t - w) * d_less
+                w_target_2 = w - d_greater
+
+            # print('W loss:')
+            loss = (
+                self.calc_loss(w, w_target_2.detach()) +
+                self.calc_loss(w, w_target.detach(), chosen) +
+                self.calc_loss(w, w_target.detach(), ~chosen, self.not_chosen_theta_weight)
+            )
+        if self._default_optim.x():
+            with torch.no_grad():
+                # greater_than = x > t
+                x_target = x + torch.sign(t - x) * d_less
+                x_target_2 = x - d_greater
+
+            cur_loss = (
+                self.calc_loss(x, x_target_2.detach()) +
+                self.calc_loss(x, x_target.detach(), chosen) +
+                self.calc_loss(x, x_target.detach(), ~chosen, self.not_chosen_x_weight) 
+            )
+            loss = cur_loss if loss is None else loss + cur_loss
+
+        return loss
+
+
+class MinMaxLoss3(FuzzyLoss):
+
+    def __init__(
+        self, minmax: MinMax, reduction='batchmean', not_chosen_x_weight: float=1.0, not_chosen_theta_weight: float=1.0, 
+        default_optim: ToOptim=ToOptim.BOTH
+    ):
+        super().__init__(minmax, reduction)
+        self._minmax = minmax
+        self._default_optim = default_optim
+        self.not_chosen_theta_weight = not_chosen_theta_weight
+        self.not_chosen_x_weight = not_chosen_x_weight
+    
+    def calc_inner_values(self, x: torch.Tensor, w: torch.Tensor):
+        return torch.max(x, w)
+
+    def set_chosen(self, inner_values: torch.Tensor):
+
+        val, idx = torch.max(inner_values, dim=-2, keepdim=True)
+        return inner_values == val
+    
+    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        
+        x = x.unsqueeze(x.dim())
+        y = y[:,None]
+        t = t[:,None]
+        w = self._minmax.weight[None]
+        inner_values = self.calc_inner_values(x, w)
+        chosen = self.set_chosen(inner_values)
+        with torch.no_grad():
+            d_greater = nn_func.relu(inner_values - t).min(dim=-2, keepdim=True)[0]
+            d_inner = nn_func.relu(t - inner_values)
+
+        loss = None
+        if self._default_optim.theta():
+            with torch.no_grad():
+                w_target = w - torch.sign(w - t) * d_greater
+                w_target_2 = w + d_inner
+            
+            loss = (
+                self.calc_loss(w, w_target_2.detach()) +
+                self.calc_loss(w, w_target.detach(), chosen) +
+                self.calc_loss(w, w_target.detach(), ~chosen, self.not_chosen_theta_weight)
+            )
+        if self._default_optim.x():
+            with torch.no_grad():
+                x_target = x - torch.sign(x - t) * d_greater
+                x_target_2 = x + d_inner
+
+            cur_loss = (
+                self.calc_loss(x, x_target_2.detach()) +
+                self.calc_loss(x, x_target.detach(), chosen) +
+                self.calc_loss(x, x_target.detach(), ~chosen, self.not_chosen_x_weight) 
+            )
+            loss = cur_loss if loss is None else loss + cur_loss
+
+        return loss
+
+
 class MaxMinLoss2(FuzzyLoss):
 
     def __init__(
