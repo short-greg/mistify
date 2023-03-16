@@ -195,24 +195,25 @@ class FuzzyRelation(FuzzyComposition):
     def forward(self, m: torch.Tensor):
         return self.outer(self.inner(m, self.weight))
 
-
-class IntersectOn(nn.Module):
+class FuzzyAggregator(nn.Module):
 
     def __init__(self, dim: int, keepdim: bool=False):
         super().__init__()
         self.dim = dim
         self.keepdim = keepdim
+
+    @abstractmethod
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        pass
+
+
+class IntersectOn(FuzzyAggregator):
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         return torch.min(m, dim=self.dim, keepdim=self.keepdim)[0]
 
 
-class UnionOn(nn.Module):
-
-    def __init__(self, dim: int, keepdim: bool=False):
-        super().__init__()
-        self.dim = dim
-        self.keepdim = keepdim
+class UnionOn(FuzzyAggregator):
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         return torch.max(m, dim=self.dim, keepdim=self.keepdim)[0]
@@ -273,7 +274,15 @@ class FuzzyLoss(MistifyLoss):
         return 0.5 * self.reduce(result)
     
 
-class IntersectOnLoss(FuzzyLoss):
+
+class FuzzyAggregatorLoss(FuzzyLoss):
+    
+    @abstractmethod
+    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        pass
+
+
+class IntersectOnLoss(FuzzyAggregatorLoss):
 
     def __init__(self, intersect: IntersectOn, reduction: str='mean', not_chosen_weight: float=1.0):
         super().__init__(intersect, reduction)
@@ -300,7 +309,7 @@ class IntersectOnLoss(FuzzyLoss):
         )
 
 
-class UnionOnLoss(FuzzyLoss):
+class UnionOnLoss(FuzzyAggregatorLoss):
 
     def __init__(self, union: UnionOn, reduction: str='mean', not_chosen_weight: float=1.0):
         super().__init__(union, reduction)
