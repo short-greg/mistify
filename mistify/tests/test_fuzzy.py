@@ -112,7 +112,7 @@ class TestMaxMin(object):
     def test_clamp_clamps_weights_between_zero_and_one(self):
         maxmin = fuzzy.MaxMin(4, 2)
         maxmin.weight.data = torch.randn(maxmin.weight.data.size())
-        maxmin.clamp()
+        maxmin.clamp_weights()
         assert ((maxmin.weight.data >= 0.0) & (maxmin.weight.data <= 1.0)).all()
 
 

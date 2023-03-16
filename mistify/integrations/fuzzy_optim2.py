@@ -116,6 +116,33 @@ def check_if_maxmin3_optimizes_w():
         print(i, mse.forward(maxmin_train(x_in), t).item())
 
 
+def check_if_maxmin3_optimizes_w_with_two_dims():
+    torch.manual_seed(1)
+    maxmin = fuzzy.MaxMin(8, 4, 3)
+    maxmin.weight.data = fuzzy.rand(*maxmin.weight.data.size())
+    maxmin_train = fuzzy.MaxMin(8, 4, 3)
+    maxmin_train.weight.data = fuzzy.rand(*maxmin_train.weight.data.size())
+    x_in = fuzzy.rand(512, 3, 8)
+    t = maxmin.forward(x_in).detach()
+    dataset = data_utils.TensorDataset(x_in, t)
+    mse = torch.nn.MSELoss()
+
+    loss = fuzzy.MaxMinLoss3(maxmin_train, reduction='none', not_chosen_theta_weight=1, default_optim=ToOptim.BOTH)
+    optimizer = torch.optim.SGD(maxmin_train.parameters(), lr=1e0, weight_decay=0.0)
+
+    for i in range(1000):
+        data_loader = data_utils.DataLoader(dataset, batch_size=128, shuffle=True)
+
+        for x_i, t_i in data_loader:
+            optimizer.zero_grad()
+            y = maxmin_train.forward(x_i)
+            result = loss.forward(x_i, y, t_i).sum() / len(x_i)
+            result.backward()
+            optimizer.step()
+            # print(next(maxmin_train.parameters()).grad)
+        print(i, mse.forward(maxmin_train(x_in), t).item())
+
+
 def check_if_maxmin3_optimizes_x():
     torch.manual_seed(1)
     maxmin = fuzzy.MaxMin(8, 4)
