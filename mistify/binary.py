@@ -1,3 +1,8 @@
+"""
+Functionality for crisp binary sets where 1 is True and 0 is False
+
+"""
+
 import torch
 
 from ._core import CompositionBase, maxmin, ComplementBase,get_comp_weight_size

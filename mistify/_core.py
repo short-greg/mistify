@@ -6,6 +6,7 @@ MistifyLoss:
 Functions: Standard functions used by mistify
 CompositionBase: 
 """
+
 import torch
 import torch.nn as nn
 from abc import abstractmethod

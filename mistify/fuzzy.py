@@ -1,6 +1,8 @@
 """
-
+For Type 1 Fuzzy Sets where 0 is False, 1 is True, and a 
+number in between is partial truth
 """
+
 # 1st party
 import typing
 from abc import abstractmethod
@@ -15,25 +17,13 @@ from torch.nn import functional as nn_func
 from ._core import CompositionBase, ComplementBase, maxmin, minmax, maxprod, MistifyLoss, ToOptim, get_comp_weight_size
 
 
-def unify(m: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
-    """
-
-    Args:
-        m (torch.Tensor): 
-        m2 (torch.Tensor): 
-
-    Returns:
-        torch.Tensor: 
-    """
-    return torch.max(m, m2)
-
-
 def differ(m: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
     """
-
+    Take the difference between two fuzzy sets
+    
     Args:
-        m (torch.Tensor): 
-        m2 (torch.Tensor): 
+        m (torch.Tensor): Fuzzy set to subtract from 
+        m2 (torch.Tensor): Fuzzy set to subtract
 
     Returns:
         torch.Tensor: 
@@ -43,36 +33,78 @@ def differ(m: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
 
 def positives(*size: int, dtype=torch.float32, device='cpu') -> torch.Tensor:
     """
+    Generate a positive fuzzy set
+
     Args:
         dtype (_type_, optional): . Defaults to torch.float32.
         device (str, optional): . Defaults to 'cpu'.
 
     Returns:
-        torch.Tensor: 
+        torch.Tensor: Positive fuzzy set
     """
     return torch.ones(*size, dtype=dtype, device=device)
 
 
-def negatives(*size: int, dtype=torch.float32, device='cpu') -> torch.Tensor:
+def negatives(*size: int, dtype: torch.dtype=torch.float32, device='cpu') -> torch.Tensor:
     """
+    Generate a negative fuzzy set
 
     Args:
-        dtype (_type_, optional): . Defaults to torch.float32.
-        device (str, optional): . Defaults to 'cpu'.
+        dtype (torch.dtype, optional): The data type for the fuzzys set. Defaults to torch.float32.
+        device (str, optional): The device for the fuzzy set. Defaults to 'cpu'.
 
     Returns:
-        torch.Tensor: 
+        torch.Tensor: Negative fuzzy set
     """
     return torch.zeros(*size, dtype=dtype, device=device)
 
 
 def intersect(m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+    """intersect two fuzzy sets
+
+    Args:
+        m1 (torch.Tensor): Fuzzy set to intersect
+        m2 (torch.Tensor): Fuzzy set to intersect with
+
+    Returns:
+        torch.Tensor: Intersection of two fuzzy sets
+    """
     return torch.min(m1, m2)
 
 def intersect_on(m: torch.Tensor, dim: int=-1) -> torch.Tensor:
+    """Intersect elements of a fuzzy set on specfiied dimension
+
+    Args:
+        m (torch.Tensor): Fuzzy set to intersect
+
+    Returns:
+        torch.Tensor: Intersection of two fuzzy sets
+    """
     return torch.min(m, dim=dim)[0]
 
-def unify_on(m: torch.Tensor, dim: int=-1):
+
+def unify(m: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+    """union on two fuzzy sets
+
+    Args:
+        m (torch.Tensor):  Fuzzy set to take union of
+        m2 (torch.Tensor): Fuzzy set to take union with
+
+    Returns:
+        torch.Tensor: Union of two fuzzy sets
+    """
+    return torch.max(m, m2)
+
+
+def unify_on(m: torch.Tensor, dim: int=-1) -> torch.Tensor:
+    """Unify elements of a fuzzy set on specfiied dimension
+
+    Args:
+        m (torch.Tensor): Fuzzy set to take the union of
+
+    Returns:
+        torch.Tensor: Union of two fuzzy sets
+    """
     return torch.max(m, dim=dim)[0]
 
 def inclusion(m1: torch.Tensor, m2: torch.Tensor) -> 'torch.Tensor':
@@ -88,16 +120,22 @@ def rand(*size: int,  dtype=torch.float32, device='cpu'):
 
 
 class FuzzyComposition(CompositionBase):
+    """Base class for calculating relationship between two fuzzy sets
+    """
 
     @abstractmethod
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError
 
     def clamp_weights(self):
+        """Ensure the weights of the fuzzy set are between 0 and 1
+        """
         self.weight.data = torch.clamp(self.weight.data, 0, 1)
 
 
 class MaxMin(FuzzyComposition):
+    """OrNeuron that uses MaxMinComposition
+    """
 
     def init_weight(self, in_features: int, out_features: int, in_variables: int = None) -> torch.Tensor:
         return positives(get_comp_weight_size(in_features, out_features, in_variables))
@@ -109,6 +147,8 @@ class MaxMin(FuzzyComposition):
 
 
 class MaxProd(FuzzyComposition):
+    """Or Neuron that uses MaxProduct Composition
+    """
 
     def init_weight(self, in_features: int, out_features: int, in_variables: int = None) -> torch.Tensor:
         return positives(get_comp_weight_size(in_features, out_features, in_variables))
@@ -120,6 +160,8 @@ class MaxProd(FuzzyComposition):
 
 
 class MinMax(FuzzyComposition):
+    """And Neuron that uses the minmax operation
+    """
 
     def init_weight(self, in_features: int, out_features: int, in_variables: int = None) -> torch.Tensor:
         return negatives(get_comp_weight_size(in_features, out_features, in_variables))
@@ -131,8 +173,15 @@ class MinMax(FuzzyComposition):
 
 
 class Inner(nn.Module):
+    """
+    """
 
     def __init__(self, f: typing.Callable[[torch.Tensor, torch.Tensor], torch.Tensor]):
+        """_summary_
+
+        Args:
+            f (typing.Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): _description_
+        """
         super().__init__()
         self._f = f
     
@@ -272,7 +321,6 @@ class FuzzyLoss(MistifyLoss):
         if weight is not None:
             result = result * weight
         return 0.5 * self.reduce(result)
-    
 
 
 class FuzzyAggregatorLoss(FuzzyLoss):
@@ -334,7 +382,6 @@ class UnionOnLoss(FuzzyAggregatorLoss):
             + self.calc_loss(x, x_t.detach(), chosen & x_not_greater_than)
             + self.calc_loss(x, x_t.detach(), ~chosen & x_not_greater_than, self.not_chosen_weight)
         )
-
 
 
 class MaxMinLoss3(FuzzyLoss):

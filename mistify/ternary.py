@@ -1,3 +1,7 @@
+"""
+For crisp ternary sets where -1 is False, 0 is unknown, and 1 is true
+"""
+
 # 1st party
 
 # 3rd party
