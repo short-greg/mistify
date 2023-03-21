@@ -226,9 +226,9 @@ class SigmoidDefuzzifier(Defuzzifier):
         return self.converter.defuzzify(m)
     
     @classmethod
-    def build(cls, out_variables: int, out_terms: int, eps: float=1e-7):
+    def build(cls, out_variables: int, out_terms: int, eps: float=1e-7, accumulator: Accumulator=None):
         return SigmoidDefuzzifier(
-            SigmoidFuzzyConverter(out_variables, out_terms, eps)
+            SigmoidFuzzyConverter(out_variables, out_terms, eps, accumulator)
         )
 
 
@@ -246,13 +246,13 @@ class RangeFuzzyConverter(FuzzyConverter):
         self._accumulator = accumulator or MaxAcc()
 
     def fuzzify(self, x: torch.Tensor) -> torch.Tensor:
-        lower = lower[None]
+        lower = self.lower[None]
         upper = torch.nn.functional.softplus(self.dx[None]) + lower
         m = (upper - x[:,:,None]) / (upper - lower)
         return torch.clamp(m, 0, 1)
 
     def imply(self, m: torch.Tensor) -> ValueWeight:
-        lower = lower[None]
+        lower = self.lower[None]
         upper = torch.nn.functional.softplus(self.dx[None]) + lower
         x = upper - m * (upper - lower)
         return ValueWeight(
@@ -274,9 +274,9 @@ class RangeDefuzzifier(Defuzzifier):
         return self.converter.defuzzify(m)
     
     @classmethod
-    def build(cls, out_variables: int, out_terms: int, eps: float=1e-7):
+    def build(cls, out_variables: int, out_terms: int, accumulator: Accumulator=None):
         return RangeDefuzzifier(
-            RangeFuzzyConverter(out_variables, out_terms, eps)
+            RangeFuzzyConverter(out_variables, out_terms, accumulator)
         )
 
 
