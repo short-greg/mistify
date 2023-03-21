@@ -238,10 +238,10 @@ class RangeFuzzyConverter(FuzzyConverter):
 
         super().__init__()
         self.lower = nn.parameter.Parameter(
-            torch.randn(out_variables, out_terms)
+            torch.randn(out_variables, out_terms) * 0.01
         )
         self.dx = nn.parameter.Parameter(
-            torch.randn(out_variables, out_terms)
+            torch.randn(out_variables, out_terms) * 0.01
         )
         self._accumulator = accumulator or MaxAcc()
 
@@ -388,9 +388,11 @@ class PolygonFuzzyConverter(FuzzyConverter):
         self._n_terms = n_terms
         params = torch.linspace(0.0, 1.0, shape_pts.n_pts)
         params = params.unsqueeze(0)
-        self._params = params.repeat(n_variables, 1)
+        params = params.repeat(n_variables, 1)
         if not fixed:
-            self._params = nn.parameter.Parameter(self._params)
+            self._params = nn.parameter.Parameter(params)
+        else: 
+            self._params = params
     
     # how can i make this more flexible (?)
     def generate_params(self):
@@ -438,6 +440,7 @@ class PolygonFuzzyConverter(FuzzyConverter):
         return self.implication(*xs)
 
     def fuzzify(self, x: torch.Tensor) -> torch.Tensor:
+        print(self._params)
         return self._join(x)
 
     def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:

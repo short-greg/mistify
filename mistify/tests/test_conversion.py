@@ -167,6 +167,17 @@ class TestTriangleFuzzyConverter:
         result = converter.accumulate(value_weight)
         assert result.size() == torch.Size([3, 2])
 
+    def test_params_are_different_after_calling_fuzzify_and_optimizing(self):
+
+        converter = conversion.TriangleFuzzyConverter(1, 3)
+        fuzzy_set = converter.fuzzify(torch.rand(3, 2))
+        
+        before = torch.nn.utils.parameters_to_vector(converter.parameters())
+        optim = torch.optim.SGD(converter.parameters(), lr=1e-2)
+        torch.nn.MSELoss()(torch.rand(fuzzy_set.size(), device=fuzzy_set.device), fuzzy_set).backward()
+        optim.step()
+        after = torch.nn.utils.parameters_to_vector(converter.parameters())
+        assert (after != before).any()
 
 class TestTrapezoidFuzzyConverter:
     
