@@ -155,6 +155,7 @@ class WeightedAverageAcc(Accumulator):
             / torch.sum(value_weight.weight, dim=-1)
         )
 
+
 class StepCrispConverter(CrispConverter):
 
     def __init__(
@@ -205,15 +206,10 @@ class SigmoidFuzzyConverter(FuzzyConverter):
     def imply(self, m: torch.Tensor) -> ValueWeight:
 
         m = torch.clamp(m, self.eps, 1 - self.eps)
-        #     # x = ln(y/(1-y))
         return ValueWeight(
             torch.logit(m) / (self.weight[None]) + self.bias[None], 
             m
         )
-
-        # return ValueWeight((-torch.log(
-        #     1 / (m.data + self.eps) - 1
-        # ) / self.weight.float[] + self.bias[None]), m.data)
 
     def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
         return self._accumulator.forward(value_weight)
@@ -234,6 +230,56 @@ class SigmoidDefuzzifier(Defuzzifier):
         return SigmoidDefuzzifier(
             SigmoidFuzzyConverter(out_variables, out_terms, eps)
         )
+
+
+class RangeFuzzyConverter(FuzzyConverter):
+
+    def __init__(self, out_variables: int, out_terms: int, accumulator: Accumulator=None):
+
+        super().__init__()
+        self.lower = nn.parameter.Parameter(
+            torch.randn(out_variables, out_terms)
+        )
+        self.dx = nn.parameter.Parameter(
+            torch.randn(out_variables, out_terms)
+        )
+        self._accumulator = accumulator or MaxAcc()
+
+    def fuzzify(self, x: torch.Tensor) -> torch.Tensor:
+        lower = lower[None]
+        upper = torch.nn.functional.softplus(self.dx[None]) + lower
+        m = (upper - x[:,:,None]) / (upper - lower)
+        return torch.clamp(m, 0, 1)
+
+    def imply(self, m: torch.Tensor) -> ValueWeight:
+        lower = lower[None]
+        upper = torch.nn.functional.softplus(self.dx[None]) + lower
+        x = upper - m * (upper - lower)
+        return ValueWeight(
+            x, m
+        )
+
+    def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
+        return self._accumulator.forward(value_weight)
+
+
+class RangeDefuzzifier(Defuzzifier):
+
+    def __init__(self, converter: RangeFuzzyConverter):
+
+        super().__init__()
+        self.converter = converter
+
+    def forward(self, m: torch.Tensor):
+        return self.converter.defuzzify(m)
+    
+    @classmethod
+    def build(cls, out_variables: int, out_terms: int, eps: float=1e-7):
+        return RangeDefuzzifier(
+            RangeFuzzyConverter(out_variables, out_terms, eps)
+        )
+
+
 
 
 def get_implication(implication: typing.Union['ShapeImplication', str]):
