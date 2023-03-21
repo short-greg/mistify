@@ -387,7 +387,8 @@ class UnionOnLoss(FuzzyAggregatorLoss):
 class MaxMinLoss3(FuzzyLoss):
 
     def __init__(
-        self, maxmin: MaxMin, reduction='batchmean', not_chosen_x_weight: float=1.0, not_chosen_theta_weight: float=1.0, 
+        self, maxmin: MaxMin, reduction='batchmean', 
+        not_chosen_x_weight: float=1.0, not_chosen_theta_weight: float=1.0, 
         default_optim: ToOptim=ToOptim.BOTH
     ):
         super().__init__(maxmin, reduction)

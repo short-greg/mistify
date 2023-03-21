@@ -127,7 +127,6 @@ class ShapeParams:
         if not (0 <= idx <= mine.size(3)):
             raise ValueError(f'Argument idx must be in range of [0, {mine.size(3)}] not {idx}')
         
-        print(mine[:,:,:,:idx].shape, x.shape, mine[:,:,:,idx:].shape)
         return ShapeParams(
             torch.concat([mine[:,:,:,:idx], x, mine[:,:,:,idx:]], dim=3)
         )
@@ -419,9 +418,7 @@ class IncreasingRightTriangle(Polygon):
     
     def scale(self, m: torch.Tensor) -> 'IncreasingRightTriangle':
 
-        # print(type(m), type(self._m))
         updated_m = intersect(m, self._m)
-        # print(updated_m)
         
         return IncreasingRightTriangle(
             self._params, updated_m
@@ -483,7 +480,6 @@ class DecreasingRightTriangle(Polygon):
             updated_m, self._params.pt(0), self._params.pt(1), self._m
         )
 
-        # print('Truncate Right Triangle: ', pt.size(), updated_m.data.size(), self._params.x.size())
         params = self._params.insert(pt, 1, to_unsqueeze=True, equalize_to=updated_m)
         return DecreasingRightTrapezoid(
             params, updated_m
