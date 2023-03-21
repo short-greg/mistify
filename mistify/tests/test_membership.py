@@ -355,11 +355,22 @@ class TestTriangle(object):
 
         p = torch.rand(3, 4, 3).cumsum(2)
         x = torch.rand(2, 3)
-        right_trapezoid = membership.Triangle(
+        right_triangle = membership.Triangle(
             membership.ShapeParams(p)
         )
-        m = right_trapezoid.join(x)
+        m = right_triangle.join(x)
         assert m.data.size() == torch.Size([2, 3, 4])
+
+
+    def test_join_returns_fuzzy_set_with_correct_size_and_5_inputs(self):
+
+        p = torch.rand(5, 4, 3).cumsum(2)
+        x = torch.rand(2, 5)
+        right_triangle = membership.Triangle(
+            membership.ShapeParams(p)
+        )
+        m = right_triangle.join(x)
+        assert m.data.size() == torch.Size([2, 5, 4])
 
     def test_scale_returns_shape_with_correct_size(self):
 
