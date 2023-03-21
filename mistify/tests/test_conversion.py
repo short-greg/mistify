@@ -127,7 +127,7 @@ class TestIsoscelesFuzzyConverter:
 
 class TestTriangleFuzzyConverter:
     
-    def test_fuzzify_converts_to_binary_set(self):
+    def test_fuzzify_converts_to_fuzzy_set(self):
 
         converter = conversion.TriangleFuzzyConverter(2, 3)
         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
@@ -144,6 +144,12 @@ class TestTriangleFuzzyConverter:
         converter = conversion.TriangleFuzzyConverter(1, 3)
         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
         assert fuzzy_set.data.size() == torch.Size([3, 2, 3])
+
+    def test_fuzzify_converts_to_fuzzy_set_with_correct_size_and_four_terms(self):
+
+        converter = conversion.TriangleFuzzyConverter(3, 4)
+        fuzzy_set = converter.fuzzify(torch.rand(3, 3))
+        assert fuzzy_set.data.size() == torch.Size([3, 3, 4])
 
     def test_imply_returns_value_weight_with_correct_size(self):
 
