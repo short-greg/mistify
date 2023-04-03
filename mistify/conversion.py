@@ -196,7 +196,6 @@ class SigmoidFuzzyConverter(FuzzyConverter):
         )
         self.eps = eps
         self._accumulator = accumulator or MaxAcc()
-        self.eps = 1e-7
 
     def fuzzify(self, x: torch.Tensor) -> torch.Tensor:
         return torch.sigmoid(
@@ -409,7 +408,6 @@ class PolygonFuzzyConverter(FuzzyConverter):
         )
     
     def create_shapes(self, m: torch.Tensor=None) -> typing.Iterator[typing.Tuple[Shape, torch.Tensor]]:
-        # print(self._params.size())
         left = memb.ShapeParams(
             self._params[:,:self._shape_pts.n_side_pts].view(self._n_variables, 1, -1))
         yield self._left_cls(left), m[:,:,:1] if m is not None else None
@@ -440,7 +438,6 @@ class PolygonFuzzyConverter(FuzzyConverter):
         return self.implication(*xs)
 
     def fuzzify(self, x: torch.Tensor) -> torch.Tensor:
-        print(self._params)
         return self._join(x)
 
     def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
