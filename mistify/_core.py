@@ -11,6 +11,7 @@ import torch
 import torch.nn as nn
 from abc import abstractmethod
 from enum import Enum
+import typing
 
 
 class ToOptim(Enum):
@@ -58,6 +59,10 @@ class MistifyLoss(nn.Module):
     @abstractmethod
     def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError
+    
+    @abstractmethod
+    def factory(cls, *args, **kwargs) -> typing.Callable[[nn.Module], 'MistifyLoss']:
+        pass
 
 
 def get_comp_weight_size(in_features: int, out_features: int, in_variables: int=None):
