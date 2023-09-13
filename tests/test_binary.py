@@ -1,4 +1,4 @@
-from .. import binary
+from mistify import binary
 import torch
 
 

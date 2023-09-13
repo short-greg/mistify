@@ -1,5 +1,5 @@
 import pytest
-from .. import conversion
+from mistify import conversion
 import torch
 
 

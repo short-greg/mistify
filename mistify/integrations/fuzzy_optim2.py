@@ -118,11 +118,11 @@ def check_if_maxmin3_optimizes_w():
 
 def check_if_maxmin3_optimizes_w_with_two_dims():
     torch.manual_seed(1)
-    maxmin = fuzzy.MaxMin(8, 4, 3)
+    maxmin = fuzzy.MaxMin(32, 4, 3)
     maxmin.weight.data = fuzzy.rand(*maxmin.weight.data.size())
-    maxmin_train = fuzzy.MaxMin(8, 4, 3)
+    maxmin_train = fuzzy.MaxMin(32, 4, 3)
     maxmin_train.weight.data = fuzzy.rand(*maxmin_train.weight.data.size())
-    x_in = fuzzy.rand(512, 3, 8)
+    x_in = fuzzy.rand(2048, 3, 32)
     t = maxmin.forward(x_in).detach()
     dataset = data_utils.TensorDataset(x_in, t)
     mse = torch.nn.MSELoss()

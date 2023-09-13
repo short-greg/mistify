@@ -1,4 +1,4 @@
-from .. import fuzzy
+from mistify import fuzzy
 import torch
 
 

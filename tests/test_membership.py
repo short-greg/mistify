@@ -1,4 +1,4 @@
-from .. import membership
+from mistify import membership
 import torch
 import pytest
 

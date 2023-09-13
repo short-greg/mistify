@@ -1,4 +1,4 @@
-from .. import membership, fuzzy, conversion
+from mistify import membership, fuzzy, conversion
 import typing
 from torch import nn
 import torch
