@@ -1,3 +1,32 @@
+# 1st party
+from abc import abstractmethod
+from dataclasses import dataclass
+import typing
+
+# 3rd party
+import torch
+import torch.nn as nn
+import torch.nn.functional
+
+# local
+from . import membership as memb
+from .membership import Shape
+#"""
+# Classes for calculating the membership 
+# """
+
+from abc import abstractmethod, abstractproperty
+import typing
+import torch
+from dataclasses import dataclass
+from .utils import intersect, positives
+from ..base import (
+    check_contains, ShapeParams, calc_m_linear_decreasing, calc_area_logistic,
+    calc_area_logistic_one_side, calc_dx_logistic, calc_m_linear_increasing, calc_m_logistic,
+    calc_x_linear_decreasing, calc_x_linear_increasing, calc_x_logistic, 
+    unsqueeze
+)
+
 """
 Classes for calculating the membership 
 """
@@ -6,387 +35,24 @@ from abc import abstractmethod, abstractproperty
 import typing
 import torch
 from dataclasses import dataclass
-from .fuzzy import intersect, positives
+from .utils import intersect, positives
+from ..base import Polygon
 
 # TODO: 
 # Analyze the classes and design an approach to make
 # them easier to work with
 # Change so that it uses the FuzzySet class
 
-def resize_to(x1: torch.Tensor, x2: torch.Tensor, dim=0):
 
-    if x1.size(dim) == 1 and x2.size(dim) != 1:
-        size = [1] * x1.dim()
-        size[dim] = x2.size(dim)
-        return x1.repeat(*size)
-    elif x1.size(dim) != x2.size(dim):
-        raise ValueError()
-    return x1
-
-
-class ShapeParams:
-    """Parameters to specify the Shapes
-    """
-    
-    # batch, set, index
-    param: torch.Tensor
-
-    def __init__(self, x: torch.Tensor):
-        if x.dim() == 3:
-            x = x[None]
-        assert x.dim() == 4
-        self._x = x
-
-    def sub(self, index: typing.Union[int, typing.Tuple[int, int]]) -> 'ShapeParams':
-        """Extract a subset of the parameters
-
-        Args:
-            index (typing.Union[int, typing.Tuple[int, int]]): Index to extract with
-
-        Returns:
-            ShapeParams: Subset of the shape parameters
-        """
-        if isinstance(index, int):
-            index = slice(index, index + 1)
-        else:
-            index = slice(*index)
-        return ShapeParams(self._x[:, :, :, index])
-
-    def pt(self, index: int) -> torch.Tensor:
-        """Retrieve a given point in the shape parameters
-
-        Args:
-            index (int): The point to retrieve
-
-        Returns:
-            torch.Tensor: _description_
-        """
-
-        assert isinstance(index, int)
-        return self._x[:,:,:,index]
-
-    def sample(self, index: int) -> torch.Tensor:
-        """Retrieve one sample from the shape parameters
-
-        Args:
-            index (int): The sampel to retrieve
-
-        Returns:
-            torch.Tensor: 
-        """
-        return self._x[index]
-
-    def samples(self, indices) -> torch.Tensor:
-        """Retrieve multiple samples
-
-        Args:
-            indices (typing.Iterable[int]): The indices of the samples to retrieve
-
-        Returns:
-            torch.Tensor: The samples to retrieve
-        """
-        return self._x[indices]
-        
-    @property
-    def x(self) -> torch.Tensor:
-        """
-        Returns:
-            torch.Tensor: The data stored in the ShapeParams
-        """
-        return self._x
-
-    @property
-    def batch_size(self) -> int:
-        return self._x.size(0)
-
-    @property
-    def set_size(self) -> int:
-        return self._x.size(1)
-
-    @property
-    def n_variables(self) -> int:
-        return self._x.size(1)
-
-    @property
-    def n_terms(self) -> int:
-        return self._x.size(2)
-
-    @property
-    def n_points(self) -> int:
-        return self._x.size(3)
-
-    def contains(self, x: torch.Tensor, index1: int, index2: int) -> torch.BoolTensor:
-        return (x >= self.pt(index1)) & (x <= self.pt(index2))
-
-    def insert(self, x: torch.Tensor, idx: int, to_unsqueeze: bool=False, equalize_to: torch.Tensor=None):
-        x = x if not to_unsqueeze else unsqueeze(x)
-
-        mine = resize_to(self.x, x)
-        if equalize_to is not None:
-            mine = resize_to(mine, equalize_to, 1)
-        if not (0 <= idx <= mine.size(3)):
-            raise ValueError(f'Argument idx must be in range of [0, {mine.size(3)}] not {idx}')
-        
-        return ShapeParams(
-            torch.concat([mine[:,:,:,:idx], x, mine[:,:,:,idx:]], dim=3)
-        )
-
-    def replace(self, x: torch.Tensor, idx: int, to_unsqueeze: bool=False, equalize_to: torch.Tensor=None):
-        x = x if not to_unsqueeze else unsqueeze(x)
-        mine = resize_to(self.x, x)
-        if equalize_to is not None:
-            mine = resize_to(mine, equalize_to, 1)
-        if not (0 <= idx < self._x.size(3)):
-            raise ValueError(f'Argument idx must be in range of [0, {mine.size(3)}) not {idx}')
-        
-        return ShapeParams(
-            torch.concat([mine[:,:,:,:idx], x, mine[:,:,:,idx+1:]], dim=3)
-        )
-
-    def replace_slice(self, x: torch.Tensor, pt_range: typing.Tuple[int, int], to_unsqueeze: bool=False, equalize_to: torch.Tensor=None):
-        x = x if not to_unsqueeze else unsqueeze(x)
-        
-        mine = resize_to(self.x, x)
-        if equalize_to is not None:
-            mine = resize_to(mine, equalize_to, 1)
-        return ShapeParams(
-            torch.concat([mine[:,:,:,:pt_range[0]], x, mine[:,:,:,pt_range[1]+1:]], dim=3)
-        )
-
-    @classmethod
-    def from_sub(cls, *sub: 'ShapeParams'):
-        
-        return ShapeParams(
-            torch.cat([sub_i._x for sub_i in sub], dim=3)
-        )
-
-
-def check_contains(x: torch.Tensor, pt1: torch.Tensor, pt2: torch.Tensor):
-    
-    return (x >= pt1) & (x <= pt2)
-
+# TODO: 
+# Analyze the classes and design an approach to make
+# them easier to work with
+# Change so that it uses the FuzzySet class
 
 def calc_m_flat(x, pt1: torch.Tensor, pt2: torch.Tensor, m: torch.Tensor):
 
     return m * check_contains(x, pt1, pt2).float()
 
-
-def calc_m_linear_increasing(x: torch.Tensor, pt1: torch.Tensor, pt2: torch.Tensor, m: torch.Tensor):
-    return (x - pt1) * (m / (pt2 - pt1)) * check_contains(x, pt1, pt2).float() 
-
-
-def calc_m_linear_decreasing(x: torch.Tensor, pt1: torch.Tensor, pt2: torch.Tensor, m: torch.Tensor):
-    return ((x - pt1) * (-m / (pt2 - pt1)) + m) * check_contains(x, pt1, pt2).float()
-
-
-def calc_x_linear_increasing(m0: torch.Tensor, pt1: torch.Tensor, pt2: torch.Tensor, m: torch.Tensor):
-    # NOTE: To save on computational costs do not perform checks to see
-    # if m0 is greater than m
-
-    # TODO: use intersect function
-    m0 = torch.min(m0, m)
-    # m0 = m0.intersect(m)
-    x = m0 * (pt2 - pt1) / m + pt1
-    torch.nan_to_num_(x, 0.0, 0.0)
-    return x
-
-
-def calc_x_linear_decreasing(m0: torch.Tensor, pt1, pt2, m: torch.Tensor):
-
-    # m0 = m0.intersect(m)
-    m0 = torch.min(m0, m)
-    x = -(m0 - 1) * (pt2 - pt1) / m + pt1
-    torch.nan_to_num_(x, 0.0, 0.0)
-    return x
-
-
-def calc_m_logistic(x, b, s, m: torch.Tensor):
-
-    z = s * (x - b)
-    multiplier = 4 * m
-    y = torch.sigmoid(z)
-    return multiplier * y * (1 - y)
-
-
-def calc_x_logistic(y, b, s):
-
-    return -torch.log(1 / y - 1) / s + b
-
-
-def calc_dx_logistic(m0: torch.Tensor, s: torch.Tensor, m_base: torch.Tensor):
-    
-    m = m0 / m_base
-    dx = -torch.log((-m - 2 * torch.sqrt(1 - m) + 2) / (m)).float()
-    dx = dx / s
-    return dx
-
-
-def calc_area_logistic(s: torch.Tensor, m_base: torch.Tensor, left=True):
-    
-    return 4 * m_base / s
-
-
-def calc_area_logistic_one_side(x: torch.Tensor, b: torch.Tensor, s: torch.Tensor, m_base: torch.Tensor):
-    
-    z = s * (x - b)
-    left = (z < 0).float()
-    a = torch.sigmoid(z)
-    # only calculate area of one side so 
-    # flip the probability
-    a = left * a + (1 - left) * (1 - a)
-
-    return a * m_base * 4 / s
-
-
-def unsqueeze(x: torch.Tensor):
-    return x.unsqueeze(x.dim())
-
-
-class Shape(object):
-    """Shape to calculate membership for
-    """
-
-    def __init__(self, n_variables: int, n_terms: int):
-
-        super().__init__()
-        self._areas = None
-        self._mean_cores = None
-        self._centroids = None
-        self._n_variables = n_variables
-        self._n_terms = n_terms
-
-    @property
-    def n_terms(self):
-        return self._n_terms
-    
-    @property
-    def n_variables(self):
-        return self._n_variables
-
-    def join(self, x: torch.Tensor):
-        pass
-
-    @abstractmethod
-    def _calc_areas(self):
-        pass
-
-    @property
-    def areas(self) -> torch.Tensor:
-        if self._areas is None:
-            self._areas = self._calc_areas()
-        return self._areas
-
-    @abstractmethod
-    def _calc_mean_cores(self) -> torch.Tensor:
-        """
-        Returns:
-            torch.Tensor: The mean of the core of the shape
-        """
-        pass
-
-    @property
-    def mean_cores(self) -> torch.Tensor:
-        """
-        Returns:
-            torch.Tensor: The mean of the core of the shape
-        """
-        if self._mean_cores is None:
-            self._mean_cores = self._calc_mean_cores()
-        return self._mean_cores
-
-    @abstractmethod
-    def _calc_centroids(self) -> torch.Tensor:
-        """
-        Returns:
-            torch.Tensor: The centroid of the shape
-        """
-        pass
-
-    @abstractproperty
-    def m(self):
-        """
-        Returns:
-            torch.Tensor: 
-        """
-        pass
-
-    @property
-    def centroids(self) -> torch.Tensor:
-        """
-        Returns:
-            torch.Tensor: Centroid for the 
-        """
-        if self._centroids is None:
-            self._centroids = self._calc_centroids()
-        return self._centroids
-    
-    @abstractmethod
-    def scale(self, m: torch.Tensor) -> 'Shape':
-        """Scale the shape by a membership tensor
-
-        Args:
-            m (torch.Tensor): Membership tensor to scale by
-
-        Returns:
-            Shape: Scaled shape
-        """
-        pass
-
-    @abstractmethod
-    def truncate(self, m: torch.Tensor) -> 'Shape':
-        """Truncate the shape by a membership tensor
-
-        Args:
-            m (torch.Tensor): Membership tensor to truncate by
-
-        Returns:
-            Shape: Scaled shape
-        """
-        pass
-
-    @abstractmethod
-    def join(self, x: torch.Tensor) -> torch.Tensor:
-        """Calculate the membership of the value x
-
-        Args:
-            x (torch.Tensor): Tensor to cacluate membership for
-
-        Returns:
-            torch.Tensor: membership tensor
-        """
-        pass
-
-    def _resize_to_m(self, x: torch.Tensor, m: torch.Tensor) -> torch.Tensor:
-        """Convenience method to resize x to ahve the same batch size
-        as m
-
-        Args:
-            x (torch.Tensor): Tensor to resize batch size for
-            m (torch.Tensor): Tensor to resize based on
-
-        Returns:
-            torch.Tensor: Resized tensor
-        """
-        if x.size(0) == 1 and m.size(0) != 1:
-            return x.repeat(m.size(0), *[1] * (m.dim() - 1))
-        return x    
-
-
-class Polygon(Shape):
-
-    PT = None
-
-    def __init__(self, params: ShapeParams, m: typing.Optional[torch.Tensor]=None):
-
-        assert params.x.size(3) == self.PT, f'Number of points must be {self.PT} not {params.x.size(3)}'
-        self._params = params
-        # Change to fuzzy.positives
-        self._m = m if m is not None else torch.ones(
-            self._params.batch_size, self._params.set_size, 
-            self._params.n_terms, device=params.x.device,        
-        )
-
-        super().__init__(self._params.set_size, self._params.n_terms)
 
 
 class IncreasingRightTriangle(Polygon):
@@ -483,48 +149,6 @@ class DecreasingRightTriangle(Polygon):
         params = self._params.insert(pt, 1, to_unsqueeze=True, equalize_to=updated_m)
         return DecreasingRightTrapezoid(
             params, updated_m
-        )
-
-
-class Square(Polygon):
-
-    PT = 2
-
-    def join(self, x: torch.Tensor):
-        return (
-            (x[:,:,None] >= self._params.pt(0)) 
-            & (x[:,:,None] <= self._params.pt(1))
-        ).type_as(x) * self._m
-
-    def _calc_areas(self):
-        
-        return self._resize_to_m((
-            (self._params.pt(1) 
-            - self._params.pt(0)) * self._m
-        ), self._m)
-
-    def _calc_mean_cores(self):
-        return self._resize_to_m(1 / 2 * (
-            self._params.pt(0) + self._params.pt(1)
-        ), self._m)
-
-    def _calc_centroids(self):
-        return self._resize_to_m(1 / 2 * (
-            self._params.pt(0) + self._params.pt(1)
-        ), self._m)
-    
-    def scale(self, m: torch.Tensor) -> 'Square':
-        updated_m = intersect(m, self._m)
-        
-        return Square(
-            self._params, updated_m
-        )
-
-    def truncate(self, m: torch.Tensor) -> 'Square':
-        updated_m = intersect(m, self._m)
-
-        return Square(
-            self._params, updated_m
         )
 
 
@@ -1154,3 +778,4 @@ class DecreasingRightTrapezoid(Polygon):
         )
         params = self._params.replace(x, 1, True, updated_m)
         return DecreasingRightTrapezoid(params, updated_m)
+

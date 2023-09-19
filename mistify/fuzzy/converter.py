@@ -12,17 +12,23 @@ import torch.nn.functional
 from . import membership as memb
 from .membership import Shape
 
+# 1st party
+from abc import abstractmethod
+from dataclasses import dataclass
+import typing
 
-@dataclass
-class ValueWeight:
+# 3rd party
+import torch
+import torch.nn as nn
+import torch.nn.functional
 
-    value: torch.Tensor
-    weight: torch.Tensor
-
-    def __iter__(self) -> typing.Iterator[torch.Tensor]:
-
-        yield self.value
-        yield self.weight
+# local
+from . import membership as memb
+from .membership import Shape
+from ..base import (
+    ValueWeight, Accumulator, MaxAcc, WeightedAverageAcc, ShapeImplication, Shape,
+    ShapePoints, get_implication, stride_coordinates
+)
 
 
 class FuzzyConverter(nn.Module):
@@ -58,36 +64,6 @@ class FuzzyConverter(nn.Module):
         raise ValueError(f"Name {accumulator} cannot be created")
 
 
-class CrispConverter(nn.Module):
-    """Convert tensor to crisp set
-    """
-
-    @abstractmethod
-    def crispify(self, x: torch.Tensor) -> torch.Tensor:
-        pass
-
-    @abstractmethod
-    def imply(self, m: torch.Tensor) -> ValueWeight:
-        pass
-
-    @abstractmethod
-    def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
-        pass
-
-    def decrispify(self, m: torch.Tensor) -> torch.Tensor:
-        return self.accumulate(self.imply(m))
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.crispify(x)
-
-
-class Crispifier(nn.Module):
-
-    @abstractmethod
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        pass
-
-
 class Fuzzifier(nn.Module):
 
     @abstractmethod
@@ -108,79 +84,6 @@ class Defuzzifier(nn.Module):
     @abstractmethod
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         return self.accumulate(self.imply(m))
-
-
-class Decrispifier(nn.Module):
-
-    @abstractmethod
-    def imply(self, m: torch.Tensor) -> ValueWeight:
-        pass
-
-    @abstractmethod
-    def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
-        pass
-
-    def fowrard(self, m: torch.Tensor) -> torch.Tensor:
-        return self.accumulate(self.imply(m))
-
-
-class Accumulator(nn.Module):
-
-    @abstractmethod
-    def forward(self, value_weight: ValueWeight) -> torch.Tensor:
-        pass
-
-
-class MaxValueAcc(Accumulator):
-
-    def forward(self, value_weight: ValueWeight) -> torch.Tensor:
-
-        return torch.max(value_weight.value, dim=-1)[0]
-
-
-class MaxAcc(Accumulator):
-
-    def forward(self, value_weight: ValueWeight) -> torch.Tensor:
-
-        indices = torch.max(value_weight.weight, dim=-1, keepdim=True)[1]
-        return torch.gather(value_weight.value, -1, indices).squeeze(dim=-1)
-
-
-class WeightedAverageAcc(Accumulator):
-
-    def forward(self, value_weight: ValueWeight) -> torch.Tensor:
-
-        return (
-            torch.sum(value_weight.value * value_weight.weight, dim=-1) 
-            / torch.sum(value_weight.weight, dim=-1)
-        )
-
-
-class StepCrispConverter(CrispConverter):
-
-    def __init__(
-        self, out_variables: int, out_terms: int, 
-        accumulator: Accumulator=None
-    ):
-        super().__init__()
-
-        self.threshold = nn.parameter.Parameter(
-            torch.randn(out_variables, out_terms)
-        )
-
-        self._accumulator = accumulator or MaxValueAcc()
-
-    def crispify(self, x: torch.Tensor) -> torch.Tensor:
-        return (x[:,:,None] >= self.threshold[None]).type_as(x)
-
-    def imply(self, m: torch.Tensor) -> ValueWeight:
-        
-        return ValueWeight(
-            m * self.threshold[None], m
-        )
-
-    def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
-        return self._accumulator.forward(value_weight)
 
 
 class SigmoidFuzzyConverter(FuzzyConverter):
@@ -277,74 +180,6 @@ class RangeDefuzzifier(Defuzzifier):
         return RangeDefuzzifier(
             RangeFuzzyConverter(out_variables, out_terms, accumulator)
         )
-
-
-
-
-def get_implication(implication: typing.Union['ShapeImplication', str]):
-
-    if isinstance(implication, ShapeImplication):
-        return implication
-    if implication == 'area':
-        return AreaImplication()
-    if implication == 'mean_core':
-        return MeanCoreImplication()
-    if implication == 'centroid':
-        return CentroidImplication()
-    raise ValueError(f"Name {implication} cannot be created")
-
-
-class ShapeImplication(nn.Module):
-
-    @abstractmethod
-    def forward(self, *shapes: memb.Shape):
-        pass
-
-
-class AreaImplication(nn.Module):
-
-    def forward(self, *shapes: memb.Shape):
-        return torch.cat(
-            [shape.areas for shape in shapes], dim=2
-        )
-
-
-class MeanCoreImplication(nn.Module):
-
-    def forward(self, *shapes: memb.Shape):
-        return torch.cat(
-            [shape.mean_cores for shape in shapes], dim=2
-        )
-
-
-class CentroidImplication(nn.Module):
-
-    def forward(self, *shapes: memb.Shape):
-        return torch.cat(
-            [shape.centroids for shape in shapes], dim=2
-        )
-
-
-def get_strided_indices(n_points: int, stride: int, step: int=1):
-    initial_indices = torch.arange(0, n_points).as_strided((n_points - stride + 1, stride), (1, 1))
-    return initial_indices[torch.arange(0, len(initial_indices), step)]
-
-def stride_coordinates(coordinates: torch.Tensor, stride: int, step: int=1):
-
-    dim2_index = get_strided_indices(coordinates.size(1), stride, step)
-    return coordinates[:, dim2_index]
-
-
-@dataclass
-class ShapePoints:
-
-    n_side_pts: int
-    n_pts: int
-    n_middle_pts: int
-    n_middle_shape_pts: int
-    side_step: int
-    step: int
-    n_pts: int
 
 
 class ConverterDefuzzifier(Defuzzifier):
@@ -605,15 +440,3 @@ def fuzzy_to_binary(fuzzy: torch.Tensor, threshold: float=0.5):
 
     return (fuzzy > threshold).type_as(fuzzy)
 
-
-
-# Not sure why i have strides
-# def get_strided_indices(n_points: int, stride: int, step: int=1):
-#     initial_indices = torch.arange(0, n_points).as_strided((n_points - stride + 1, stride), (1, 1))
-#     return initial_indices[torch.arange(0, len(initial_indices), step)]
-
-
-# def stride_coordinates(coordinates: torch.Tensor, stride: int, step: int=1):
-
-#     dim2_index = get_strided_indices(coordinates.size(2), stride, step)
-#     return coordinates[:, :, dim2_index]
