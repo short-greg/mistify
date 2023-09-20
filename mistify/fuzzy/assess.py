@@ -4,7 +4,7 @@ import typing
 from torch.nn import functional as nn_func
 from torch import nn
 
-from ..base import MistifyLoss, ToOptim
+from .._base import MistifyLoss, ToOptim
 from .neurons import IntersectOn, UnionOn, MaxMin, MinMax, MaxProd
 
 

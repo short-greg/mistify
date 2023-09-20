@@ -1,4 +1,4 @@
-from mistify.integrations import fuzzy_optim, adaptive_max, fuzzy_optim2
+from integrations import fuzzy_optim, adaptive_max, fuzzy_optim2
 import sys
 
 if __name__ == '__main__':

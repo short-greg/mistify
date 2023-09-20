@@ -2,7 +2,7 @@ import pytest
 from mistify import conversion
 import torch
 from mistify import binary
-from mistify.base import ShapeParams
+from mistify import ShapeParams
 from mistify.binary import Square
 
 

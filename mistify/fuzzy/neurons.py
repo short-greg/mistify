@@ -32,7 +32,7 @@ from torch.nn import functional as nn_func
 # local
 # from ._core import CompositionBase, ComplementBase, maxmin, minmax, maxprod, MistifyLoss, ToOptim, get_comp_weight_size
 
-from ..base import ComplementBase, CompositionBase, MistifyLoss, ToOptim, get_comp_weight_size, maxprod, maxmin, minmax
+from .._base import ComplementBase, CompositionBase, MistifyLoss, ToOptim, get_comp_weight_size, maxprod, maxmin, minmax
 from .utils import positives, negatives
 
 

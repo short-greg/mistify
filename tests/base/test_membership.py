@@ -1,6 +1,7 @@
-from mistify import membership
+from mistify import _base as membership
 import torch
 import pytest
+
 
 class TestShapeParams:
 

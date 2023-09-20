@@ -1,4 +1,4 @@
-from ..base import Polygon
+from .._base import Polygon
 import torch
 from .utils import intersect
 

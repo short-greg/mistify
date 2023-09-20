@@ -25,7 +25,7 @@ import torch.nn.functional
 # local
 from . import membership as memb
 from .membership import Shape
-from ..base import (
+from .._base import (
     ValueWeight, Accumulator, MaxAcc, WeightedAverageAcc, ShapeImplication, Shape,
     ShapePoints, get_implication, stride_coordinates
 )

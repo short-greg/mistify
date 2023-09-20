@@ -5,7 +5,7 @@ Functionality for crisp binary sets where 1 is True and 0 is False
 
 import torch
 
-from ..base import CompositionBase, maxmin, ComplementBase,get_comp_weight_size
+from .._base import CompositionBase, maxmin, ComplementBase,get_comp_weight_size
 from torch import nn
 from .utils import positives
 

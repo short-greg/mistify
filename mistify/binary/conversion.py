@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.nn.functional
 
 # local
-from ..base import ValueWeight, Accumulator, MaxValueAcc
+from .._base import ValueWeight, Accumulator, MaxValueAcc
 
 
 class CrispConverter(nn.Module):

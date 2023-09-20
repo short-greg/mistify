@@ -1,7 +1,7 @@
 import pytest
 import torch
 from mistify import fuzzy
-from mistify.base import ShapeParams
+from mistify import ShapeParams
 
 
 class TestIncreasingRightTriangle(object):
