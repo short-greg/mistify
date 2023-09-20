@@ -1,4 +1,4 @@
-from mistify import membership, fuzzy, conversion
+from mistify import fuzzy
 import typing
 from torch import nn
 import torch
@@ -19,7 +19,7 @@ class TestBasicSigmoidFuzzySytem:
             """
             super().__init__()
             print(in_terms, in_features)
-            self.converter = conversion.SigmoidFuzzyConverter(in_features, in_terms)
+            self.converter = fuzzy.SigmoidFuzzyConverter(in_features, in_terms)
 
             terms = [in_terms, *hidden_terms]
             self.fuzzy_layers = nn.ModuleList()
@@ -64,7 +64,7 @@ class TestBasicSigmoidFuzzySytem2:
         def __init__(self, in_features: int, in_terms: int, hidden_variables: typing.List[int], out_features: typing.List[int]):
             super().__init__()
             print(in_terms, in_features)
-            self.converter = conversion.SigmoidFuzzyConverter(in_features, in_terms)
+            self.converter = fuzzy.SigmoidFuzzyConverter(in_features, in_terms)
 
             variables = [in_terms * in_features, *hidden_variables]
             self.fuzzy_layers = nn.ModuleList()
