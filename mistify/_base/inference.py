@@ -5,37 +5,16 @@ import torch
 import typing
 
 
+def get_comp_weight_size(in_features: int, out_features: int, in_variables: int=None):
+
+    if in_variables is None or in_variables == 0:
+        return torch.Size([in_features, out_features])
+    return torch.Size([in_variables, in_features, out_features])
+
+
 class ComplementBase(nn.Module):
     """Base complement class for calculating complement of a set
     """
-
-    def __init__(self, concatenate_dim: int=None):
-        """initializer
-
-        Args:
-            concatenate_dim (int, optional): 
-              Dim to concatenate the complement with. If None, it does not concatenate.
-              Defaults to None.
-        """
-        super().__init__()
-        self.concatenate_dim = concatenate_dim
-
-    def postprocess(self, m: torch.Tensor, m_complement: torch.Tensor) -> torch.Tensor:
-        """Postprocess the complement
-
-        Args:
-            m (torch.Tensor): The input tensor
-            m_complement (torch.Tensor): The complemented tensor
-
-        Returns:
-            torch.Tensor: The postprocessed tensor
-        """
-        if self.concatenate_dim is None:
-            return m_complement
-        
-        return torch.cat(
-            [m, m_complement], dim=self.concatenate_dim
-        )
     
     @abstractmethod
     def complement(self, m: torch.Tensor) -> torch.Tensor:
@@ -58,7 +37,28 @@ class ComplementBase(nn.Module):
         Returns:
             torch.Tensor: 
         """
-        return self.postprocess(m, self.complement(m))
+        return self.complement(m)
+
+
+
+class CatOp(nn.Module):
+    """Concatenate the output of an operation with the input
+    """
+
+    def __init__(self, operation: nn.Module, dim: int=-1):
+        """Concatenate the output of operation with the input
+
+        Args:
+            operation (nn.Module): the operation to concatenate with
+            dim (int, optional): the axis to concatenate on. Defaults to -1.
+        """
+        super().__init__()
+        self.operation = operation
+        self.dim = dim
+
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+
+        return torch.cat([m, self.operation(m)], dim=self.dim)
 
 
 class CompositionBase(nn.Module):

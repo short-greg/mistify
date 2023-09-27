@@ -83,8 +83,6 @@ class StepCrispConverter(CrispConverter):
         return self._accumulator.forward(value_weight)
 
 
-
-
 # Not sure why i have strides
 # def get_strided_indices(n_points: int, stride: int, step: int=1):
 #     initial_indices = torch.arange(0, n_points).as_strided((n_points - stride + 1, stride), (1, 1))

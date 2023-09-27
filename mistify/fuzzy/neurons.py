@@ -3,17 +3,6 @@ For Type 1 Fuzzy Sets where 0 is False, 1 is True, and a
 number in between is partial truth
 """
 
-# 1st party
-import typing
-from abc import abstractmethod
-from functools import partial
-
-# 3rd party
-import torch
-import torch.nn as nn
-from torch.nn import functional as nn_func
-
-
 """
 For Type 1 Fuzzy Sets where 0 is False, 1 is True, and a 
 number in between is partial truth
@@ -24,17 +13,27 @@ import typing
 from abc import abstractmethod
 from functools import partial
 
+# 1st party
+import typing
+from abc import abstractmethod
+from functools import partial
+
 # 3rd party
 import torch
 import torch.nn as nn
 from torch.nn import functional as nn_func
 
-# local
-# from ._core import CompositionBase, ComplementBase, maxmin, minmax, maxprod, MistifyLoss, ToOptim, get_comp_weight_size
+import torch
+import torch.nn as nn
+from torch.nn import functional as nn_func
 
+# local
 from .._base import ComplementBase, CompositionBase, MistifyLoss, ToOptim, get_comp_weight_size, maxprod, maxmin, minmax
 from .utils import positives, negatives
 
+# 3rd party
+# local
+# from ._core import CompositionBase, ComplementBase, maxmin, minmax, maxprod, MistifyLoss, ToOptim, get_comp_weight_size
 
 class FuzzyComposition(CompositionBase):
     """Base class for calculating relationship between two fuzzy sets
@@ -123,16 +122,6 @@ class FuzzyComplement(ComplementBase):
 
     def complement(self, m: torch.Tensor):
         return 1 - m
-
-
-def cat_complement(m: torch.Tensor, dim: int=-1):
-    return torch.cat(
-        [m, 1 - m], dim=dim
-    )
-
-
-def complement(m: torch.Tensor):
-    return 1 - m
 
 
 class FuzzyRelation(FuzzyComposition):

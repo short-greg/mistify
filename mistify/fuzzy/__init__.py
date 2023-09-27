@@ -2,7 +2,7 @@
 from .assess import (
     MaxMin, MaxMinLoss2, MaxMinLoss3, MaxProd, MinMax, MaxProdLoss, MinMaxLoss2, MinMaxLoss3
 )
-from .converter import (
+from .conversion import (
     ConverterDefuzzifier, Fuzzifier, FuzzyConverter, RangeFuzzyConverter, PolygonFuzzyConverter,
     SigmoidFuzzyConverter, LogisticFuzzyConverter, TriangleFuzzyConverter, IsoscelesFuzzyConverter,
     TrapezoidFuzzyConverter, SigmoidDefuzzifier

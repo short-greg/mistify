@@ -1,24 +1,21 @@
-from abc import abstractmethod
+from abc import abstractmethod, abstractclassmethod
 
 from torch import nn
 import torch
 import typing
+from functools import partial
+
 
 
 class MistifyLoss(nn.Module):
     """Loss to use in modules for Mistify
     """
 
-    def __init__(self, module: nn.Module, reduction: str='mean'):
+    def __init__(self, reduction: str='mean'):
         super().__init__()
         self.reduction = reduction
-        self._module = module
         if reduction not in ('mean', 'sum', 'batchmean', 'none'):
             raise ValueError(f"Reduction {reduction} is not a valid reduction")
-
-    @property
-    def module(self) -> nn.Module:
-        return self._module 
 
     def reduce(self, y: torch.Tensor):
 
@@ -35,6 +32,17 @@ class MistifyLoss(nn.Module):
     def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError
     
-    @abstractmethod
-    def factory(cls, *args, **kwargs) -> typing.Callable[[nn.Module], 'MistifyLoss']:
-        pass
+    @classmethod
+    def factory(cls, *args, **kwargs) -> 'MistifyLossFactory':
+        return MistifyLossFactory(cls, *args, **kwargs)
+
+
+class MistifyLossFactory(object):
+
+    def __init__(self, module_cls: typing.Type[MistifyLoss], *args, **kwargs):
+
+        self.factory = partial(module_cls, *args, **kwargs)
+
+    def __call__(self, *args, **kwargs) -> 'MistifyLoss':
+
+        return self.factory(*args, **kwargs)

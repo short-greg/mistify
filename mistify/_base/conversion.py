@@ -10,7 +10,6 @@ import torch.nn.functional
 
 # local
 from . import membership as memb
-from .membership import Shape
 
 
 # 1st party
@@ -25,7 +24,6 @@ import torch.nn.functional
 
 # local
 from . import membership as memb
-from .membership import Shape
 
 
 @dataclass
@@ -71,8 +69,14 @@ class AreaImplication(nn.Module):
 class MeanCoreImplication(nn.Module):
 
     def forward(self, *shapes: memb.Shape):
+
+        cores = []
+        for shape in shapes:
+            if shape.mean_cores is None:
+                raise ValueError('Cannot calculate mean core if None')
+            cores.append(shape.mean_cores)
         return torch.cat(
-            [shape.mean_cores for shape in shapes], dim=2
+            cores, dim=2
         )
 
 
@@ -125,5 +129,3 @@ class WeightedAverageAcc(Accumulator):
             torch.sum(value_weight.value * value_weight.weight, dim=-1) 
             / torch.sum(value_weight.weight, dim=-1)
         )
-
-

@@ -148,7 +148,6 @@ class Shape(object):
         return x    
 
 
-
 class ShapeParams:
     """Parameters to specify the Shapes
     """
@@ -301,4 +300,3 @@ class Polygon(Shape):
         )
 
         super().__init__(self._params.set_size, self._params.n_terms)
-

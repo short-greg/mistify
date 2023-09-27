@@ -299,8 +299,8 @@ class Logistic(Shape):
 
         #if params.x.dim() == 4:
         return cls(
-            ShapeParams(params.sub((0, 1))), 
-            ShapeParams(params.sub((1, 2))), m
+            params.sub((0, 1)), 
+            params.sub((1, 2)), m
         )
         # return cls(params[:,:,0], params[:,:,1], m)
 

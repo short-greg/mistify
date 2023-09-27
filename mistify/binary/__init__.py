@@ -4,7 +4,7 @@ from .conversion import (
 from .membership import (
     Square
 )
-from .neurons import (
+from .inference import (
     BinaryComplement, BinaryComposition
 )
 from .utils import (
