@@ -149,3 +149,15 @@ def maxprod(x: torch.Tensor, w: torch.Tensor, dim=-2) -> torch.Tensor:
         torch.Tensor: The relation between two tensors
     """
     return torch.max(x.unsqueeze(-1) * w[None], dim=dim)[0]
+
+
+# Not sure why i have strides
+# def get_strided_indices(n_points: int, stride: int, step: int=1):
+#     initial_indices = torch.arange(0, n_points).as_strided((n_points - stride + 1, stride), (1, 1))
+#     return initial_indices[torch.arange(0, len(initial_indices), step)]
+
+
+# def stride_coordinates(coordinates: torch.Tensor, stride: int, step: int=1):
+
+#     dim2_index = get_strided_indices(coordinates.size(2), stride, step)
+#     return coordinates[:, :, dim2_index]

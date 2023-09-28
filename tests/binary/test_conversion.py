@@ -1,5 +1,7 @@
 import pytest
-from mistify.binary import StepCrispConverter
+from mistify.binary import (
+    StepCrispConverter, ConverterCrispifier, ConverterDecrispifier
+)
 import torch
 
 
@@ -38,3 +40,33 @@ class TestStepCrispConverter:
         value_weight = converter.imply(crisp_set)
         result = converter.accumulate(value_weight)
         assert result.size() == torch.Size([3, 2])
+
+
+class TestConverterCrispifier:
+
+    def test_crispify_converts_to_binary_set(self):
+
+        converter = StepCrispConverter(1, 3)
+        crispifier = ConverterCrispifier(
+           converter
+        )
+        x = torch.rand(3, 2)
+        t = converter.crispify(x)
+        y = crispifier(x)
+        assert (y == t).all()
+
+
+class TestConverterDecrispifier:
+
+    def test_crispify_converts_to_binary_set(self):
+
+        converter = StepCrispConverter(1, 3)
+        decrispifier = ConverterDecrispifier(
+           converter
+        )
+        x = torch.rand(3, 3, 1)
+        t = converter.decrispify(x)
+        y = decrispifier(x)
+        assert (y == t).all()
+
+    

@@ -12,6 +12,27 @@ import torch.nn.functional
 from .._base import ValueWeight, Accumulator, MaxValueAcc
 
 
+class Crispifier(nn.Module):
+
+    @abstractmethod
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        pass
+
+
+class Decrispifier(nn.Module):
+
+    @abstractmethod
+    def imply(self, m: torch.Tensor) -> ValueWeight:
+        pass
+
+    @abstractmethod
+    def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
+        pass
+
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        return self.accumulate(self.imply(m))
+
+
 class CrispConverter(nn.Module):
     """Convert tensor to crisp set
     """
@@ -33,44 +54,32 @@ class CrispConverter(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.crispify(x)
+    
+    def to_crispifier(self) -> 'Crispifier':
+        return ConverterCrispifier(self)
 
-
-class Crispifier(nn.Module):
-
-    @abstractmethod
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        pass
-
-
-class Decrispifier(nn.Module):
-
-    @abstractmethod
-    def imply(self, m: torch.Tensor) -> ValueWeight:
-        pass
-
-    @abstractmethod
-    def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
-        pass
-
-    def fowrard(self, m: torch.Tensor) -> torch.Tensor:
-        return self.accumulate(self.imply(m))
+    def to_decrispifier(self) -> 'Crispifier':
+        return ConverterDecrispifier(self)
 
 
 class StepCrispConverter(CrispConverter):
 
     def __init__(
         self, out_variables: int, out_terms: int, 
-        accumulator: Accumulator=None
+        accumulator: Accumulator=None,
+        threshold_f: typing.Callable[[torch.Tensor, typing.Any], torch.Tensor]=None
     ):
         super().__init__()
 
         self.threshold = nn.parameter.Parameter(
             torch.randn(out_variables, out_terms)
         )
-
+        self._threshold_f = threshold_f
         self._accumulator = accumulator or MaxValueAcc()
 
     def crispify(self, x: torch.Tensor) -> torch.Tensor:
+        if self._threshold_f is not None:
+            return self._threshold_f(x, self.threshold)
         return (x[:,:,None] >= self.threshold[None]).type_as(x)
 
     def imply(self, m: torch.Tensor) -> ValueWeight:
@@ -83,14 +92,26 @@ class StepCrispConverter(CrispConverter):
         return self._accumulator.forward(value_weight)
 
 
-# Not sure why i have strides
-# def get_strided_indices(n_points: int, stride: int, step: int=1):
-#     initial_indices = torch.arange(0, n_points).as_strided((n_points - stride + 1, stride), (1, 1))
-#     return initial_indices[torch.arange(0, len(initial_indices), step)]
+class ConverterDecrispifier(Decrispifier):
+
+    def __init__(self, crisp_converter: CrispConverter):
+
+        super().__init__()
+        self.crisp_converter = crisp_converter
+
+    def imply(self, m: torch.Tensor) -> ValueWeight:
+        return self.crisp_converter.imply(m)
+
+    def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
+        return self.crisp_converter.accumulate(value_weight)
 
 
-# def stride_coordinates(coordinates: torch.Tensor, stride: int, step: int=1):
+class ConverterCrispifier(Crispifier):
 
-#     dim2_index = get_strided_indices(coordinates.size(2), stride, step)
-#     return coordinates[:, :, dim2_index]
+    def __init__(self, crisp_converter: CrispConverter):
 
+        super().__init__()
+        self.crisp_converter = crisp_converter
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.crisp_converter.crispify(x)

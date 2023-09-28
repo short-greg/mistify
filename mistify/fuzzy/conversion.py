@@ -198,6 +198,16 @@ class ConverterDefuzzifier(Defuzzifier):
         return self.converter.defuzzify(m)
 
 
+class ConverterFuzzifier(Fuzzifier):
+
+    def __init__(self, converter: FuzzyConverter):
+        super().__init__()
+        self.converter = converter
+
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        return self.converter.fuzzify(m)
+
+
 class PolygonFuzzyConverter(FuzzyConverter):
     """Convert 
     """

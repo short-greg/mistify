@@ -31,9 +31,6 @@ from torch.nn import functional as nn_func
 from .._base import ComplementBase, CompositionBase, MistifyLoss, ToOptim, get_comp_weight_size, maxprod, maxmin, minmax
 from .utils import positives, negatives
 
-# 3rd party
-# local
-# from ._core import CompositionBase, ComplementBase, maxmin, minmax, maxprod, MistifyLoss, ToOptim, get_comp_weight_size
 
 class FuzzyComposition(CompositionBase):
     """Base class for calculating relationship between two fuzzy sets

@@ -1,5 +1,6 @@
 from .conversion import (
-    CrispConverter, Crispifier, StepCrispConverter
+    CrispConverter, Crispifier, StepCrispConverter,
+    ConverterCrispifier, ConverterDecrispifier
 )
 from .membership import (
     Square

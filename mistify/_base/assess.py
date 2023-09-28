@@ -6,7 +6,6 @@ import typing
 from functools import partial
 
 
-
 class MistifyLoss(nn.Module):
     """Loss to use in modules for Mistify
     """

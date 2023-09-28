@@ -2,6 +2,15 @@ from mistify import binary
 import torch
 
 
+class TestBinaryComplement:
+
+    def test_binary_complement_outputs_complement(self):
+
+        complement = binary.BinaryComplement()
+        x = torch.rand(2, 3).round()
+        assert ((1 - x) == complement(x)).all()
+
+
 class TestCrispComposition(object):
     
     def test_forward_outputs_correct_size_with_no_variables(self):

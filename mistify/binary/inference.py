@@ -10,6 +10,10 @@ from torch import nn
 from .utils import positives
 
 
+# TODO:
+# I want to simplify all of this
+# I have OrNeuron and AndNeuron
+
 class BinaryComposition(CompositionBase):
 
     def init_weight(self, in_features: int, out_features: int, in_variables: int = None) -> torch.Tensor:
@@ -28,48 +32,14 @@ class BinaryComplement(ComplementBase):
         return 1 - m
 
 
-# class BinaryWeightLoss(nn.Module):
+class BinaryElse(nn.Module):
 
-#     def __init__(self, to_binary: conversion.StepCrispConverter):
-#         """initialzier
+    def __init__(self, dim: int=-1):
 
-#         Args:
-#             linear (nn.Linear): Linear layer to optimize
-#             act_inverse (Reversible): The invertable activation of the layer
-#         """
-#         self._to_binary = to_binary
+        super().__init__()
+        self.dim = dim
 
-#     def step(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
 
-#         # assessment, y, result = get_y_and_assessment(objective, x, t, result)
-#         # y = to_binary.forward(x)
-#         change = (y != t).type_as(y)
-#         if self._to_binary.same:
-#             loss = (self._to_binary.weight[None,None,:] * change) ** 2
-#         else:
-#             loss = (self._to_binary.weight[None,:,:] * change) ** 2
-
-#         # TODO: Reduce the loss
-#         return loss
-
-
-# class BinaryXLoss(nn.Module):
-
-#     def __init__(self, to_binary: conversion.StepCrispConverter):
-#         """initialzier
-
-#         Args:
-#             linear (nn.Linear): Linear layer to optimize
-#             act_inverse (Reversible): The invertable activation of the layer
-#         """
-#         self._to_binary = to_binary
-
-#     def step(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor):
-
-#         # assessment, y, result = get_y_and_assessment(objective, x, t, result)
-#         # y = to_binary.forward(x)
-#         change = (y != t).type_as(y)
-#         loss = (x[:,:,None] * change) ** 2
-
-#         # TODO: Reduce the loss
-#         return loss
+        y = x.max(dim=self.dim)[0]
+        return (1 - y)
