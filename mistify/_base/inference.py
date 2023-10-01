@@ -2,7 +2,7 @@ from abc import abstractmethod
 
 from torch import nn
 import torch
-import typing
+from ..functional import join
 
 
 def get_comp_weight_size(in_features: int, out_features: int, in_variables: int=None):
@@ -40,27 +40,6 @@ class ComplementBase(nn.Module):
         return self.complement(m)
 
 
-
-class CatOp(nn.Module):
-    """Concatenate the output of an operation with the input
-    """
-
-    def __init__(self, operation: nn.Module, dim: int=-1):
-        """Concatenate the output of operation with the input
-
-        Args:
-            operation (nn.Module): the operation to concatenate with
-            dim (int, optional): the axis to concatenate on. Defaults to -1.
-        """
-        super().__init__()
-        self.operation = operation
-        self.dim = dim
-
-    def forward(self, m: torch.Tensor) -> torch.Tensor:
-
-        return torch.cat([m, self.operation(m)], dim=self.dim)
-
-
 class CompositionBase(nn.Module):
 
     def __init__(
@@ -88,3 +67,146 @@ class CompositionBase(nn.Module):
     @abstractmethod
     def init_weight(self, in_features: int, out_features: int, in_variables: int=None) -> torch.Tensor:
         pass
+
+
+class Or(nn.Module):
+
+    @abstractmethod
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
+
+
+class OrAgg(nn.Module):
+
+    def __init__(self, dim: int=-1):
+        super().__init__()
+        self.dim = dim
+
+    @abstractmethod
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
+
+
+class And(nn.Module):
+
+    @abstractmethod
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
+
+
+class AndAgg(nn.Module):
+
+    def __init__(self, dim: int=-1):
+        super().__init__()
+        self.dim = dim
+
+    @abstractmethod
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
+
+
+class Junction(nn.Module):
+
+    @abstractmethod
+    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
+
+
+class Intersection(Junction):
+
+    @abstractmethod
+    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
+
+
+class Union(Junction):
+
+    @abstractmethod
+    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
+
+
+class JunctionOn(nn.Module):
+
+    def __init__(self, dim: int=-1):
+        super().__init__()
+        self.dim = dim
+
+    @abstractmethod
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
+
+
+class UnionOn(Junction):
+
+    @abstractmethod
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
+
+
+class IntersectionOn(Junction):
+
+    @abstractmethod
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
+
+
+class Exclusion(nn.Module):
+
+    @abstractmethod
+    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
+
+
+class Inclusion(Junction):
+
+    @abstractmethod
+    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
+
+
+class Complement(Junction):
+
+    @abstractmethod
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
+
+
+class Join(Junction):
+
+    def __init__(self, nn_module: nn.Module, dim: int=-1, unsqueeze_dim: int=None):
+        super().__init__(self)
+        self.nn_module = nn_module
+        self.dim = dim
+        self.unsqueeze_dim = unsqueeze_dim
+
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        
+        return join(m, self.nn_module, self.dim, self.unsqueeze_dim)
+
+
+class Else(nn.Module):
+
+    @abstractmethod
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
+
+
+# class CatOp(nn.Module):
+#     """Concatenate the output of an operation with the input
+#     """
+
+#     def __init__(self, operation: nn.Module, dim: int=-1):
+#         """Concatenate the output of operation with the input
+
+#         Args:
+#             operation (nn.Module): the operation to concatenate with
+#             dim (int, optional): the axis to concatenate on. Defaults to -1.
+#         """
+#         super().__init__()
+#         self.operation = operation
+#         self.dim = dim
+
+#     def forward(self, m: torch.Tensor) -> torch.Tensor:
+
+#         return torch.cat([m, self.operation(m)], dim=self.dim)

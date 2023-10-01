@@ -4,6 +4,23 @@ from torch import nn
 import torch
 import typing
 from functools import partial
+from enum import Enum
+
+
+class ToOptim(Enum):
+    """
+    Specify whehther to optimize x, theta or both
+    """
+
+    X = 'x'
+    THETA = 'theta'
+    BOTH = 'both'
+
+    def x(self) -> bool:
+        return self in (ToOptim.X, ToOptim.BOTH)
+
+    def theta(self) -> bool:
+        return self in (ToOptim.THETA, ToOptim.BOTH)
 
 
 class MistifyLoss(nn.Module):

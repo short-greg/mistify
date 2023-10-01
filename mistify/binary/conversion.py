@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.nn.functional
 
 # local
-from .._base import ValueWeight, Accumulator, MaxValueAcc
+from .._base import ValueWeight, Accumulator, MaxValueAcc, Converter
 
 
 class Crispifier(nn.Module):
@@ -33,7 +33,7 @@ class Decrispifier(nn.Module):
         return self.accumulate(self.imply(m))
 
 
-class CrispConverter(nn.Module):
+class CrispConverter(Converter):
     """Convert tensor to crisp set
     """
 
@@ -54,7 +54,10 @@ class CrispConverter(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.crispify(x)
-    
+
+    def reverse(self, m: torch.Tensor) -> torch.Tensor:
+        return self.decrispify(m)
+
     def to_crispifier(self) -> 'Crispifier':
         return ConverterCrispifier(self)
 

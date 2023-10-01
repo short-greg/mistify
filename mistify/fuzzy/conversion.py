@@ -2,22 +2,15 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 import typing
-
-# 3rd party
-import torch
-import torch.nn as nn
-import torch.nn.functional
-
-# local
-from . import membership as memb
-from .membership import Shape
-
-# 1st party
 from abc import abstractmethod
 from dataclasses import dataclass
 import typing
 
+
 # 3rd party
+import torch
+import torch.nn as nn
+import torch.nn.functional
 import torch
 import torch.nn as nn
 import torch.nn.functional
@@ -25,13 +18,15 @@ import torch.nn.functional
 # local
 from . import membership as memb
 from .membership import Shape
+from . import membership as memb
+from .membership import Shape
 from .._base import (
     ValueWeight, Accumulator, MaxAcc, WeightedAverageAcc, ShapeImplication, Shape,
-    ShapePoints, get_implication, stride_coordinates
+    ShapePoints, get_implication, stride_coordinates, Converter
 )
 
 
-class FuzzyConverter(nn.Module):
+class FuzzyConverter(Converter):
     """Convert tensor to fuzzy set
     """
 
@@ -52,6 +47,9 @@ class FuzzyConverter(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.fuzzify(x)
+    
+    def reverse(self, m: torch.Tensor) -> torch.Tensor:
+        return self.defuzzify(m)
 
     def get_accumulator(self, accumulator: typing.Union['Accumulator', str]):
 

@@ -5,15 +5,18 @@ from .assess import (
 from .conversion import (
     ValueWeight,  get_implication, ShapeImplication, AreaImplication,
     MeanCoreImplication, CentroidImplication, get_strided_indices, stride_coordinates,
-    Accumulator, MaxValueAcc, MaxAcc, WeightedAverageAcc
+    Accumulator, MaxValueAcc, MaxAcc, WeightedAverageAcc, Converter,
 )
 from .membership import (
     Shape, ShapeParams, ShapePoints, Polygon
 )
 from .inference import (
-    get_comp_weight_size, CompositionBase, ComplementBase
+    get_comp_weight_size, CompositionBase, ComplementBase,
+    Else, Join, Complement, Inclusion, Exclusion, IntersectionOn, Intersection,
+    Union, UnionOn, Junction, JunctionOn, And, AndAgg,
+    Or, OrAgg
 )
-from .utils import (
+from .functional import (
     ToOptim, unsqueeze,
     calc_area_logistic, calc_area_logistic_one_side, calc_dx_logistic, calc_m_linear_decreasing, calc_m_linear_increasing, 
     calc_m_logistic, calc_x_linear_decreasing, calc_x_linear_increasing, calc_x_logistic, resize_to, 

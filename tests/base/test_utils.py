@@ -2,7 +2,7 @@
 import torch
 import torch.nn as nn
 
-from mistify._base.utils import (
+from mistify._base.functional import (
     ToOptim, calc_m_linear_increasing,
     unsqueeze, calc_area_logistic, calc_m_linear_decreasing,
     calc_m_linear_decreasing, calc_area_logistic_one_side,

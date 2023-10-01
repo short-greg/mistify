@@ -13,7 +13,7 @@ from . import membership as memb
 
 
 # 1st party
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from dataclasses import dataclass
 import typing
 
@@ -49,6 +49,17 @@ def get_implication(implication: typing.Union['ShapeImplication', str]):
     if implication == 'centroid':
         return CentroidImplication()
     raise ValueError(f"Name {implication} cannot be created")
+
+
+class Converter(nn.Module, ABC):
+
+    @abstractmethod
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        pass
+
+    @abstractmethod
+    def reverse(self, m: torch.Tensor) -> torch.Tensor:
+        pass
 
 
 class ShapeImplication(nn.Module):
