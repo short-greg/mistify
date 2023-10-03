@@ -26,8 +26,10 @@ from .._base import (
 )
 from .. import _base as base
 from .utils import positives, negatives
-from .. import functional
+from .._base import functional
 from . import functional as fuzzy_func
+from . import generate
+from .._base.utils import weight_func
 
 
 class FuzzyComplement(Complement):
@@ -87,8 +89,8 @@ class FuzzyOr(base.Or):
             shape = (n_terms, in_features, out_features)
         else:
             shape = (in_features,  out_features)
-        self._w = nn.parameter.Parameter(fuzzy_func.positives(*shape))
-        self._wf = fuzzy_func.weight_func(wf)
+        self._weight = nn.parameter.Parameter(generate.positives(*shape))
+        self._wf = weight_func(wf)
         self._n_terms = n_terms
         self._in_features = in_features
         self._out_features = out_features
@@ -104,7 +106,7 @@ class FuzzyOr(base.Or):
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         
-        weight = self._wf(self.weight)
+        weight = self._weight(self.weight)
         return self._f(m.unsqueeze(-1), weight[None])
 
 
@@ -119,7 +121,7 @@ class FuzzyAnd(base.Or):
             shape = (n_terms, in_features, out_features)
         else:
             shape = (in_features,  out_features)
-        self._w = nn.parameter.Parameter(fuzzy_func.positives(*shape))
+        self._w = nn.parameter.Parameter(generate.negatives(*shape))
         self._wf = fuzzy_func.weight_func(wf)
         self._n_terms = n_terms
         self._in_features = in_features
@@ -140,13 +142,9 @@ class FuzzyAnd(base.Or):
 
 class FuzzyElse(base.Else):
 
-    def __init__(self, dim=-1):
-        super().__init__()
-        self.dim = dim
-
     def forward(self, m: torch.Tensor):
 
-        return torch.clamp(1 - m.sum(self.dim, keepdim=True), 0, 1)
+        return torch.clamp(1 - m.sum(self.dim, keepdim=self.keepdim), 0, 1)
 
 
 

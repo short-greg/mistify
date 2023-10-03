@@ -16,9 +16,11 @@ from .inference import (
     Union, UnionOn, Junction, JunctionOn, And, AndAgg,
     Or, OrAgg
 )
-from .functional import (
-    ToOptim, unsqueeze,
-    calc_area_logistic, calc_area_logistic_one_side, calc_dx_logistic, calc_m_linear_decreasing, calc_m_linear_increasing, 
-    calc_m_logistic, calc_x_linear_decreasing, calc_x_linear_increasing, calc_x_logistic, resize_to, 
-    check_contains, maxmin, maxprod, minmax
-)
+from . import functional
+from . import utils
+# from .functional import (
+#     ToOptim, unsqueeze,
+#     calc_area_logistic, calc_area_logistic_one_side, calc_dx_logistic, calc_m_linear_decreasing, calc_m_linear_increasing, 
+#     calc_m_logistic, calc_x_linear_decreasing, calc_x_linear_increasing, calc_x_logistic, resize_to, 
+#     check_contains, maxmin, maxprod, minmax
+# )

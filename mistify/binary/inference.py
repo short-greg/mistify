@@ -6,12 +6,12 @@ import typing
 import torch
 from torch import nn
 
-from .._base import UnionOn, IntersectionOn, Or, ComplementBase
+from .._base import UnionOn, Else, IntersectionOn, Or, Complement
 from .. import functional
 from . import functional as binary_func
 
 
-class BinaryComplement(ComplementBase):
+class BinaryComplement(Complement):
 
     def complement(self, m: torch.Tensor):
         return 1 - m
@@ -116,16 +116,11 @@ class BinaryOr(Or):
         return self._f(m.unsqueeze(-1), weight[None])
 
 
-class BinaryElse(nn.Module):
-
-    def __init__(self, dim: int=-1):
-
-        super().__init__()
-        self.dim = dim
+class BinaryElse(Else):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
-        y = x.max(dim=self.dim)[0]
+        y = x.max(dim=self.dim, keepdim=self.keepdim)[0]
         return (1 - y)
 
 

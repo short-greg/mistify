@@ -1,11 +1,6 @@
 import torch
-from ..functional import check_contains
-import typing
+from .._base.functional import check_contains
 import torch
-
-
-def unsqueeze(x: torch.Tensor):
-    return x.unsqueeze(x.dim())
 
 
 def calc_m_linear_increasing(x: torch.Tensor, pt1: torch.Tensor, pt2: torch.Tensor, m: torch.Tensor):
@@ -72,50 +67,4 @@ def calc_area_logistic_one_side(x: torch.Tensor, b: torch.Tensor, s: torch.Tenso
 
     return a * m_base * 4 / s
 
-
-def differ(m: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
-    """
-    Take the difference between two fuzzy sets
-    
-    Args:
-        m (torch.Tensor): Fuzzy set to subtract from 
-        m2 (torch.Tensor): Fuzzy set to subtract
-
-    Returns:
-        torch.Tensor: 
-    """
-    return (m - m2).clamp(0.0, 1.0)
-
-
-def rand(*size: int,  dtype=torch.float32, device='cpu'):
-
-    return (torch.rand(*size, device=device, dtype=dtype))
-
-
-def positives(*size: int, dtype=torch.float32, device='cpu') -> torch.Tensor:
-    """
-    Generate a positive fuzzy set
-
-    Args:
-        dtype (_type_, optional): . Defaults to torch.float32.
-        device (str, optional): . Defaults to 'cpu'.
-
-    Returns:
-        torch.Tensor: Positive fuzzy set
-    """
-    return torch.ones(*size, dtype=dtype, device=device)
-
-
-def negatives(*size: int, dtype: torch.dtype=torch.float32, device='cpu') -> torch.Tensor:
-    """
-    Generate a negative fuzzy set
-
-    Args:
-        dtype (torch.dtype, optional): The data type for the fuzzys set. Defaults to torch.float32.
-        device (str, optional): The device for the fuzzy set. Defaults to 'cpu'.
-
-    Returns:
-        torch.Tensor: Negative fuzzy set
-    """
-    return torch.zeros(*size, dtype=dtype, device=device)
 

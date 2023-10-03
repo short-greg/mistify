@@ -78,9 +78,3 @@ def exclusion(m1: torch.Tensor, m2: torch.Tensor, dim: int=None) -> 'torch.Tenso
     if dim is None:
         return base.type_as(m1)
     return base.min(dim=dim)[0].type_as(m1)
-
-
-def weight_func(wf: typing.Union[str, typing.Callable]) -> typing.Callable:
-    if isinstance(wf, str):
-        return torch.sigmoid if wf == "sigmoid" else torch.clamp
-    return wf

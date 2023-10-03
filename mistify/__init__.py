@@ -1,4 +1,4 @@
 from ._base import *
 from . import fuzzy
 from . import binary
-from . import ternary
+from . import signed
