@@ -22,7 +22,7 @@ from . import membership as memb
 from .membership import Shape
 from .._base import (
     ValueWeight, Accumulator, MaxAcc, WeightedAverageAcc, ShapeImplication, Shape,
-    ShapePoints, get_implication, stride_coordinates, Converter
+    ShapePoints, get_implication, stride_coordinates, Converter, ShapeParams
 )
 
 
@@ -251,12 +251,12 @@ class PolygonFuzzyConverter(FuzzyConverter):
         )
     
     def create_shapes(self, m: torch.Tensor=None) -> typing.Iterator[typing.Tuple[Shape, torch.Tensor]]:
-        left = memb.ShapeParams(
+        left = ShapeParams(
             self._params[:,:self._shape_pts.n_side_pts].view(self._n_variables, 1, -1))
         yield self._left_cls(left), m[:,:,:1] if m is not None else None
 
         if self._n_terms > 2:
-            middle = memb.ShapeParams(
+            middle = ShapeParams(
                 stride_coordinates(
                     self._params[
                         :,self._shape_pts.side_step:self._shape_pts.side_step + self._shape_pts.n_middle_pts
@@ -265,7 +265,7 @@ class PolygonFuzzyConverter(FuzzyConverter):
             ))
             yield self._middle_cls(middle), m[:,:,:-2] if m is not None else None
 
-        right = memb.ShapeParams(
+        right = ShapeParams(
             self._params[:,-self._shape_pts.n_side_pts:].view(self._n_variables, 1, -1)
         )
         yield self._right_cls(right), m[:,:,-1:] if m is not None else None
@@ -403,24 +403,24 @@ class LogisticFuzzyConverter(FuzzyConverter):
         )
     
     def create_shapes(self, m: torch.Tensor=None) -> typing.Iterator[typing.Tuple[Shape, torch.Tensor]]:
-        left_biases = memb.ShapeParams(
+        left_biases = ShapeParams(
             self._biases[:,:1].view(self._n_variables, 1, 1))
-        left_scales = memb.ShapeParams(
+        left_scales = ShapeParams(
             self._scales[:,:1].view(self._n_variables, 1, 1))
         
         yield memb.RightLogistic(left_biases, left_scales, False), m[:,:,:1] if m is not None else None
         
         if self._n_terms > 2:
-            mid_biases = memb.ShapeParams(
+            mid_biases = ShapeParams(
                 self._biases[:,1:-1].view(self._n_variables, self._n_terms - 2, 1))
-            mid_scales = memb.ShapeParams(
+            mid_scales = ShapeParams(
                 self._scales[:,1:-1].view(self._n_variables, self._n_terms - 2, 1))
             
             yield memb.LogisticBell(mid_biases, mid_scales), m[:,:,1:-1] if m is not None else None
             
-        right_biases = memb.ShapeParams(
+        right_biases = ShapeParams(
             self._biases[:,-1:].view(self._n_variables, 1, 1))
-        right_scales = memb.ShapeParams(
+        right_scales = ShapeParams(
             self._scales[:,-1:].view(self._n_variables, 1, 1))
         
         yield memb.RightLogistic(right_biases, right_scales, True), m[:,:,-1:] if m is not None else None
@@ -442,9 +442,3 @@ class LogisticFuzzyConverter(FuzzyConverter):
 
     def imply(self, m: torch.Tensor) -> ValueWeight:
         return ValueWeight(self._imply(m), m)
-
-
-def fuzzy_to_binary(fuzzy: torch.Tensor, threshold: float=0.5):
-
-    return (fuzzy > threshold).type_as(fuzzy)
-

@@ -30,7 +30,7 @@ from .generate import positives
 from .utils import (
     check_contains, ShapeParams, calc_m_linear_decreasing, calc_area_logistic,
     calc_area_logistic_one_side, calc_dx_logistic, calc_m_linear_increasing, calc_m_logistic,
-    calc_x_linear_decreasing, calc_x_linear_increasing, calc_x_logistic, 
+    calc_x_linear_decreasing, calc_x_linear_increasing, calc_x_logistic, calc_m_flat,
     unsqueeze
 )
 
@@ -48,11 +48,6 @@ Classes for calculating the membership
 # Analyze the classes and design an approach to make
 # them easier to work with
 # Change so that it uses the FuzzySet class
-
-def calc_m_flat(x, pt1: torch.Tensor, pt2: torch.Tensor, m: torch.Tensor):
-
-    return m * check_contains(x, pt1, pt2).float()
-
 
 
 class IncreasingRightTriangle(Polygon):

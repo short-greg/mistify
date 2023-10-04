@@ -19,7 +19,7 @@ from . import functional as signed_func
 from .._base.utils import weight_func
 
 
-class SignedOr(Or):
+class TernaryOr(Or):
     """Calculate the relation between two ternary sets
     """
 
@@ -46,7 +46,7 @@ class SignedOr(Or):
         return maxmin(m, weight[None])
 
 
-class SignedAnd(And):
+class TernaryAnd(And):
     """Calculate the relation between two ternary sets
     """
 
@@ -73,7 +73,7 @@ class SignedAnd(And):
         return minmax(m, weight[None])
 
 
-class SignedComplement(Complement):
+class TernaryComplement(Complement):
 
     def complement(self, m: torch.Tensor) -> torch.Tensor:
         """
@@ -86,20 +86,20 @@ class SignedComplement(Complement):
         return -m
 
 
-class SignedElse(Else):
+class TernaryElse(Else):
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         
         return -m.max(self.dim, keepdim=self.keepdim)[0]
 
 
-class SignedIntersectionOn(IntersectionOn):
+class TernaryIntersectionOn(IntersectionOn):
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         return torch.min(m, dim=self.dim, keepdim=self.keepdim)[0]
 
 
-class SignedUnionOn(UnionOn):
+class TernaryUnionOn(UnionOn):
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         return torch.max(m, dim=self.dim, keepdim=self.keepdim)

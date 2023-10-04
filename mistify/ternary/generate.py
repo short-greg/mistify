@@ -39,7 +39,7 @@ def unknowns(*size: int, dtype=torch.float32, device='cpu') -> torch.Tensor:
     return torch.zeros(*size, dtype=dtype, device=device)
 
 
-def rand(*size: int, dtype=torch.float32, device='cpu') -> torch.Tensor:
+def rand(*size: int, positive_p: float=0.5, unknown_p: float=0.0, dtype=torch.float32, device='cpu') -> torch.Tensor:
     """
     Args:
         dtype (_type_, optional): . Defaults to torch.float32.
@@ -49,17 +49,13 @@ def rand(*size: int, dtype=torch.float32, device='cpu') -> torch.Tensor:
         torch.Tensor: Random value
     """
 
-    return torch.randn(*size, device=device, dtype=dtype).sign()
+    y = torch.rand(*size, device=device, dtype=dtype)
+    if positive_p != 0.5:
+        offset = positive_p - 0.5
+        y = torch.sign(y - offset)
+    else:
+        y = torch.sign(y)
+    if unknown_p != 0.0:
+        return y * (torch.rand(*size, device, dtype=dtype) <= unknown_p).type_as(y)
+    return y
 
-
-def forget(m: torch.Tensor, p: float) -> torch.Tensor:
-    """Randomly forget values (this will make them unknown)
-
-    Args:
-        m (torch.Tensor): the membership matrix
-        p (float): the probability of forgetting
-
-    Returns:
-        torch.Tensor: the tensor with randomly forgotten values
-    """
-    return m * (torch.rand_like(m) < p).type_as(m)

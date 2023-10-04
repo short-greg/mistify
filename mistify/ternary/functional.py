@@ -66,3 +66,16 @@ def exclusion(m1: torch.Tensor, m2: torch.Tensor, dim: int=None) -> 'torch.Tenso
 
 def complement(m: torch.Tensor) -> torch.Tensor:
     return -m
+
+
+def forget(m: torch.Tensor, p: float) -> torch.Tensor:
+    """Randomly forget values (this will make them unknown)
+
+    Args:
+        m (torch.Tensor): the membership matrix
+        p (float): the probability of forgetting
+
+    Returns:
+        torch.Tensor: the tensor with randomly forgotten values
+    """
+    return m * (torch.rand_like(m) < p).type_as(m)

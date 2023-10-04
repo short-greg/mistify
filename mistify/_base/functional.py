@@ -51,6 +51,34 @@ def maxmin(x: torch.Tensor, w: torch.Tensor, dim=-2) -> torch.Tensor:
     return torch.max(torch.min(x.unsqueeze(-1), w[None]), dim=dim)[0]
 
 
+def ada_maxmin(x: torch.Tensor, w: torch.Tensor, dim=-2) -> torch.Tensor:
+    """Take max min between two tensors to compute the relation
+
+    Args:
+        x (torch.Tensor): Input tensor
+        w (torch.Tensor): Weight tensor to calculate relation of
+        dim (int, optional): Dimension to aggregate. Defaults to -2.
+
+    Returns:
+        torch.Tensor: The relation between two tensors
+    """
+    return adamax_on(adamin(x.unsqueeze(-1), w[None]), dim=dim)
+
+
+def ada_minmax(x: torch.Tensor, w: torch.Tensor, dim=-2) -> torch.Tensor:
+    """Take max min between two tensors to compute the relation
+
+    Args:
+        x (torch.Tensor): Input tensor
+        w (torch.Tensor): Weight tensor to calculate relation of
+        dim (int, optional): Dimension to aggregate. Defaults to -2.
+
+    Returns:
+        torch.Tensor: The relation between two tensors
+    """
+    return adamin_on(adamax(x.unsqueeze(-1), w[None]), dim=dim)
+
+
 def minmax(x: torch.Tensor, w: torch.Tensor, dim=-2) -> torch.Tensor:
     """Take min max between two tensors to compute the relation
 
