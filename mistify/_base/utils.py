@@ -17,7 +17,6 @@ def weight_func(wf: typing.Union[str, typing.Callable]) -> typing.Callable:
 
         raise ValueError(f'Invalid weight function {wf}')
 
-
     return wf
 
 
