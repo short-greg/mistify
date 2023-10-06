@@ -6,9 +6,11 @@ from .membership import (
     Square
 )
 from .inference import (
-    BinaryComplement, BinaryComposition
+    BinaryAnd, BinaryComplement, BinaryElse, BinaryIntersectionOn,
+    BinaryOr, BinaryUnionOn, binary_func
 )
-from .utils import (
-    rand, negatives, positives, differ, unify,
-    intersect, inclusion, exclusion
+from .generate import (
+    rand, positives, negatives
 )
+from . import functional
+from . import utils

@@ -38,32 +38,32 @@ class TestFuzzySet(object):
         torch.manual_seed(1)
         c1 = fuzzy.rand(2, 3, 2, 4)
         c2 = fuzzy.rand(2, 3, 2, 4)
-        c3 = fuzzy.intersect(c1, c2)
+        c3 = fuzzy.functional.intersect(c1, c2)
         assert (c3 <= c2).all()
 
     def test_intersect_is_included_in_the_tensor(self):
         
         c1 = fuzzy.rand(2, 3, 2, 4)
         c2 = fuzzy.rand(2, 3, 2, 4) * c1
-        assert (fuzzy.inclusion(c1, c2) == 1).all()
+        assert (fuzzy.functional.inclusion(c1, c2) == 1).all()
 
     def test_union_is_excluded_in_the_tensor(self):
         
         c1 = fuzzy.rand(2, 3, 2, 4)
         c2 = fuzzy.rand(2, 3, 2, 4) + c1
-        assert (fuzzy.exclusion(c1, c2).data == 1).all()
+        assert (fuzzy.functional.exclusion(c1, c2).data == 1).all()
     
     def test_differ_is_greater_than_zero_for_all(self):
         
         c1 = fuzzy.rand(2, 3, 2, 4)
         c2 = fuzzy.rand(2, 3, 2, 4)
-        assert ((fuzzy.differ(c1, c2)).data >= 0.0).all()
+        assert ((fuzzy.functional.differ(c1, c2)).data >= 0.0).all()
 
     def test_differ_is_included_in_tensor(self):
         
         c1 = fuzzy.rand(2, 3, 2, 4)
         c2 = fuzzy.rand(2, 3, 2, 4)
-        assert (fuzzy.inclusion(c1, fuzzy.differ(c1, c2)).data == 1.0).all()
+        assert (fuzzy.functional.inclusion(c1, fuzzy.functional.differ(c1, c2)).data == 1.0).all()
 
     def test_transpose_tranposes_dimensions_correctly(self):
         
@@ -75,7 +75,7 @@ class TestFuzzySet(object):
         torch.manual_seed(1)
         c1 = fuzzy.rand(2, 3, 2, 4)
         c2 = fuzzy.rand(2, 3, 2, 4)
-        c3 = fuzzy.unify(c1, c2)
+        c3 = fuzzy.functional.unify(c1, c2)
         assert (c3.data >= c2.data).all()
     
     def test_rand_with_batch_and_variables_is_between_one_and_zero(self):

@@ -1,6 +1,6 @@
 from .._base import Polygon
 import torch
-from .utils import intersect
+from .functional import intersect
 
 
 class Square(Polygon):

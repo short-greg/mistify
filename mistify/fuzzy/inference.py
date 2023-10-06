@@ -11,13 +11,10 @@ number in between is partial truth
 # 1st party
 import typing
 from abc import abstractmethod
-from functools import partial
-from enum import Enum
 
 # 3rd party
 import torch
 import torch.nn as nn
-from torch.nn import functional as nn_func
 
 
 # local
@@ -25,11 +22,10 @@ from .._base import (
     UnionOn, IntersectionOn, Complement
 )
 from .. import _base as base
-from .utils import positives, negatives
 from .._base import functional
 from . import functional as fuzzy_func
 from . import generate
-from .._base.utils import weight_func
+from .._base.utils import weight_func, unsqueeze
 
 
 class FuzzyComplement(Complement):
@@ -45,7 +41,7 @@ class FuzzyIntersectionOn(IntersectionOn):
         if f == 'min':
             self._f = functional.min_on
         elif f == 'min_ada':
-            self._f = functional.min_ada_on
+            self._f = functional.smooth_min_on
         elif f == 'prod':
             self._f = functional.prod_on
         elif isinstance(f, typing.Callable):
@@ -66,7 +62,7 @@ class FuzzyUnionOn(UnionOn):
         if f == 'max':
             self._f = functional.max_on
         elif f == 'max_ada':
-            self._f = functional.max_ada_on
+            self._f = functional.smooth_max_on
         elif isinstance(f, typing.Callable):
             self._f = f
         else:
@@ -85,11 +81,12 @@ class FuzzyOr(base.Or):
         f: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="maxmin",
         wf: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="clamp"
     ):
+        super().__init__()
         if n_terms is not None:
             shape = (n_terms, in_features, out_features)
         else:
             shape = (in_features,  out_features)
-        self._weight = nn.parameter.Parameter(generate.positives(*shape))
+        self.weight = nn.parameter.Parameter(generate.positives(*shape))
         self._wf = weight_func(wf)
         self._n_terms = n_terms
         self._in_features = in_features
@@ -100,14 +97,14 @@ class FuzzyOr(base.Or):
         elif f == "maxprod":
             self._f = functional.maxprod
         elif f == "maxmin_ada":
-            self._f = functional.maxmin_ada
+            self._f = functional.ada_minmax
         else:
             self._f = f
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         
-        weight = self._weight(self.weight)
-        return self._f(m.unsqueeze(-1), weight[None])
+        weight = self._wf(self.weight)
+        return self._f(m, weight)
 
 
 class FuzzyAnd(base.Or):
@@ -117,27 +114,28 @@ class FuzzyAnd(base.Or):
         f: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="minmax",
         wf: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="clamp"
     ):
+        super().__init__()
         if n_terms is not None:
             shape = (n_terms, in_features, out_features)
         else:
             shape = (in_features,  out_features)
-        self._w = nn.parameter.Parameter(generate.negatives(*shape))
-        self._wf = fuzzy_func.weight_func(wf)
+        self.weight = nn.parameter.Parameter(generate.negatives(*shape))
+        self._wf = weight_func(wf)
         self._n_terms = n_terms
         self._in_features = in_features
         self._out_features = out_features
     
         if f == "minmax":
-            self._f = functional.maxmin
+            self._f = functional.minmax
         elif f == "minmax_ada":
-            self._f = functional.maxmin_ada
+            self._f = functional.ada_minmax
         else:
             self._f = f
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         
         weight = self._wf(self.weight)
-        return self._f(m.unsqueeze(-1), weight[None])
+        return self._f(m, weight)
 
 
 class FuzzyElse(base.Else):

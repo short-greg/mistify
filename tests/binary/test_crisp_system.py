@@ -5,6 +5,8 @@ from mistify import fuzzy
 import typing
 
 
+# TODO: Fix bugs
+
 class TestBasicCrispSystem2:
 
     class BasicCrispSystem(nn.Module):
@@ -17,7 +19,7 @@ class TestBasicCrispSystem2:
             variables = [in_terms * in_features, *hidden_variables]
             self.fuzzy_layers = nn.ModuleList()
             for in_i, out_i in zip(variables[:-1], variables[1:]):
-                self.fuzzy_layers.append(fuzzy.MaxMin(in_i, out_i))
+                self.fuzzy_layers.append(fuzzy.FuzzyOr(in_i, out_i))
             self.implication = nn.Sequential(*self.fuzzy_layers)
             self._out_features = out_features
             self.out_converter = binary.StepCrispConverter(out_features, hidden_variables[-1] // out_features)

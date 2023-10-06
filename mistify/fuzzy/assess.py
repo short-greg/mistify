@@ -5,7 +5,7 @@ from torch.nn import functional as nn_func
 from torch import nn
 
 from .._base import MistifyLoss, ToOptim
-from .inference import IntersectOn, UnionOn, MaxMin, MinMax, MaxProd
+from .inference import IntersectionOn, UnionOn, FuzzyOr, FuzzyAnd
 
 
 class FuzzyLoss(MistifyLoss):
@@ -27,9 +27,9 @@ class FuzzyAggregatorLoss(FuzzyLoss):
         pass
 
 
-class IntersectOnLoss(FuzzyAggregatorLoss):
+class IntersectionOnLoss(FuzzyAggregatorLoss):
 
-    def __init__(self, intersect: IntersectOn, reduction: str='mean', not_chosen_weight: float=1.0):
+    def __init__(self, intersect: IntersectionOn, reduction: str='mean', not_chosen_weight: float=1.0):
         super().__init__(intersect, reduction)
         self.intersect = intersect
         self.not_chosen_weight = not_chosen_weight
@@ -54,9 +54,9 @@ class IntersectOnLoss(FuzzyAggregatorLoss):
         )
 
     @classmethod
-    def factory(cls, reduction: str, not_chosen_weight: float=0.1) -> typing.Callable[[nn.Module], 'IntersectOnLoss']:
-        def _(intersect_on: IntersectOn):
-            return IntersectOnLoss(
+    def factory(cls, reduction: str, not_chosen_weight: float=0.1) -> typing.Callable[[nn.Module], 'IntersectionOnLoss']:
+        def _(intersect_on: IntersectionOn):
+            return IntersectionOnLoss(
                 intersect_on, reduction, not_chosen_weight
             )
         return _
@@ -89,7 +89,7 @@ class UnionOnLoss(FuzzyAggregatorLoss):
         )
 
     @classmethod
-    def factory(cls, reduction: str, not_chosen_weight: float=0.1) -> typing.Callable[[nn.Module], 'IntersectOnLoss']:
+    def factory(cls, reduction: str, not_chosen_weight: float=0.1) -> typing.Callable[[nn.Module], 'IntersectionOnLoss']:
         def _(union_on: UnionOn):
             return UnionOnLoss(
                 union_on, reduction, not_chosen_weight
@@ -100,7 +100,7 @@ class UnionOnLoss(FuzzyAggregatorLoss):
 class MaxMinLoss3(FuzzyLoss):
 
     def __init__(
-        self, maxmin: MaxMin, reduction='batchmean', 
+        self, maxmin: FuzzyOr, reduction='batchmean', 
         not_chosen_x_weight: float=1.0, not_chosen_theta_weight: float=1.0, 
         default_optim: ToOptim=ToOptim.BOTH
     ):
@@ -166,8 +166,8 @@ class MaxMinLoss3(FuzzyLoss):
     def factory(
         cls, reduction: str, not_chosen_x_weight: float=0.1,
         not_chosen_theta_weight: float=0.1, default_optim: ToOptim=ToOptim.BOTH
-    ) -> typing.Callable[[MaxMin], 'MaxMinLoss3']:
-        def _(maxmin: MaxMin):
+    ) -> typing.Callable[[FuzzyOr], 'MaxMinLoss3']:
+        def _(maxmin: FuzzyOr):
             return MaxMinLoss3(
                 maxmin, reduction, not_chosen_x_weight,
                 not_chosen_theta_weight, default_optim
@@ -178,7 +178,7 @@ class MaxMinLoss3(FuzzyLoss):
 class MinMaxLoss3(FuzzyLoss):
 
     def __init__(
-        self, minmax: MinMax, reduction='batchmean', not_chosen_x_weight: float=1.0, not_chosen_theta_weight: float=1.0, 
+        self, minmax: FuzzyAnd, reduction='batchmean', not_chosen_x_weight: float=1.0, not_chosen_theta_weight: float=1.0, 
         default_optim: ToOptim=ToOptim.BOTH
     ):
         super().__init__(minmax, reduction)
@@ -236,8 +236,8 @@ class MinMaxLoss3(FuzzyLoss):
     def factory(
         cls, reduction: str, not_chosen_x_weight: float=0.1,
         not_chosen_theta_weight: float=0.1, default_optim: ToOptim=ToOptim.BOTH
-    ) -> typing.Callable[[MaxMin], 'MinMaxLoss3']:
-        def _(minmax: MinMax):
+    ) -> typing.Callable[[FuzzyOr], 'MinMaxLoss3']:
+        def _(minmax: FuzzyOr):
             return MinMaxLoss3(
                 minmax, reduction, not_chosen_x_weight,
                 not_chosen_theta_weight, default_optim
@@ -248,7 +248,7 @@ class MinMaxLoss3(FuzzyLoss):
 class MaxMinLoss2(FuzzyLoss):
 
     def __init__(
-        self, maxmin: MaxMin, reduction='batchmean', not_chosen_x_weight: float=1.0, not_chosen_theta_weight: float=1.0, 
+        self, maxmin: FuzzyOr, reduction='batchmean', not_chosen_x_weight: float=1.0, not_chosen_theta_weight: float=1.0, 
         default_optim: ToOptim=ToOptim.BOTH
     ):
         super().__init__(maxmin, reduction)
@@ -350,8 +350,8 @@ class MaxMinLoss2(FuzzyLoss):
     def factory(
         cls, reduction: str, not_chosen_x_weight: float=0.1,
         not_chosen_theta_weight: float=0.1, default_optim: ToOptim=ToOptim.BOTH
-    ) -> typing.Callable[[MaxMin], 'MaxMinLoss2']:
-        def _(maxmin: MaxMin):
+    ) -> typing.Callable[[FuzzyOr], 'MaxMinLoss2']:
+        def _(maxmin: FuzzyOr):
             return MaxMinLoss2(
                 maxmin, reduction, not_chosen_x_weight,
                 not_chosen_theta_weight, default_optim
@@ -362,7 +362,7 @@ class MaxMinLoss2(FuzzyLoss):
 class MinMaxLoss2(FuzzyLoss):
 
     def __init__(
-        self, minmax: MinMax, reduction='batchmean', not_chosen_x_weight: float=1.0, not_chosen_theta_weight: float=1.0, 
+        self, minmax: FuzzyAnd, reduction='batchmean', not_chosen_x_weight: float=1.0, not_chosen_theta_weight: float=1.0, 
         default_optim: ToOptim=ToOptim.BOTH
     ):
         super().__init__(minmax, reduction)
@@ -432,8 +432,8 @@ class MinMaxLoss2(FuzzyLoss):
     def factory(
         cls, reduction: str, not_chosen_x_weight: float=0.1,
         not_chosen_theta_weight: float=0.1, default_optim: ToOptim=ToOptim.BOTH
-    ) -> typing.Callable[[MaxMin], 'MinMaxLoss2']:
-        def _(minmax: MinMax):
+    ) -> typing.Callable[[FuzzyAnd], 'MinMaxLoss2']:
+        def _(minmax: FuzzyAnd):
             return MinMaxLoss2(
                 minmax, reduction, not_chosen_x_weight,
                 not_chosen_theta_weight, default_optim
@@ -443,7 +443,7 @@ class MinMaxLoss2(FuzzyLoss):
 
 class MaxProdLoss(FuzzyLoss):
 
-    def __init__(self, maxprod: MaxProd, reduction='batchmean', not_chosen_weight: float=None, default_optim: ToOptim=ToOptim.BOTH):
+    def __init__(self, maxprod: FuzzyOr, reduction='batchmean', not_chosen_weight: float=None, default_optim: ToOptim=ToOptim.BOTH):
         super().__init__(maxprod, reduction)
         self._maxprod = maxprod
         self.reduction = reduction
@@ -499,8 +499,8 @@ class MaxProdLoss(FuzzyLoss):
     def factory(
         cls, reduction: str, not_chosen_weight: float=0.1,
         default_optim: ToOptim=ToOptim.BOTH
-    ) -> typing.Callable[[MaxProd], 'MaxProdLoss']:
-        def _(maxmin: MaxProd):
+    ) -> typing.Callable[[FuzzyOr], 'MaxProdLoss']:
+        def _(maxmin: FuzzyOr):
             return MaxProdLoss(
                 maxmin, reduction, not_chosen_weight,
                 default_optim

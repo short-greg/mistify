@@ -24,7 +24,7 @@ class TestBasicSigmoidFuzzySytem:
             terms = [in_terms, *hidden_terms]
             self.fuzzy_layers = nn.ModuleList()
             for in_i, out_i in zip(terms[:-1], terms[1:]):
-                self.fuzzy_layers.append(fuzzy.MaxMin(in_i, out_i, in_variables=in_features))
+                self.fuzzy_layers.append(fuzzy.FuzzyOr(in_i, out_i, n_terms=in_features))
             self.implication = nn.Sequential(*self.fuzzy_layers)
             self.out_converter = fuzzy.SigmoidFuzzyConverter(in_features, hidden_terms[-1])
             self.defuzzifier = fuzzy.SigmoidDefuzzifier(self.out_converter)
@@ -69,7 +69,7 @@ class TestBasicSigmoidFuzzySytem2:
             variables = [in_terms * in_features, *hidden_variables]
             self.fuzzy_layers = nn.ModuleList()
             for in_i, out_i in zip(variables[:-1], variables[1:]):
-                self.fuzzy_layers.append(fuzzy.MaxMin(in_i, out_i))
+                self.fuzzy_layers.append(fuzzy.FuzzyOr(in_i, out_i))
             self.implication = nn.Sequential(*self.fuzzy_layers)
             self._out_features = out_features
             self.out_converter = fuzzy.SigmoidFuzzyConverter(out_features, hidden_variables[-1] // out_features)
@@ -117,7 +117,7 @@ class TestBasicTriangularFuzzySytem:
             variables = [in_terms * in_features, *hidden_variables]
             self.fuzzy_layers = nn.ModuleList()
             for in_i, out_i in zip(variables[:-1], variables[1:]):
-                self.fuzzy_layers.append(fuzzy.MaxMin(in_i, out_i))
+                self.fuzzy_layers.append(fuzzy.FuzzyOr(in_i, out_i))
             self.implication = nn.Sequential(*self.fuzzy_layers)
             self._out_features = out_features
             self.out_converter = fuzzy.TriangleFuzzyConverter(out_features, hidden_variables[-1] // out_features)

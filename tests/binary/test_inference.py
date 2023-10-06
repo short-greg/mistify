@@ -14,13 +14,13 @@ class TestBinaryComplement:
 class TestCrispComposition(object):
     
     def test_forward_outputs_correct_size_with_no_variables(self):
-        composition = binary.BinaryComposition(2, 4)
+        composition = binary.BinaryOr(2, 4)
         crisp_set = binary.rand(4, 2)
         assert composition.forward(crisp_set).size() == torch.Size([4, 4])
     
 
     def test_forward_outputs_correct_size_with_multiple_variablse(self):
-        composition = binary.BinaryComposition(2, 4, in_variables=2)
+        composition = binary.BinaryOr(2, 4, n_terms=2)
         crisp_set = binary.rand(4, 2, 2)
         assert composition.forward(crisp_set).size() == torch.Size([4, 2, 4])
 

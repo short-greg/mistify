@@ -12,7 +12,6 @@ from abc import abstractmethod, abstractproperty
 import typing
 import torch
 from dataclasses import dataclass
-from .utils import intersect, positives
 from .._base import Polygon
 
 # local
@@ -28,11 +27,13 @@ from dataclasses import dataclass
 from .functional import intersect
 from .generate import positives
 from .utils import (
-    check_contains, ShapeParams, calc_m_linear_decreasing, calc_area_logistic,
+    check_contains, calc_m_linear_decreasing, calc_area_logistic,
     calc_area_logistic_one_side, calc_dx_logistic, calc_m_linear_increasing, calc_m_logistic,
     calc_x_linear_decreasing, calc_x_linear_increasing, calc_x_logistic, calc_m_flat,
-    unsqueeze
 )
+from .._base import ShapeParams
+
+from .._base.utils import unsqueeze
 
 """
 Classes for calculating the membership 

@@ -1,20 +1,19 @@
 #noqa
 from .assess import (
-    MistifyLoss
+    MistifyLoss, ToOptim, MistifyLossFactory
 )
 from .conversion import (
     ValueWeight,  get_implication, ShapeImplication, AreaImplication,
     MeanCoreImplication, CentroidImplication, get_strided_indices, stride_coordinates,
-    Accumulator, MaxValueAcc, MaxAcc, WeightedAverageAcc, Converter,
+    Accumulator, MaxValueAcc, MaxAcc, WeightedAverageAcc, Converter
 )
 from .membership import (
     Shape, ShapeParams, ShapePoints, Polygon
 )
 from .inference import (
-    get_comp_weight_size, CompositionBase, ComplementBase,
-    Else, Join, Complement, Inclusion, Exclusion, IntersectionOn, Intersection,
-    Union, UnionOn, Junction, JunctionOn, And, AndAgg,
-    Or, OrAgg
+    get_comp_weight_size,
+    Else, Join, Complement, Inclusion, Exclusion, IntersectionOn, 
+    UnionOn, JunctionOn, And, Or
 )
 from . import functional
 from . import utils

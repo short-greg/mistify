@@ -3,7 +3,8 @@ from dataclasses import dataclass
 from abc import abstractmethod, abstractproperty
 import torch
 
-from .functional import unsqueeze, resize_to
+from .functional import resize_to
+from .utils import unsqueeze
 
 
 @dataclass

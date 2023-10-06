@@ -255,4 +255,3 @@ def to_signed(binary: torch.Tensor) -> torch.Tensor:
 
 def to_binary(signed: torch.Tensor) -> torch.Tensor:
     return (signed + 1) / 2
-

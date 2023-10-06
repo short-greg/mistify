@@ -12,29 +12,7 @@ class Or(nn.Module):
         raise NotImplementedError
 
 
-class OrAgg(nn.Module):
-
-    def __init__(self, dim: int=-1):
-        super().__init__()
-        self.dim = dim
-
-    @abstractmethod
-    def forward(self, m: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError
-
-
 class And(nn.Module):
-
-    @abstractmethod
-    def forward(self, m: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError
-
-
-class AndAgg(nn.Module):
-
-    def __init__(self, dim: int=-1):
-        super().__init__()
-        self.dim = dim
 
     @abstractmethod
     def forward(self, m: torch.Tensor) -> torch.Tensor:
@@ -113,12 +91,34 @@ class Else(nn.Module):
         raise NotImplementedError
 
 
-
 def get_comp_weight_size(in_features: int, out_features: int, in_variables: int=None):
 
     if in_variables is None or in_variables == 0:
         return torch.Size([in_features, out_features])
     return torch.Size([in_variables, in_features, out_features])
+
+
+# class AndAgg(nn.Module):
+
+#     def __init__(self, dim: int=-1):
+#         super().__init__()
+#         self.dim = dim
+
+#     @abstractmethod
+#     def forward(self, m: torch.Tensor) -> torch.Tensor:
+#         raise NotImplementedError
+
+
+# class OrAgg(nn.Module):
+
+#     def __init__(self, dim: int=-1):
+#         super().__init__()
+#         self.dim = dim
+
+#     @abstractmethod
+#     def forward(self, m: torch.Tensor) -> torch.Tensor:
+#         raise NotImplementedError
+
 
 
 # class ComplementBase(nn.Module):

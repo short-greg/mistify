@@ -8,12 +8,14 @@ from torch import nn
 
 from .._base import UnionOn, Else, IntersectionOn, Or, Complement
 from .. import functional
+from .._base.utils import weight_func
+from .generate import positives
 from . import functional as binary_func
 
 
 class BinaryComplement(Complement):
 
-    def complement(self, m: torch.Tensor):
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
         return 1 - m
 
 
@@ -67,12 +69,13 @@ class BinaryAnd(Or):
             f (typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]], optional): _description_. Defaults to "minmax".
             wf (typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]], optional): _description_. Defaults to "binary".
         """
+        super().__init__()
         if n_terms is not None:
             shape = (n_terms, in_features, out_features)
         else:
             shape = (in_features,  out_features)
-        self._w = nn.parameter.Parameter(binary_func.positives(*shape))
-        self._wf = binary_func.weight_func(wf)
+        self.weight = nn.parameter.Parameter(positives(*shape))
+        self._wf = weight_func(wf)
         self._n_terms = n_terms
         self._in_features = in_features
         self._out_features = out_features
@@ -85,7 +88,7 @@ class BinaryAnd(Or):
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         
         weight = self._wf(self.weight)
-        return self._f(m.unsqueeze(-1), weight[None])
+        return self._f(m, weight)
 
 
 class BinaryOr(Or):
@@ -95,12 +98,13 @@ class BinaryOr(Or):
         f: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="maxmin",
         wf: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="clamp"
     ):
+        super().__init__()
         if n_terms is not None:
             shape = (n_terms, in_features, out_features)
         else:
             shape = (in_features,  out_features)
-        self._w = nn.parameter.Parameter(binary_func.positives(*shape))
-        self._wf = binary_func.weight_func(wf)
+        self.weight = nn.parameter.Parameter(positives(*shape))
+        self._wf = weight_func(wf)
         self._n_terms = n_terms
         self._in_features = in_features
         self._out_features = out_features
@@ -113,7 +117,7 @@ class BinaryOr(Or):
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         
         weight = self._wf(self.weight)
-        return self._f(m.unsqueeze(-1), weight[None])
+        return self._f(m, weight)
 
 
 class BinaryElse(Else):

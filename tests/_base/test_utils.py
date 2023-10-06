@@ -2,17 +2,22 @@
 import torch
 import torch.nn as nn
 
-from mistify._base.functional import (
-    ToOptim, calc_m_linear_increasing,
-    unsqueeze, calc_area_logistic, calc_m_linear_decreasing,
+from mistify._base import (
+    ToOptim
+)
+from mistify._base.utils import unsqueeze
+
+from mistify.fuzzy.utils import (
+    calc_m_linear_increasing,
+    calc_area_logistic, calc_m_linear_decreasing,
     calc_m_linear_decreasing, calc_area_logistic_one_side,
     calc_x_linear_decreasing, calc_m_logistic,
     calc_x_logistic, calc_dx_logistic,
-    calc_area_logistic, resize_to,
-    check_contains, maxmin, minmax,
-    maxprod
-
-
+    calc_area_logistic,
+    check_contains
+)    
+from mistify._base.functional import (
+    maxmin, minmax, maxprod, resize_to
 
 )
 
