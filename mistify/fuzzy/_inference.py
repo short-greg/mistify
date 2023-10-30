@@ -22,10 +22,10 @@ from .._base import (
     UnionOn, IntersectionOn, Complement
 )
 from .. import _base as base
-from .._base import functional
-from . import functional as fuzzy_func
-from . import generate
-from .._base.utils import weight_func, unsqueeze
+from .._base import _functional
+from . import _functional as fuzzy_func
+from . import _generate
+from .._base._utils import weight_func, unsqueeze
 
 
 class FuzzyComplement(Complement):
@@ -39,11 +39,11 @@ class FuzzyIntersectionOn(IntersectionOn):
     def __init__(self, f: str='min', dim: int=-1, keepdim: bool=False):
         super().__init__()
         if f == 'min':
-            self._f = functional.min_on
+            self._f = _functional.min_on
         elif f == 'min_ada':
-            self._f = functional.smooth_min_on
+            self._f = _functional.smooth_min_on
         elif f == 'prod':
-            self._f = functional.prod_on
+            self._f = _functional.prod_on
         elif isinstance(f, typing.Callable):
             self._f = f
         else:
@@ -60,9 +60,9 @@ class FuzzyUnionOn(UnionOn):
     def __init__(self, f: str='max', dim: int=-1, keepdim: bool=False):
         super().__init__()
         if f == 'max':
-            self._f = functional.max_on
+            self._f = _functional.max_on
         elif f == 'max_ada':
-            self._f = functional.smooth_max_on
+            self._f = _functional.smooth_max_on
         elif isinstance(f, typing.Callable):
             self._f = f
         else:
@@ -86,18 +86,18 @@ class FuzzyOr(base.Or):
             shape = (n_terms, in_features, out_features)
         else:
             shape = (in_features,  out_features)
-        self.weight = nn.parameter.Parameter(generate.positives(*shape))
+        self.weight = nn.parameter.Parameter(_generate.positives(*shape))
         self._wf = weight_func(wf)
         self._n_terms = n_terms
         self._in_features = in_features
         self._out_features = out_features
     
         if f == "maxmin":
-            self._f = functional.maxmin
+            self._f = _functional.maxmin
         elif f == "maxprod":
-            self._f = functional.maxprod
+            self._f = _functional.maxprod
         elif f == "maxmin_ada":
-            self._f = functional.ada_minmax
+            self._f = _functional.ada_minmax
         else:
             self._f = f
 
@@ -119,16 +119,16 @@ class FuzzyAnd(base.Or):
             shape = (n_terms, in_features, out_features)
         else:
             shape = (in_features,  out_features)
-        self.weight = nn.parameter.Parameter(generate.negatives(*shape))
+        self.weight = nn.parameter.Parameter(_generate.negatives(*shape))
         self._wf = weight_func(wf)
         self._n_terms = n_terms
         self._in_features = in_features
         self._out_features = out_features
     
         if f == "minmax":
-            self._f = functional.minmax
+            self._f = _functional.minmax
         elif f == "minmax_ada":
-            self._f = functional.ada_minmax
+            self._f = _functional.ada_minmax
         else:
             self._f = f
 

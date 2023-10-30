@@ -1,18 +1,4 @@
 # 1st party
-from abc import abstractmethod
-from dataclasses import dataclass
-import typing
-
-# 3rd party
-import torch
-import torch.nn as nn
-import torch.nn.functional
-
-# local
-from . import membership as memb
-
-
-# 1st party
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
 import typing
@@ -23,7 +9,8 @@ import torch.nn as nn
 import torch.nn.functional
 
 # local
-from . import membership as memb
+from . import _membership as memb
+from . import _membership as memb
 
 
 @dataclass

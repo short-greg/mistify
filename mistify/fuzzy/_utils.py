@@ -1,5 +1,5 @@
 import torch
-from .._base.functional import check_contains
+from .._base._functional import check_contains
 import torch
 
 

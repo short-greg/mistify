@@ -1,22 +1,22 @@
 #noqa
-from .assess import (
+from ._assess import (
     MistifyLoss, ToOptim, MistifyLossFactory
 )
-from .conversion import (
+from ._conversion import (
     ValueWeight,  get_implication, ShapeImplication, AreaImplication,
     MeanCoreImplication, CentroidImplication, get_strided_indices, stride_coordinates,
     Accumulator, MaxValueAcc, MaxAcc, WeightedAverageAcc, Converter
 )
-from .membership import (
+from ._membership import (
     Shape, ShapeParams, ShapePoints, Polygon
 )
-from .inference import (
+from ._inference import (
     get_comp_weight_size,
     Else, Join, Complement, Inclusion, Exclusion, IntersectionOn, 
     UnionOn, JunctionOn, And, Or
 )
-from . import functional
-from . import utils
+from . import _functional
+from . import _utils
 # from .functional import (
 #     ToOptim, unsqueeze,
 #     calc_area_logistic, calc_area_logistic_one_side, calc_dx_logistic, calc_m_linear_decreasing, calc_m_linear_increasing, 

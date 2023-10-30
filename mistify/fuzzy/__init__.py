@@ -1,13 +1,13 @@
 #noqa
-from .assess import (
+from ._assess import (
     FuzzyAggregatorLoss, FuzzyLoss, IntersectionOnLoss, UnionOnLoss,
 )
-from .conversion import (
+from ._conversion import (
     ConverterDefuzzifier, Fuzzifier, FuzzyConverter, RangeFuzzyConverter, PolygonFuzzyConverter,
     SigmoidFuzzyConverter, LogisticFuzzyConverter, TriangleFuzzyConverter, IsoscelesFuzzyConverter,
     TrapezoidFuzzyConverter, SigmoidDefuzzifier
 )
-from .membership import (
+from ._membership import (
     Polygon, IncreasingRightTrapezoid, IncreasingRightTriangle, DecreasingRightTrapezoid,
     DecreasingRightTriangle, RightLogistic, RightLogisticTrapezoid, Logistic, LogisticBell, LogisticTrapezoid,
     Triangle, IsoscelesTrapezoid, IsoscelesTriangle, Trapezoid
@@ -17,12 +17,12 @@ from .membership import (
 #     calc_m_linear_increasing, calc_m_logistic, calc_x_linear_decreasing, calc_x_linear_increasing, calc_x_logistic,
 #     check_contains, calc_m_flat
 # )
-from .inference import (
+from ._inference import (
     FuzzyComplement, FuzzyIntersectionOn, FuzzyElse, FuzzyAnd,
     FuzzyUnionOn, FuzzyOr
 )
-from .generate import (
+from ._generate import (
     rand, positives, negatives
 )
-from . import utils
-from . import functional
+from . import _utils
+from . import _functional

@@ -3,8 +3,8 @@ import typing
 import torch
 from torch import nn
 import torch.nn
-from mistify import conversion, membership, assess
-from mistify._base.assess import MistifyLoss, MistifyLossFactory
+from mistify import _conversion, _membership, _assess
+from mistify._base._assess import MistifyLoss, MistifyLossFactory
 
 
 class ExampleMistifyLoss(MistifyLoss):

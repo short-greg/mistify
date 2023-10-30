@@ -16,10 +16,10 @@ import torch.nn as nn
 import torch.nn.functional
 
 # local
-from . import membership as memb
-from .membership import Shape
-from . import membership as memb
-from .membership import Shape
+from . import _membership as memb
+from ._membership import Shape
+from . import _membership as memb
+from ._membership import Shape
 from .._base import (
     ValueWeight, Accumulator, MaxAcc, WeightedAverageAcc, ShapeImplication, Shape,
     ShapePoints, get_implication, stride_coordinates, Converter, ShapeParams

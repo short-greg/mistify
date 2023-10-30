@@ -1,4 +1,4 @@
-from mistify._base import inference
+from mistify._base import _inference
 import torch.nn as nn
 import torch
 

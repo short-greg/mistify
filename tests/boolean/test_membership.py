@@ -1,5 +1,5 @@
 import pytest
-from mistify import conversion
+from mistify import _conversion
 import torch
 from mistify import binary
 from mistify import ShapeParams

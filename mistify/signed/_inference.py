@@ -14,9 +14,9 @@ from .._base import (
     get_comp_weight_size, Or, And, Complement, Else,
     Union, UnionOn, Intersection, IntersectionOn
 )
-from .._base.functional import maxmin, minmax
-from . import functional as signed_func
-from .._base.utils import weight_func
+from .._base._functional import maxmin, minmax
+from . import _functional as signed_func
+from .._base._utils import weight_func
 
 
 class SignedOr(Or):

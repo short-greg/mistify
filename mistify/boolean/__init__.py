@@ -1,16 +1,16 @@
-from .conversion import (
+from ._conversion import (
     CrispConverter, Crispifier, StepCrispConverter,
     ConverterCrispifier, ConverterDecrispifier
 )
-from .membership import (
+from ._membership import (
     Square
 )
-from .inference import (
+from ._inference import (
     BooleanAnd, BooleanComplement, BooleanElse, BooleanIntersectionOn,
     BooleanOr, BooleanUnionOn, binary_func
 )
-from .generate import (
+from ._generate import (
     rand, positives, negatives
 )
-from . import functional
-from . import utils
+from . import _functional
+from . import _utils

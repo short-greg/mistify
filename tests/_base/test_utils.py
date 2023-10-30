@@ -5,9 +5,9 @@ import torch.nn as nn
 from mistify._base import (
     ToOptim
 )
-from mistify._base.utils import unsqueeze
+from mistify._base._utils import unsqueeze
 
-from mistify.fuzzy.utils import (
+from mistify.fuzzy._utils import (
     calc_m_linear_increasing,
     calc_area_logistic, calc_m_linear_decreasing,
     calc_m_linear_decreasing, calc_area_logistic_one_side,
@@ -16,7 +16,7 @@ from mistify.fuzzy.utils import (
     calc_area_logistic,
     check_contains
 )    
-from mistify._base.functional import (
+from mistify._base._functional import (
     maxmin, minmax, maxprod, resize_to
 
 )

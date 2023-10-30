@@ -1,5 +1,5 @@
 import torch
-from .._base.functional import to_signed, to_binary
+from .._base._functional import to_signed, to_binary
 
 
 def differ(m1: torch.Tensor, m2: 'torch.Tensor') -> 'torch.Tensor':
