@@ -6,8 +6,8 @@ from .membership import (
     Square
 )
 from .inference import (
-    BinaryAnd, BinaryComplement, BinaryElse, BinaryIntersectionOn,
-    BinaryOr, BinaryUnionOn, binary_func
+    BooleanAnd, BooleanComplement, BooleanElse, BooleanIntersectionOn,
+    BooleanOr, BooleanUnionOn, binary_func
 )
 from .generate import (
     rand, positives, negatives

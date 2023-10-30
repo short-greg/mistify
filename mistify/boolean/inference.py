@@ -6,20 +6,20 @@ import typing
 import torch
 from torch import nn
 
-from .._base import UnionOn, Else, IntersectionOn, Or, Complement
+from .._base import UnionOn, Else, IntersectionOn, Or, Complement, And
 from .. import functional
 from .._base.utils import weight_func
 from .generate import positives
 from . import functional as binary_func
 
 
-class BinaryComplement(Complement):
+class BooleanComplement(Complement):
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         return 1 - m
 
 
-class BinaryIntersectionOn(IntersectionOn):
+class BooleanIntersectionOn(IntersectionOn):
 
     def __init__(self, f: str='min', dim: int=-1, keepdim: bool=False):
         super().__init__()
@@ -36,7 +36,7 @@ class BinaryIntersectionOn(IntersectionOn):
         return self._f(m, dim=self.dim, keepdim=self.keepdim)
 
 
-class BinaryUnionOn(UnionOn):
+class BooleanUnionOn(UnionOn):
 
     def __init__(self, f: str='max', dim: int=-1, keepdim: bool=False):
         super().__init__()
@@ -53,7 +53,7 @@ class BinaryUnionOn(UnionOn):
         return self._f(m, dim=self.dim, keepdim=self.keepdim)
 
 
-class BinaryAnd(Or):
+class BooleanAnd(And):
 
     def __init__(
         self, in_features: int, out_features: int, n_terms: int=None, 
@@ -91,7 +91,7 @@ class BinaryAnd(Or):
         return self._f(m, weight)
 
 
-class BinaryOr(Or):
+class BooleanOr(Or):
 
     def __init__(
         self, in_features: int, out_features: int, n_terms: int=None, 
@@ -126,15 +126,3 @@ class BinaryElse(Else):
 
         y = x.max(dim=self.dim, keepdim=self.keepdim)[0]
         return (1 - y)
-
-
-# class BinaryComposition(CompositionBase):
-
-#     def init_weight(self, in_features: int, out_features: int, in_variables: int = None) -> torch.Tensor:
-#         return positives(get_comp_weight_size(in_features, out_features, in_variables))
-
-#     def forward(self, m: torch.Tensor):
-#         return maxmin(m, self.weight).round()
-
-#     def clamp_weights(self):
-#         self.weight.data = self.weight.data.clamp(0, 1)

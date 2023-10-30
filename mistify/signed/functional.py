@@ -29,6 +29,7 @@ def unify(m1: torch.Tensor, m2: 'torch.Tensor') -> 'torch.Tensor':
     """
     return torch.max(m1, m2)
 
+
 def intersect(m1: torch.Tensor, m2: 'torch.Tensor') -> 'torch.Tensor':
     """Calcluate the intersection of two ternary sets
 
