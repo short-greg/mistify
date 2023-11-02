@@ -15,8 +15,8 @@ from ._inference import (
     Else, Join, Complement, Inclusion, Exclusion, IntersectionOn, 
     UnionOn, JunctionOn, And, Or
 )
-from . import _functional
-from . import _utils
+from . import functional
+from . import utils
 # from .functional import (
 #     ToOptim, unsqueeze,
 #     calc_area_logistic, calc_area_logistic_one_side, calc_dx_logistic, calc_m_linear_decreasing, calc_m_linear_increasing, 

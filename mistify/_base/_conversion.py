@@ -7,10 +7,11 @@ import typing
 import torch
 import torch.nn as nn
 import torch.nn.functional
+import pandas as pd
 
 # local
 from . import _membership as memb
-from . import _membership as memb
+import functools
 
 
 @dataclass

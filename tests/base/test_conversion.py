@@ -1,7 +1,13 @@
 # Test all conversion modules
 import torch
-from mistify import _conversion, _membership
+from mistify._base import _conversion, _membership
 from mistify.fuzzy import LogisticBell
+
+import pandas as pd
+import numpy as np
+import torch.nn as nn
+
+import pytest
 
 
 class TestImplication(object):

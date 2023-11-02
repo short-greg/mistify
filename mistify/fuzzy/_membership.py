@@ -33,7 +33,7 @@ from ._utils import (
 )
 from .._base import ShapeParams
 
-from .._base._utils import unsqueeze
+from .._base.utils import unsqueeze
 
 """
 Classes for calculating the membership 

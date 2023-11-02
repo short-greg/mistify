@@ -10,6 +10,7 @@ import torch.nn.functional
 
 # local
 from .._base import ValueWeight, Accumulator, MaxValueAcc, Converter
+from .._base._modules import binary_ste
 
 
 class Crispifier(nn.Module):
@@ -93,6 +94,23 @@ class StepCrispConverter(CrispConverter):
 
     def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
         return self._accumulator.forward(value_weight)
+
+
+class EmbeddingCrispifier(Crispifier):
+
+    def __init__(
+        self, out_variables: int, terms: int
+    ):
+        super().__init__()
+        self._terms = terms
+        self._embedding = nn.Embedding(
+            terms, out_variables
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if x.dim() != 2:
+            raise ValueError('Embedding crispifier only works for two dimensional tensors')
+        return binary_ste(self._embedding(x))
 
 
 class ConverterDecrispifier(Decrispifier):

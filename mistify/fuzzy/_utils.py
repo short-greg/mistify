@@ -1,5 +1,5 @@
 import torch
-from .._base._functional import check_contains
+from .._base.functional import check_contains
 import torch
 
 
@@ -71,6 +71,3 @@ def calc_area_logistic_one_side(x: torch.Tensor, b: torch.Tensor, s: torch.Tenso
 def calc_m_flat(x, pt1: torch.Tensor, pt2: torch.Tensor, m: torch.Tensor):
 
     return m * check_contains(x, pt1, pt2).float()
-
-
-

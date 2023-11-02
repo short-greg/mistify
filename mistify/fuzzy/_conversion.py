@@ -24,6 +24,7 @@ from .._base import (
     ValueWeight, Accumulator, MaxAcc, WeightedAverageAcc, ShapeImplication, Shape,
     ShapePoints, get_implication, stride_coordinates, Converter, ShapeParams
 )
+from .._base._modules import clamp
 
 
 class FuzzyConverter(Converter):
@@ -442,3 +443,28 @@ class LogisticFuzzyConverter(FuzzyConverter):
 
     def imply(self, m: torch.Tensor) -> ValueWeight:
         return ValueWeight(self._imply(m), m)
+
+
+class EmbeddingFuzzifier(Fuzzifier):
+
+    def __init__(
+        self, terms: int, out_variables: int, f=clamp
+    ):
+        """Convert labels to fuzzy embeddings
+
+        Args:
+            terms (int): The number of terms to output for
+            out_variables (int): The number of variables to output for each term
+            f (function, optional): A function that maps the output between 0 and 1. Defaults to clamp.
+        """
+        super().__init__()
+        self._terms = terms
+        self._embedding = nn.Embedding(
+            terms, out_variables
+        )
+        self.f = f
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if x.dim() != 2:
+            raise ValueError('Embedding crispifier only works for two dimensional tensors')
+        return self.f(self._embedding(x))

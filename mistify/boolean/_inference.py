@@ -7,8 +7,8 @@ import torch
 from torch import nn
 
 from .._base import UnionOn, Else, IntersectionOn, Or, Complement, And
-from .. import _functional
-from .._base._utils import weight_func
+from .. import functional
+from .._base.utils import weight_func
 from ._generate import positives
 from . import _functional as binary_func
 
@@ -24,7 +24,7 @@ class BooleanIntersectionOn(IntersectionOn):
     def __init__(self, f: str='min', dim: int=-1, keepdim: bool=False):
         super().__init__()
         if f == 'min':
-            self._f = _functional.min_on
+            self._f = functional.min_on
         elif isinstance(f, typing.Callable):
             self._f = f
         else:
@@ -41,7 +41,7 @@ class BooleanUnionOn(UnionOn):
     def __init__(self, f: str='max', dim: int=-1, keepdim: bool=False):
         super().__init__()
         if f == 'max':
-            self._f = _functional.max_on
+            self._f = functional.max_on
         elif isinstance(f, typing.Callable):
             self._f = f
         else:
@@ -81,7 +81,7 @@ class BooleanAnd(And):
         self._out_features = out_features
     
         if f == "minmax":
-            self._f = _functional.minmax
+            self._f = functional.minmax
         else:
             self._f = f
 
@@ -110,7 +110,7 @@ class BooleanOr(Or):
         self._out_features = out_features
     
         if f == "maxmin":
-            self._f = _functional.maxmin
+            self._f = functional.maxmin
         else:
             self._f = f
 

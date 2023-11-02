@@ -2,7 +2,7 @@ from abc import abstractmethod
 
 from torch import nn
 import torch
-from ._functional import join
+from .functional import join
 
 
 class Or(nn.Module):
