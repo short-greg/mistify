@@ -1,9 +1,9 @@
 import pytest
-from mistify import _conversion
+from mistify._base import _conversion
 import torch
-from mistify import binary
+from mistify import boolean
 from mistify import ShapeParams
-from mistify.binary import Square
+from mistify.boolean import Square
 
 
 class TestSquare(object):
@@ -12,7 +12,7 @@ class TestSquare(object):
 
         p = torch.rand(3, 4, 2).cumsum(2)
         x = torch.rand(2, 3)
-        right_trapezoid = binary.Square(
+        right_trapezoid = boolean.Square(
             ShapeParams(p)
         )
         m = right_trapezoid.join(x)

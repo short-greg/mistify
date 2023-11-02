@@ -1,5 +1,5 @@
 import pytest
-from mistify.binary import (
+from mistify.boolean import (
     StepCrispConverter, ConverterCrispifier, ConverterDecrispifier
 )
 import torch

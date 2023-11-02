@@ -1,5 +1,5 @@
 import torch
-from mistify import _functional as F
+from mistify._base import functional as F
 
 class TestAda:
 
