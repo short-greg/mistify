@@ -6,6 +6,6 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setup(
     name='mistify',
     version='0.0.1',
-    packages=['mistify']
+    packages=['mistify', 'mistify._base', 'mistify.fuzzy', 'mistify.signed', 'mistify.boolean']
 )
  

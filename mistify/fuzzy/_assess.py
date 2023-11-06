@@ -97,6 +97,48 @@ class UnionOnLoss(FuzzyAggregatorLoss):
         return _
 
 
+class MaxMinLoss(FuzzyLoss):
+
+    def __init__(self, module: FuzzyOr, reduction: str = 'mean'):
+        super().__init__(reduction)
+        self.module = module
+
+    def forward_w(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        
+        w = self.module.weight[None]
+        x = x.unsqueeze(-1)
+        t = t.unsqueeze(-2)
+        y = y.unsqueeze(-2)
+
+        # t - y  y < t   t
+        # 
+        less_than_t = torch.max(((t - y) + w), 0).detach() # y < t
+
+        less_than_error_multiplier = ((w < x) & (w < less_than_t)).type_as(x)
+        greater_than_multiplier = (w > t).type_as(x)
+        less_than_error = (0.5 * (w - less_than_t) ** 2) * less_than_error_multiplier
+        greater_than_error = (0.5 * (w - t) ** 2) * greater_than_multiplier
+        return less_than_error + greater_than_error
+
+    def forward_x(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        
+        w = self.module.weight[None]
+        x = x.unsqueeze(-1)
+        t = t.unsqueeze(-2)
+        y = y.unsqueeze(-2)
+
+        # t - y  y < t   t
+        # 
+        less_than_t = torch.max(((t - w) + x), 0).detach() # y < t
+
+        less_than_error_multiplier = ((x < w) & (x < less_than_t)).type_as(x)
+        greater_than_multiplier = (x > t).type_as(x)
+        less_than_error = (0.5 * (x - less_than_t) ** 2) * less_than_error_multiplier
+        greater_than_error = (0.5 * (x - t) ** 2) * greater_than_multiplier
+        return less_than_error + greater_than_error
+
+
+
 class MaxMinLoss3(FuzzyLoss):
 
     def __init__(
