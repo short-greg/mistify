@@ -204,3 +204,28 @@ class TableProcessor(nn.Module):
         return torch.cat([
             torch.nn.functional.pad(y_i, padding_i, 'constant', 0) for y_i, padding_i in zip(y, self._paddings)
         ], dim=self._cat_dim)
+
+
+class Dropout(nn.Module):
+    """
+    """
+
+    def __init__(self, p: float):
+
+        super().__init__()
+        self.p = p
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+
+        Args:
+            x (torch.Tensor): the input
+
+        Returns:
+            torch.Tensor: the dropped out tensor
+        """
+        if self.training:
+            return (torch.rand_like(x) > self.p).type_as(x) * x
+        
+        print('No dropout')
+        return x

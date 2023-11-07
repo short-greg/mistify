@@ -17,7 +17,6 @@ class TestCrispComposition(object):
         composition = boolean.BooleanOr(2, 4)
         crisp_set = boolean.rand(4, 2)
         assert composition.forward(crisp_set).size() == torch.Size([4, 4])
-    
 
     def test_forward_outputs_correct_size_with_multiple_variablse(self):
         composition = boolean.BooleanOr(2, 4, n_terms=2)

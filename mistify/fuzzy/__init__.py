@@ -1,6 +1,7 @@
 #noqa
 from ._assess import (
-    FuzzyAggregatorLoss, FuzzyLoss, IntersectionOnLoss, UnionOnLoss,
+    FuzzyAggregatorLoss, FuzzyLoss, IntersectionOnLoss, UnionOnLoss, 
+    MaxMinLoss, MaxMinLoss2, MaxMinLoss3, MaxProdLoss, MinMaxLoss2, MinMaxLoss3
 )
 from ._conversion import (
     ConverterDefuzzifier, Fuzzifier, FuzzyConverter, RangeFuzzyConverter, PolygonFuzzyConverter,

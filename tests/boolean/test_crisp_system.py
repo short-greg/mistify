@@ -5,15 +5,12 @@ from mistify import fuzzy
 import typing
 
 
-# TODO: Fix bugs
-
 class TestBasicCrispSystem2:
 
     class BasicCrispSystem(nn.Module):
 
         def __init__(self, in_features: int, in_terms: int, hidden_variables: typing.List[int], out_features: typing.List[int]):
             super().__init__()
-            print(in_terms, in_features)
             self.converter = boolean.StepCrispConverter(in_features, in_terms)
 
             variables = [in_terms * in_features, *hidden_variables]

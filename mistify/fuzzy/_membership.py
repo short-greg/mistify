@@ -774,4 +774,3 @@ class DecreasingRightTrapezoid(Polygon):
         )
         params = self._params.replace(x, 1, True, updated_m)
         return DecreasingRightTrapezoid(params, updated_m)
-

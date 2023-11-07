@@ -112,7 +112,7 @@ class MaxMinLoss(FuzzyLoss):
 
         # t - y  y < t   t
         # 
-        less_than_t = torch.max(((t - y) + w), 0).detach() # y < t
+        less_than_t = torch.max(((t - y) + w), 0)[0].detach() # y < t
 
         less_than_error_multiplier = ((w < x) & (w < less_than_t)).type_as(x)
         greater_than_multiplier = (w > t).type_as(x)
@@ -129,7 +129,7 @@ class MaxMinLoss(FuzzyLoss):
 
         # t - y  y < t   t
         # 
-        less_than_t = torch.max(((t - w) + x), 0).detach() # y < t
+        less_than_t = torch.max(((t - w) + x), 0)[0].detach() # y < t
 
         less_than_error_multiplier = ((x < w) & (x < less_than_t)).type_as(x)
         greater_than_multiplier = (x > t).type_as(x)
@@ -137,6 +137,11 @@ class MaxMinLoss(FuzzyLoss):
         greater_than_error = (0.5 * (x - t) ** 2) * greater_than_multiplier
         return less_than_error + greater_than_error
 
+    def forward(self, x: torch.Tensor, y: torch.torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+
+        loss = self.forward_w(x, y, t) + self.forward_x(x, y, t)
+        # TODO: add in redution
+        return loss.mean()
 
 
 class MaxMinLoss3(FuzzyLoss):
@@ -146,7 +151,7 @@ class MaxMinLoss3(FuzzyLoss):
         not_chosen_x_weight: float=1.0, not_chosen_theta_weight: float=1.0, 
         default_optim: ToOptim=ToOptim.BOTH
     ):
-        super().__init__(maxmin, reduction)
+        super().__init__(reduction)
         self._maxmin = maxmin
         self._default_optim = default_optim
         self.not_chosen_theta_weight = not_chosen_theta_weight
@@ -293,7 +298,7 @@ class MaxMinLoss2(FuzzyLoss):
         self, maxmin: FuzzyOr, reduction='batchmean', not_chosen_x_weight: float=1.0, not_chosen_theta_weight: float=1.0, 
         default_optim: ToOptim=ToOptim.BOTH
     ):
-        super().__init__(maxmin, reduction)
+        super().__init__(reduction)
         self._maxmin = maxmin
         self._default_optim = default_optim
         self.not_chosen_theta_weight = not_chosen_theta_weight

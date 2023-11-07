@@ -8,4 +8,3 @@ setup(
     version='0.0.1',
     packages=['mistify', 'mistify._base', 'mistify.fuzzy', 'mistify.signed', 'mistify.boolean']
 )
- 

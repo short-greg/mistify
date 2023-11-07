@@ -15,6 +15,9 @@ from ._inference import (
     Else, Join, Complement, Inclusion, Exclusion, IntersectionOn, 
     UnionOn, JunctionOn, And, Or
 )
+from ._modules import (
+    TableProcessor, ColProcessor, PandasColProcessor, Dropout
+)
 from . import functional
 from . import utils
 # from .functional import (

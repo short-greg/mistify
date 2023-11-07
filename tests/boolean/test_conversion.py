@@ -1,4 +1,3 @@
-import pytest
 from mistify.boolean import (
     StepCrispConverter, ConverterCrispifier, ConverterDecrispifier
 )
