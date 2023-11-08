@@ -407,51 +407,41 @@ class LogisticFuzzyConverter(FuzzyConverter):
         return ValueWeight(self._imply(m), m)
 
 
-# class CrispConverter(Converter):
-#     """Convert tensor to crisp set
-#     """
+class ConverterDecorator(ABC, FuzzyConverter):
 
-#     @abstractmethod
-#     def crispify(self, x: torch.Tensor) -> torch.Tensor:
-#         pass
+    def __init__(self, converter: FuzzyConverter):
 
-#     @abstractmethod
-#     def imply(self, m: torch.Tensor) -> ValueWeight:
-#         pass
+        super().__init__()
+        self._converter = converter
 
-#     @abstractmethod
-#     def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
-#         pass
+    @abstractmethod
+    def decorate_fuzzify(self, x: torch.Tensor) -> torch.Tensor:
+        pass
 
-#     def decrispify(self, m: torch.Tensor) -> torch.Tensor:
-#         return self.accumulate(self.imply(m))
+    @abstractmethod
+    def decorate_defuzzify(self, m: torch.Tensor) -> torch.Tensor:
+        pass
 
-#     def forward(self, x: torch.Tensor) -> torch.Tensor:
-#         return self.crispify(x)
+    def fuzzify(self, x: torch.Tensor) -> torch.Tensor:
+        return self._converter.fuzzify(self.decorate_fuzzify(x))
 
-#     def reverse(self, m: torch.Tensor) -> torch.Tensor:
-#         return self.decrispify(m)
+    def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
+        return self._converter.accumulate(value_weight)
+    
+    def imply(self, m: torch.Tensor) -> ValueWeight:
+        return self.decorate_defuzzify(self._converter.imply(m))
+    
 
-#     def to_crispifier(self) -> 'Crispifier':
-#         return ConverterCrispifier(self)
+class FuncConverterDecorator(ConverterDecorator):
 
-#     def to_decrispifier(self) -> 'Crispifier':
-#         return ConverterDecrispifier(self)
+    def __init__(self, converter: FuzzyConverter, fuzzify: typing.Callable[[torch.Tensor], torch.Tensor], defuzzify: typing.Callable[[torch.Tensor], torch.Tensor]):
 
-# class EmbeddingCrispifier(Crispifier):
+        super().__init__(converter)
+        self._fuzzify = fuzzify
+        self._defuzzify = defuzzify
 
-#     def __init__(
-#         self, out_variables: int, terms: int
-#     ):
-#         super().__init__()
-#         self._terms = terms
-#         self._embedding = nn.Embedding(
-#             terms, out_variables
-#         )
+    def decorate_fuzzify(self, x: torch.Tensor) -> torch.Tensor:
+        return self._fuzzify(x)
 
-#     def forward(self, x: torch.Tensor) -> torch.Tensor:
-#         if x.dim() != 2:
-#             raise ValueError('Embedding crispifier only works for two dimensional tensors')
-#         return binary_ste(self._embedding(x))
-
-
+    def decorate_defuzzify(self, m: torch.Tensor) -> torch.Tensor:
+        return self._defuzzify(m)
