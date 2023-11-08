@@ -23,7 +23,7 @@ from .._base import (
 from .. import _base as base
 from .. import functional
 from . import _generate
-from .._base.utils import weight_func
+from ..utils import weight_func
 
 
 class FuzzyComplement(Complement):

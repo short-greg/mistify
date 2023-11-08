@@ -5,7 +5,7 @@ import torch.nn as nn
 from mistify._base import (
     ToOptim
 )
-from mistify._base.utils import unsqueeze
+from mistify.utils import unsqueeze
 
 from mistify.utils import (
     check_contains

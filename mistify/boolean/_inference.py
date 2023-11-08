@@ -8,7 +8,7 @@ from torch import nn
 
 from .._base import UnionOn, Else, IntersectionOn, Or, Complement, And
 from .. import functional
-from .._base.utils import weight_func
+from ..utils import weight_func
 from ._generate import positives
 from . import _functional as binary_func
 

@@ -5,7 +5,7 @@ import torch.nn as nn
 
 import pandas as pd
 import numpy as np
-from mistify._base import _modules
+from mistify.utils import _modules
 
 
 class TestPandasColProcesor(object):

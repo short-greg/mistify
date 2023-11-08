@@ -4,6 +4,9 @@ import torch
 from enum import Enum
 from abc import abstractmethod
 
+
+import torch
+from functools import partial
 # 3rd party
 import torch
 import torch.nn as nn
@@ -24,6 +27,29 @@ from functools import partial
 
 #     dim2_index = get_strided_indices(coordinates.size(2), stride, step)
 #     return coordinates[:, :, dim2_index]
+
+import typing
+
+
+def weight_func(wf: typing.Union[str, typing.Callable]) -> typing.Callable:
+    if isinstance(wf, str):
+        if wf == 'sigmoid':
+            return torch.sigmoid
+        if wf == 'clamp':
+            return partial(torch.clamp, min=0, max=1)
+        if wf == 'sign':
+            return torch.sign
+        if wf == 'binary':
+            return lambda x: torch.clamp(torch.round(x), 0, 1)
+
+        raise ValueError(f'Invalid weight function {wf}')
+
+    return wf
+
+
+def unsqueeze(x: torch.Tensor) -> torch.Tensor:
+    return x.unsqueeze(dim=x.dim())
+
 
 
 def join(m: torch.Tensor, nn_module: nn.Module, dim=-1, unsqueeze_dim: int=None):

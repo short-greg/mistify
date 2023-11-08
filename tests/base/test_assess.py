@@ -3,7 +3,6 @@ import typing
 import torch
 from torch import nn
 import torch.nn
-from mistify._base import _conversion, _membership, _assess
 from mistify._base._assess import MistifyLoss, MistifyLossFactory
 
 

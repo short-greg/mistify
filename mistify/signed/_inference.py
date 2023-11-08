@@ -16,7 +16,7 @@ from .._base import (
 )
 from ..functional import maxmin, minmax
 from . import _functional as signed_func
-from .._base.utils import weight_func
+from ..utils import weight_func
 
 
 class SignedOr(Or):
