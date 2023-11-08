@@ -2,14 +2,14 @@
 from ._assess import (
     MistifyLoss, ToOptim, MistifyLossFactory
 )
-from ._conversion import (
-    ValueWeight,  get_implication, ShapeImplication, AreaImplication,
-    MeanCoreImplication, CentroidImplication, get_strided_indices, stride_coordinates,
-    Accumulator, MaxValueAcc, MaxAcc, WeightedAverageAcc, Converter
-)
-from ._membership import (
-    Shape, ShapeParams, ShapePoints, Polygon
-)
+# from ._conversion import (
+#     ValueWeight,  get_implication, ShapeImplication, AreaImplication,
+#     MeanCoreImplication, CentroidImplication, get_strided_indices, stride_coordinates,
+#     Accumulator, MaxValueAcc, MaxAcc, WeightedAverageAcc, Converter
+# )
+# from ._membership import (
+#     Shape, ShapeParams, ShapePoints, Polygon
+# )
 from ._inference import (
     get_comp_weight_size,
     Else, Join, Complement, Inclusion, Exclusion, IntersectionOn, 
@@ -18,7 +18,7 @@ from ._inference import (
 from ._modules import (
     TableProcessor, ColProcessor, PandasColProcessor, Dropout
 )
-from . import functional
+# from . import functional
 from . import utils
 # from .functional import (
 #     ToOptim, unsqueeze,

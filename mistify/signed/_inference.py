@@ -14,7 +14,7 @@ from .._base import (
     get_comp_weight_size, Or, And, Complement, Else,
     UnionOn, IntersectionOn
 )
-from .._base.functional import maxmin, minmax
+from ..functional import maxmin, minmax
 from . import _functional as signed_func
 from .._base.utils import weight_func
 

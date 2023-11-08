@@ -2,7 +2,7 @@ from mistify import fuzzy
 import typing
 from torch import nn
 import torch
-from mistify import fuzzy
+from mistify import membership
 
 
 class TestBasicSigmoidFuzzySytem:
@@ -18,21 +18,19 @@ class TestBasicSigmoidFuzzySytem:
                 hidden_terms (typing.List[int]): 
             """
             super().__init__()
-            print(in_terms, in_features)
-            self.converter = fuzzy.SigmoidFuzzyConverter(in_features, in_terms)
+            self.converter = membership.SigmoidFuzzyConverter(in_features, in_terms)
 
             terms = [in_terms, *hidden_terms]
             self.fuzzy_layers = nn.ModuleList()
             for in_i, out_i in zip(terms[:-1], terms[1:]):
                 self.fuzzy_layers.append(fuzzy.FuzzyOr(in_i, out_i, n_terms=in_features))
             self.implication = nn.Sequential(*self.fuzzy_layers)
-            self.out_converter = fuzzy.SigmoidFuzzyConverter(in_features, hidden_terms[-1])
-            self.defuzzifier = fuzzy.SigmoidDefuzzifier(self.out_converter)
+            self.out_converter = membership.SigmoidFuzzyConverter(in_features, hidden_terms[-1])
+            self.defuzzifier = membership.SigmoidDefuzzifier(self.out_converter)
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
             x = self.converter.forward(x)
             x = self.implication.forward(x)
-            print(x.shape)
             x = self.defuzzifier.forward(x)
             return x
 
@@ -64,7 +62,7 @@ class TestBasicSigmoidFuzzySytem2:
         def __init__(self, in_features: int, in_terms: int, hidden_variables: typing.List[int], out_features: typing.List[int]):
             super().__init__()
             print(in_terms, in_features)
-            self.converter = fuzzy.SigmoidFuzzyConverter(in_features, in_terms)
+            self.converter = membership.SigmoidFuzzyConverter(in_features, in_terms)
 
             variables = [in_terms * in_features, *hidden_variables]
             self.fuzzy_layers = nn.ModuleList()
@@ -72,8 +70,8 @@ class TestBasicSigmoidFuzzySytem2:
                 self.fuzzy_layers.append(fuzzy.FuzzyOr(in_i, out_i))
             self.implication = nn.Sequential(*self.fuzzy_layers)
             self._out_features = out_features
-            self.out_converter = fuzzy.SigmoidFuzzyConverter(out_features, hidden_variables[-1] // out_features)
-            self.defuzzifier = fuzzy.SigmoidDefuzzifier(self.out_converter)
+            self.out_converter = membership.SigmoidFuzzyConverter(out_features, hidden_variables[-1] // out_features)
+            self.defuzzifier = membership.SigmoidDefuzzifier(self.out_converter)
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
             m = self.converter.forward(x)
@@ -111,8 +109,7 @@ class TestBasicTriangularFuzzySytem:
 
         def __init__(self, in_features: int, in_terms: int, hidden_variables: typing.List[int], out_features: typing.List[int]):
             super().__init__()
-            print(in_terms, in_features)
-            self.converter = fuzzy.TriangleFuzzyConverter(in_features, in_terms)
+            self.converter = membership.TriangleFuzzyConverter(in_features, in_terms)
 
             variables = [in_terms * in_features, *hidden_variables]
             self.fuzzy_layers = nn.ModuleList()
@@ -120,7 +117,7 @@ class TestBasicTriangularFuzzySytem:
                 self.fuzzy_layers.append(fuzzy.FuzzyOr(in_i, out_i))
             self.implication = nn.Sequential(*self.fuzzy_layers)
             self._out_features = out_features
-            self.out_converter = fuzzy.TriangleFuzzyConverter(out_features, hidden_variables[-1] // out_features)
+            self.out_converter = membership.TriangleFuzzyConverter(out_features, hidden_variables[-1] // out_features)
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
             m = self.converter.forward(x)

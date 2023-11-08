@@ -1,36 +1,36 @@
 
-# TODO: Add in functionality to see if it should be -1
-import torch
+# # TODO: Add in functionality to see if it should be -1
+# import torch
 
-from mistify._base import ValueWeight
-from ..boolean import Crispifier, CrispConverter
-from .._base import functional
+# from mistify._base import ValueWeight
+# from ..._ import Crispifier, CrispConverter
+# from .._base import functional
 
 
-class SignedCrispifier(Crispifier):
+# class SignedCrispifier(Crispifier):
 
-    def __init__(self, boolean_crispifier: Crispifier):
-        super().__init__()
-        self._crispifier = boolean_crispifier
+#     def __init__(self, boolean_crispifier: Crispifier):
+#         super().__init__()
+#         self._crispifier = boolean_crispifier
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+#     def forward(self, x: torch.Tensor) -> torch.Tensor:
         
-        return functional.to_signed(self._crispifier(x))
+#         return functional.to_signed(self._crispifier(x))
 
 
-class SignedConverter(CrispConverter):
+# class SignedConverter(CrispConverter):
 
-    def __init__(self, boolean_converter: CrispConverter):
+#     def __init__(self, boolean_converter: CrispConverter):
 
-        super().__init__()
-        self._converter = boolean_converter
+#         super().__init__()
+#         self._converter = boolean_converter
 
-    def crispify(self, x: torch.Tensor) -> torch.Tensor:
-        return functional.to_signed(super().crispify(x))
+#     def crispify(self, x: torch.Tensor) -> torch.Tensor:
+#         return functional.to_signed(super().crispify(x))
 
-    def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
-        return self._converter.accumulate(value_weight)
+#     def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
+#         return self._converter.accumulate(value_weight)
     
-    def imply(self, m: torch.Tensor) -> ValueWeight:
-        m = functional.to_binary(m)
-        return self._converter.imply(m)
+#     def imply(self, m: torch.Tensor) -> ValueWeight:
+#         m = functional.to_binary(m)
+#         return self._converter.imply(m)

@@ -16,16 +16,14 @@ from abc import abstractmethod
 import torch
 import torch.nn as nn
 
-
 # local
 from .._base import (
     UnionOn, IntersectionOn, Complement
 )
 from .. import _base as base
-from .._base import functional
-from . import _functional as fuzzy_func
+from .. import functional
 from . import _generate
-from .._base.utils import weight_func, unsqueeze
+from .._base.utils import weight_func
 
 
 class FuzzyComplement(Complement):
@@ -37,6 +35,7 @@ class FuzzyComplement(Complement):
 class FuzzyIntersectionOn(IntersectionOn):
 
     def __init__(self, f: str='min', dim: int=-1, keepdim: bool=False):
+        print(functional)
         super().__init__()
         if f == 'min':
             self._f = functional.min_on
