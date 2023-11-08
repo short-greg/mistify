@@ -78,3 +78,13 @@ def exclusion(m1: torch.Tensor, m2: torch.Tensor, dim: int=None) -> 'torch.Tenso
     if dim is None:
         return base.type_as(m1)
     return base.min(dim=dim)[0].type_as(m1)
+
+
+def complement(m: torch.Tensor) -> torch.Tensor:
+    return 1 - m
+
+
+def else_(m: torch.Tensor, dim: int=-1, keepdim: bool=False) -> torch.Tensor:
+
+        y = m.sum(dim=dim, keepdim=keepdim)
+        return torch.clamp(1 - y, 0.0)

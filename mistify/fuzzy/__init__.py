@@ -28,5 +28,6 @@ from ._generate import (
 from . import _utils as utils
 from ._functional import (
     differ, intersect, intersect_on,
-    unify, unify_on, intersect_on, exclusion
+    unify, unify_on, intersect_on, exclusion,
+    else_, complement
 )

@@ -12,5 +12,8 @@ from ._inference import (
 from ._generate import (
     rand, positives, negatives
 )
-from . import _functional
+from ._functional import (
+    differ, unify, intersect, intersect_on, unify_on, inclusion,
+    exclusion, complement, forget, else_
+)
 # from . import _utils

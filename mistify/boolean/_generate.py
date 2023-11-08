@@ -14,3 +14,9 @@ def negatives(*size: int, dtype=torch.float32, device='cpu'):
 def positives(*size: int, dtype=torch.float32, device='cpu'):
 
     return torch.ones(*size, dtype=dtype, device=device)
+
+
+def unknowns(*size: int, dtype=torch.float32, device='cpu'):
+
+    return torch.full(size, 0.5, dtype=dtype, device=device)
+

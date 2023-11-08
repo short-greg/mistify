@@ -1,4 +1,7 @@
-from . import _functional
+from ._functional import (
+    differ, unify, intersect, unify_on, intersect_on,
+    inclusion, exclusion, complement, forget
+)
 from ._generate import (
     negatives, positives, unknowns, rand
 )
