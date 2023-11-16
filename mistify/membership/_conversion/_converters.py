@@ -175,7 +175,7 @@ class PolygonFuzzyConverter(FuzzyConverter):
 
     def __init__(
         self, n_variables: int, n_terms: int, shape_pts: ShapePoints,
-        left_cls: shape.Polygon, middle_cls: shape.Polygon, right_cls: shape.Polygon, 
+        left: shape.Polygon, middle: shape.Polygon, right: shape.Polygon, 
         fixed: bool=False,
         implication: typing.Union[ShapeImplication, str]="area", 
         accumulator: typing.Union[Accumulator, str]="max", truncate: bool=True
@@ -183,9 +183,9 @@ class PolygonFuzzyConverter(FuzzyConverter):
         super().__init__()
 
         self._shape_pts = shape_pts
-        self._left_cls = left_cls
-        self._middle_cls = middle_cls
-        self._right_cls = right_cls
+        self._left = left
+        self._middle = middle
+        self._right = right
         self.truncate = truncate
         self.accumulator = self.get_accumulator(accumulator)
         self.implication = ImplicationEnum.get(implication)
@@ -200,38 +200,39 @@ class PolygonFuzzyConverter(FuzzyConverter):
             self._params = params
     
     # how can i make this more flexible (?)
-    def generate_params(self):
-        positive_params = torch.nn.functional.softplus(self._params)
-        cumulated_params = torch.cumsum(positive_params, dim=1)
-        min_val = cumulated_params[:,:1]
-        max_val = cumulated_params[:,-1:]
-        scaled_params  = (cumulated_params - min_val) / (max_val - min_val)
-        return scaled_params
+    # def generate_params(self):
+    #     positive_params = torch.nn.functional.softplus(self._params)
+    #     cumulated_params = torch.cumsum(positive_params, dim=1)
+    #     min_val = cumulated_params[:,:1]
+    #     max_val = cumulated_params[:,-1:]
+    #     scaled_params  = (cumulated_params - min_val) / (max_val - min_val)
+    #     return scaled_params
     
     def _join(self, x: torch.Tensor):
         return torch.cat(
             [shape.join(x) for shape, _ in self.create_shapes() ],dim=2
         )
     
-    def create_shapes(self, m: torch.Tensor=None) -> typing.Iterator[typing.Tuple[Shape, torch.Tensor]]:
-        left = ShapeParams(
-            self._params[:,:self._shape_pts.n_side_pts].view(self._n_variables, 1, -1))
-        yield self._left_cls(left), m[:,:,:1] if m is not None else None
+    # ## Put this elsewhere
+    # def create_shapes(self, m: torch.Tensor=None) -> typing.Iterator[typing.Tuple[Shape, torch.Tensor]]:
+    #     left = ShapeParams(
+    #         self._params[:,:self._shape_pts.n_side_pts].view(self._n_variables, 1, -1))
+    #     yield self._left_cls(left), m[:,:,:1] if m is not None else None
 
-        if self._n_terms > 2:
-            middle = ShapeParams(
-                stride_coordinates(
-                    self._params[
-                        :,self._shape_pts.side_step:self._shape_pts.side_step + self._shape_pts.n_middle_pts
-                    ],
-                    self._shape_pts.n_middle_shape_pts, self._shape_pts.step
-            ))
-            yield self._middle_cls(middle), m[:,:,:-2] if m is not None else None
+    #     if self._n_terms > 2:
+    #         middle = ShapeParams(
+    #             stride_coordinates(
+    #                 self._params[
+    #                     :,self._shape_pts.side_step:self._shape_pts.side_step + self._shape_pts.n_middle_pts
+    #                 ],
+    #                 self._shape_pts.n_middle_shape_pts, self._shape_pts.step
+    #         ))
+    #         yield self._middle_cls(middle), m[:,:,:-2] if m is not None else None
 
-        right = ShapeParams(
-            self._params[:,-self._shape_pts.n_side_pts:].view(self._n_variables, 1, -1)
-        )
-        yield self._right_cls(right), m[:,:,-1:] if m is not None else None
+    #     right = ShapeParams(
+    #         self._params[:,-self._shape_pts.n_side_pts:].view(self._n_variables, 1, -1)
+    #     )
+    #     yield self._right_cls(right), m[:,:,-1:] if m is not None else None
     
     def _imply(self, m: torch.Tensor) -> torch.Tensor:
         xs = []
@@ -252,6 +253,7 @@ class PolygonFuzzyConverter(FuzzyConverter):
     def imply(self, m: torch.Tensor) -> ValueWeight:
         return ValueWeight(self._imply(m), m)
 
+# TODO: go through each of these and simplify
 
 class IsoscelesFuzzyConverter(PolygonFuzzyConverter):
 
