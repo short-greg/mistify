@@ -19,8 +19,6 @@ class ValueWeight:
         yield self.weight
 
 
-
-
 class Accumulator(nn.Module):
 
     @abstractmethod

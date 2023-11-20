@@ -1,59 +1,19 @@
 import torch.nn as nn
 import torch
 import numpy as np
-import sklearn.linear_model
 
-class StdDev(nn.Module):
 
-    def __init__(self, mean: torch.Tensor, std: torch.Tensor, divisor: float=1):
-
-        super().__init__()
-        self.mean = mean
-        self._divisor = 1
-        self.std = std
-        self.divisor = divisor
-        self._divide_by = None
-
-    @property
-    def divisor(self) -> float:
-        return self._divisor
-    
-    @divisor.setter
-    def divisor(self, divisor: float) -> float:
-        assert self._divisor > 0
-        self._divide_by = self._std * self._divisor
-        self._divisor = divisor
-        return self._divisor
-
-    @property
-    def std(self) -> torch.Tensor:
-
-        return self._std
-    
-    @std.setter
-    def std(self, std: torch.Tensor) -> torch.Tensor:
-
-        assert (std > 0).all()
-        self._divide_by = self._std * self._divisor
-        self._std = std
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-            
-        return (x - self.mean) / self._divide_by
-
-    @classmethod
-    def fit(cls, X: torch.Tensor, divisor: float) -> torch.Tensor:
-
-        return StdDev(X.mean(dim=0), X.median(dim=0), divisor=divisor)
-        
-
-class CumGaussian(nn.Module):
+class GaussianBase(nn.Module):
 
     def __init__(self, mean: torch.Tensor, std: torch.Tensor):
 
         super().__init__()
-        self.mean = mean[None]
-        self.std = std[None]
+        self.mean = mean
+        self.std = std
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+
+        raise NotImplementedError
 
     @property
     def std(self) -> torch.Tensor:
@@ -66,26 +26,50 @@ class CumGaussian(nn.Module):
         assert (std > 0).all()
         self._divide_by = self._std * self._divisor
         self._std = std
+
+    @classmethod
+    def fit(cls, X: torch.Tensor) -> torch.Tensor:
+
+        return cls(X.mean(dim=0), X.median(dim=0))
+        
+
+class StdDev(GaussianBase):
+
+    def __init__(self, mean: torch.Tensor, std: torch.Tensor, divisor: float=1):
+
+        super().__init__(mean, std)
+        self._divisor = 1
+        self.divisor = divisor
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+            
+        return (x - self.mean) / (self._std * self._divisor)
+
+    @classmethod
+    def fit(cls, X: torch.Tensor, divisor: float) -> torch.Tensor:
+
+        return cls(X.mean(dim=0), X.median(dim=0), divisor=divisor)
+
+
+class CumGaussian(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
         return torch.erf(
             (x - self.mean) / self._std
         )
-    
-    @classmethod
-    def fit(cls, X: torch.Tensor) -> torch.Tensor:
 
-        return CumGaussian(X.mean(dim=0), X.median(dim=0))
-        
-
-class CumLogistic(nn.Module):
+class LogisticBase(nn.Module):
 
     def __init__(self, loc: torch.Tensor, scale: torch.Tensor):
 
         super().__init__()
         self.loc = loc
         self.scale = scale
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+
+        raise NotImplementedError
 
     @property
     def scale(self) -> torch.Tensor:
@@ -98,12 +82,6 @@ class CumLogistic(nn.Module):
         assert (scale > 0).all()
         self._scale = scale
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-
-        return torch.sigmoid(
-            (x - self.loc) / self._scale
-        )
-    
     @classmethod
     def log_pdf(cls, X: torch.Tensor, mean: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
         
@@ -137,6 +115,54 @@ class CumLogistic(nn.Module):
         return CumLogistic(mean, scale)
 
 
+
+class CumLogistic(LogisticBase):
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+
+        return torch.sigmoid(
+            (x - self.loc) / self._scale
+        )
+
+
+class SigmoidP(nn.Module):
+
+    def __init__(self, n_terms: int, dim: int=-1):
+
+        super().__init__()
+        self._scale = nn.parameter.Parameter(torch.randn(n_terms))
+        self._loc = nn.parameter.Parameter(torch.randn(n_terms))
+        self._dim = dim
+
+    @property
+    def scale(self) -> torch.Tensor:
+
+        return self._scale
+    
+    @property
+    def loc(self) -> torch.Tensor:
+
+        return self._loc
+    
+    def _align(self, x: torch.Tensor, p: torch.Tensor) -> torch.Tensor:
+
+        unsqueeze = [1] * x.dim()
+        unsqueeze[self._dim] = 0
+        for i, u in enumerate(unsqueeze):
+            if u == 1:
+                p = p.unsqueeze(i)
+        return p
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+
+        loc = self._align(x, self._loc, self._dim)
+        scale = self._align(x, self._scale, self._dim)
+
+        return torch.sigmoid(
+            (x - loc) / scale
+        )
+
+
 class MinMaxScaler(nn.Module):
 
     def __init__(self, lower: torch.Tensor, upper: torch.Tensor):
@@ -144,17 +170,6 @@ class MinMaxScaler(nn.Module):
         super().__init__()
         self._lower = lower[None]
         self._upper = upper[None]
-
-    # @property
-    # def lower(self) -> torch.Tensor:
-
-    #     return self._lower
-    
-    # @lower.setter
-    # def std(self, scale: torch.Tensor) -> torch.Tensor:
-
-    #     assert (scale > 0).all()
-    #     self._scale = scale
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 

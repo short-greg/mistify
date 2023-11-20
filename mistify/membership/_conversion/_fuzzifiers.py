@@ -9,7 +9,6 @@ from ._accumulate import ValueWeight, Accumulator
 from ._converters import FuzzyConverter, SigmoidFuzzyConverter, RangeFuzzyConverter
 
 
-
 class Fuzzifier(nn.Module):
 
     @abstractmethod

@@ -15,3 +15,4 @@ from ._triangle import (
     Triangle, IsoscelesTriangle, DecreasingRightTriangle, IncreasingRightTriangle
 )
 from . import _utils as shape_utils
+from ._composite import CompositeShape
