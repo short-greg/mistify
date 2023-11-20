@@ -191,9 +191,10 @@ class CompositeFuzzyConverter(FuzzyConverter):
         truncate: bool=False
     ):
         super().__init__()
+
         self._composite = CompositeShape(shapes)
-        self._implication = implication
-        self._accumulator = accumulator
+        self._implication = ImplicationEnum.get(implication)
+        self._accumulator = AccEnum.get(accumulator)
         self._truncate = truncate
 
     def fuzzify(self, x: torch.Tensor) -> torch.Tensor:
@@ -218,8 +219,6 @@ class IsoscelesFuzzyConverter(CompositeFuzzyConverter):
         flat_edges: bool=False, truncate: bool=True,
     ):
         
-        accumulator = AccEnum.get(accumulator)
-        implication = ImplicationEnum.get(implication)
 
         shapes = []
         if flat_edges:
@@ -240,7 +239,7 @@ class IsoscelesFuzzyConverter(CompositeFuzzyConverter):
         super().__init__(shapes, implication, accumulator, truncate)
 
 
-class IsoTrapezoidFuzzyConverter(CompositeFuzzyConverter):
+class IsoscelesTrapezoidFuzzyConverter(CompositeFuzzyConverter):
 
     def __init__(
         self, n_terms: int, 
@@ -248,20 +247,19 @@ class IsoTrapezoidFuzzyConverter(CompositeFuzzyConverter):
         accumulator: typing.Union[Accumulator, str]="max", 
         flat_edges: bool=False, truncate: bool=True
     ):
-
         
         shapes = []
         if flat_edges:
             params = generate_spaced_params((n_terms - 2) * 2 + 4)
             shapes.append(shape.DecreasingRightTrapezoid(ShapeParams(params[:,:,None,:3])))
             if n_terms > 2:
-                shapes.append(shape.IsoscelesTrapezoid(ShapeParams(stride_coordinates(params[:,:,1:-1], 3, 2))))
+                shapes.append(shape.IsoscelesTrapezoid(ShapeParams(stride_coordinates(params[:,:,1:-1], n_terms - 2, 2, 3))))
             shapes.append(shape.IncreasingRightTrapezoid(ShapeParams(params[:,:,None,-3:])))
         else:
             params = generate_spaced_params((n_terms - 2) * 2 + 2)
             shapes.append(shape.DecreasingRightTriangle(ShapeParams(params[:,:,None,:2])))
             if n_terms > 2:
-                shapes.append(shape.IsoscelesTrapezoid(ShapeParams(stride_coordinates(params, 3, 2))))
+                shapes.append(shape.IsoscelesTrapezoid(ShapeParams(stride_coordinates(params, n_terms - 2, 2, 3))))
             shapes.append(shape.IncreasingRightTriangle(ShapeParams(params[:,:,None,-2:])))
 
         super().__init__(shapes, implication, accumulator, truncate)

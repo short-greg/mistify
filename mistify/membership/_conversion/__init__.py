@@ -17,6 +17,6 @@ from ._utils import (
 from ._converters import (
     FuzzyConverter, SignedConverter, StepFuzzyConverter, 
     SigmoidFuzzyConverter, RangeFuzzyConverter, CompositeFuzzyConverter,
-    IsoscelesFuzzyConverter, IsoTrapezoidFuzzyConverter, LogisticFuzzyConverter,
+    IsoscelesFuzzyConverter, IsoscelesTrapezoidFuzzyConverter, LogisticFuzzyConverter,
     ConverterDecorator, FuncConverterDecorator
 )

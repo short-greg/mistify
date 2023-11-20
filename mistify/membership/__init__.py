@@ -10,7 +10,7 @@ from ._conversion import (
     MaxValueAcc, Accumulator, WeightedAverageAcc,
     Fuzzifier, StepFuzzyConverter, RangeFuzzyConverter,
     SigmoidFuzzyConverter, LogisticFuzzyConverter, IsoscelesFuzzyConverter,
-    EmbeddingFuzzifier, IsoTrapezoidFuzzyConverter,
+    EmbeddingFuzzifier, IsoscelesTrapezoidFuzzyConverter,
     ImplicationEnum, AreaImplication, ShapeImplication, CentroidImplication,
     MeanCoreImplication, stride_coordinates, # get_strided_indices,
     SigmoidDefuzzifier, SigmoidFuzzyConverter, ConverterDefuzzifier, SignedConverter
