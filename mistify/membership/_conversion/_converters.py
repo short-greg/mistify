@@ -13,10 +13,10 @@ import torch.nn.functional
 from .._shapes import Shape
 from .. import _shapes as shape
 from ._accumulate import Accumulator, ValueWeight, MaxAcc, WeightedAverageAcc
-from ._imply import ShapeImplication
+from ._imply import ShapeImplication, ImplicationEnum
 from ._utils import stride_coordinates
 from .._shapes import Shape, ShapeParams, CompositeShape
-from ._accumulate import ValueWeight, Accumulator, MaxValueAcc
+from ._accumulate import ValueWeight, Accumulator, MaxValueAcc, AccEnum
 from ... import functional
 
 
@@ -81,7 +81,6 @@ class SignedConverter(FuzzyConverter):
     def imply(self, m: torch.Tensor) -> ValueWeight:
         m = functional.to_binary(m)
         return self._converter.imply(m)
-
 
 
 class StepFuzzyConverter(FuzzyConverter):
@@ -179,7 +178,7 @@ class RangeFuzzyConverter(FuzzyConverter):
 class ShapeFactory(ABC):
 
     @abstractmethod
-    def __call__(self) -> torch.Tuple[shape.Shape, torch.Tensor]:
+    def __call__(self) -> typing.Tuple[shape.Shape, torch.Tensor]:
         pass
 
 
@@ -198,46 +197,50 @@ class CompositeFuzzyConverter(FuzzyConverter):
         self._truncate = truncate
 
     def fuzzify(self, x: torch.Tensor) -> torch.Tensor:
-        return self.composite.join(x)
+        return self._composite.join(x)
 
     def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
         return self._accumulator.forward(value_weight)
 
     def imply(self, m: torch.Tensor) -> ValueWeight:
         if self._truncate:
-            shapes = self.composite.truncate(m).shapes
-        if self._scale:
-            shapes = self.composite.scale(m).shapes
-        return ValueWeight(self._imply(shapes), m)
+            shapes = self._composite.truncate(m).shapes
+        else:
+            shapes = self._composite.scale(m).shapes
+        return ValueWeight(self._implication(shapes), m)
 
-# Later: add weights
 
-class TriangleFuzzyConverter(CompositeFuzzyConverter):
+class IsoscelesFuzzyConverter(CompositeFuzzyConverter):
 
     def __init__(
         self, n_terms: int, implication: typing.Union[ShapeImplication, str]="area", 
         accumulator: typing.Union[Accumulator, str]="max", 
         flat_edges: bool=False, truncate: bool=True,
     ):
+        
+        accumulator = AccEnum.get(accumulator)
+        implication = ImplicationEnum.get(implication)
+
         shapes = []
         if flat_edges:
             params = generate_spaced_params(n_terms + 2)
             shapes.append(shape.DecreasingRightTrapezoid(ShapeParams(params[:,:,None,:3])))
             if n_terms > 2:
                 shapes.append(
-                    shape.IsoscelesTriangle(ShapeParams(stride_coordinates(params[:,:,1:-1], 2, 1)))
+                    shape.IsoscelesTriangle(ShapeParams(stride_coordinates(params[:,:,1:-1], n_terms - 2, 1, 2)))
                 )
-            shapes.append(shape.IncreasingRightTrapezoid(ShapeParams(params[:,:,-3:])))
+            shapes.append(shape.IncreasingRightTrapezoid(ShapeParams(params[:,:,None,-3:])))
         else:
             params = generate_spaced_params(n_terms)
             shapes.append(shape.DecreasingRightTriangle(ShapeParams(params[:,:,None,:2])))
-            shapes.append(shape.IsoscelesTriangle(ShapeParams(stride_coordinates(params, 2, 1))))
+            if n_terms > 2:
+                shapes.append(shape.IsoscelesTriangle(ShapeParams(stride_coordinates(params, n_terms - 2, 1, 2))))
             shapes.append(shape.IncreasingRightTriangle(ShapeParams(params[:,:,None,-2:])))
 
         super().__init__(shapes, implication, accumulator, truncate)
 
 
-class TrapezoidFuzzyConverter(CompositeFuzzyConverter):
+class IsoTrapezoidFuzzyConverter(CompositeFuzzyConverter):
 
     def __init__(
         self, n_terms: int, 
@@ -246,6 +249,7 @@ class TrapezoidFuzzyConverter(CompositeFuzzyConverter):
         flat_edges: bool=False, truncate: bool=True
     ):
 
+        
         shapes = []
         if flat_edges:
             params = generate_spaced_params((n_terms - 2) * 2 + 4)

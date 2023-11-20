@@ -11,11 +11,12 @@ from ._imply import (
     MeanCoreImplication
 )
 from ._utils import (
-    stride_coordinates, get_strided_indices
+    stride_coordinates # , get_strided_indices
 )
 
 from ._converters import (
-    FuzzyConverter, SignedConverter, StepFuzzyConverter, RangeFuzzyConverter,
-    PolygonFuzzyConverter, SigmoidFuzzyConverter, LogisticFuzzyConverter, 
-    IsoscelesFuzzyConverter, TriangleFuzzyConverter, TrapezoidFuzzyConverter
+    FuzzyConverter, SignedConverter, StepFuzzyConverter, 
+    SigmoidFuzzyConverter, RangeFuzzyConverter, CompositeFuzzyConverter,
+    IsoscelesFuzzyConverter, IsoTrapezoidFuzzyConverter, LogisticFuzzyConverter,
+    ConverterDecorator, FuncConverterDecorator
 )

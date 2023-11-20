@@ -8,11 +8,11 @@ from ._shapes import (
 from ._conversion import (
     ConverterFuzzifier, FuzzyConverter, ValueWeight, MaxAcc,
     MaxValueAcc, Accumulator, WeightedAverageAcc,
-    Fuzzifier, StepFuzzyConverter, RangeFuzzyConverter, PolygonFuzzyConverter,
-    SigmoidFuzzyConverter, LogisticFuzzyConverter, TriangleFuzzyConverter,
-    EmbeddingFuzzifier, IsoscelesFuzzyConverter, TrapezoidFuzzyConverter,
+    Fuzzifier, StepFuzzyConverter, RangeFuzzyConverter,
+    SigmoidFuzzyConverter, LogisticFuzzyConverter, IsoscelesFuzzyConverter,
+    EmbeddingFuzzifier, IsoTrapezoidFuzzyConverter,
     ImplicationEnum, AreaImplication, ShapeImplication, CentroidImplication,
-    MeanCoreImplication, stride_coordinates, get_strided_indices,
+    MeanCoreImplication, stride_coordinates, # get_strided_indices,
     SigmoidDefuzzifier, SigmoidFuzzyConverter, ConverterDefuzzifier, SignedConverter
 
 )

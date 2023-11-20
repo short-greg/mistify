@@ -11,13 +11,13 @@ from .._shapes import Shape
 class ShapeImplication(nn.Module):
 
     @abstractmethod
-    def forward(self, *shapes: Shape):
+    def forward(self, shapes: Shape):
         pass
 
 
 class AreaImplication(ShapeImplication):
 
-    def forward(self, *shapes: Shape):
+    def forward(self, shapes: Shape):
         return torch.cat(
             [shape.areas for shape in shapes], dim=2
         )
@@ -25,7 +25,7 @@ class AreaImplication(ShapeImplication):
 
 class MeanCoreImplication(ShapeImplication):
 
-    def forward(self, *shapes: Shape):
+    def forward(self, shapes: Shape):
 
         cores = []
         for shape in shapes:
@@ -39,7 +39,7 @@ class MeanCoreImplication(ShapeImplication):
 
 class CentroidImplication(ShapeImplication):
 
-    def forward(self, *shapes: Shape):
+    def forward(self, shapes: Shape):
         return torch.cat(
             [shape.centroids for shape in shapes], dim=2
         )

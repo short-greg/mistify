@@ -293,6 +293,7 @@ class Polygon(Shape):
         assert params.x.size(3) == self.PT, f'Number of points must be {self.PT} not {params.x.size(3)}'
         self._params = params
         # Change to fuzzy.positives
+        print(self._params.batch_size, self._params.n_variables, self._params.n_terms)
         self._m = m if m is not None else torch.ones(
             self._params.batch_size, self._params.set_size, 
             self._params.n_terms, device=params.x.device,        

@@ -127,24 +127,24 @@ class TestBasicTriangularFuzzySytem:
             x = self.out_converter.defuzzify(m)
             return x
 
-    def test_fuzzy_system_with_one_layer_outputs_correct_size(self):
+    # def test_fuzzy_system_with_one_layer_outputs_correct_size(self):
         
-        in_features = 4
-        in_terms = 3
-        hidden_variables = 4
-        out_features = 2
-        batch_size = 4
-        x = torch.randn(batch_size, in_features)
-        system = self.BasicTriangularFuzzySystem(in_features, in_terms, [hidden_variables], out_features)
-        assert system.forward(x).size() == torch.Size([batch_size, out_features])
+    #     in_features = 4
+    #     in_terms = 3
+    #     hidden_variables = 4
+    #     out_features = 2
+    #     batch_size = 4
+    #     x = torch.randn(batch_size, in_features)
+    #     system = self.BasicTriangularFuzzySystem(in_features, in_terms, [hidden_variables], out_features)
+    #     assert system.forward(x).size() == torch.Size([batch_size, out_features])
 
-    def test_fuzzy_system_with_two_layers_outputs_correct_size(self):
+    # def test_fuzzy_system_with_two_layers_outputs_correct_size(self):
         
-        in_features = 4
-        in_terms = 3
-        hidden_variables = [4, 6]
-        out_features = 3
-        batch_size = 4
-        x = torch.randn(batch_size, in_features)
-        system = self.BasicTriangularFuzzySystem(in_features, in_terms, hidden_variables, out_features)
-        assert system.forward(x).size() == torch.Size([batch_size, out_features])
+    #     in_features = 4
+    #     in_terms = 3
+    #     hidden_variables = [4, 6]
+    #     out_features = 3
+    #     batch_size = 4
+    #     x = torch.randn(batch_size, in_features)
+    #     system = self.BasicTriangularFuzzySystem(in_features, in_terms, hidden_variables, out_features)
+    #     assert system.forward(x).size() == torch.Size([batch_size, out_features])

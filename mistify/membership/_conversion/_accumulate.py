@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from abc import abstractmethod
+from enum import Enum
 
 import typing
 
@@ -49,3 +50,16 @@ class WeightedAverageAcc(Accumulator):
             torch.sum(value_weight.value * value_weight.weight, dim=-1) 
             / torch.sum(value_weight.weight, dim=-1)
         )
+
+class AccEnum(Enum):
+
+    max = MaxAcc
+    max_value = MaxValueAcc
+    weighted_average = WeightedAverageAcc
+
+    @classmethod
+    def get(cls, acc: typing.Union[Accumulator, str]) -> Accumulator:
+
+        if isinstance(acc, str):
+            return AccEnum[acc].value()
+        return acc
