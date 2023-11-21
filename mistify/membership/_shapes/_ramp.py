@@ -13,25 +13,20 @@ intersect = torch.min
 class Ramp(Monotonic):
 
     def __init__(
-        self, lower: ShapeParams, upper: ShapeParams, m: torch.Tensor=None
+        self, coords: ShapeParams, m: torch.Tensor=None, scale_m: torch.Tensor=None
     ):
-        self._lower = lower
-        self._upper = upper
-
-        self._m = self._init_m(m, lower.device)
+        self._coords = coords
+        self._m = self._init_m(m, coords.device)
+        self._scale_m = self._init_m(scale_m, coords.device)
 
         super().__init__(
-            self._lower.n_variables,
-            self._lower.n_terms
+            self._coords.n_variables,
+            self._coords.n_terms
         )
 
     @property
-    def lower(self):
-        return self._lower
-
-    @property
-    def upper(self):
-        return self._upper
+    def coords(self):
+        return self._coords
 
     @classmethod
     def from_combined(cls, params: ShapeParams, m: torch.Tensor=None):
@@ -41,25 +36,23 @@ class Ramp(Monotonic):
         )
 
     def join(self, x: torch.Tensor) -> torch.Tensor:
-        z = (unsqueeze(x) - self._biases.pt(0)) / self._scales.pt(0)
-        return self._m_mul * torch.sigmoid(z)
-
+        m = (x * ((self._m / (self._coords.pt(1) - self._coords.pt(0))) - self._coords.pt(0)))
+        return torch.clamp(x, 0, m)
+    
     def _calc_min_cores(self):
-        return self._upper
+
+        return self._coords.pt(1)
 
     def _calc_area(self):
-        return 0.5 * (self._upper - self._lower) * self._m
+        return 0.5 * (self._coords.pt(1) - self._coords.pt(0)) * self._m
 
     def scale(self, m: torch.Tensor) -> 'Ramp':
-        m = self._m * m
-        
-        return Ramp(
-            self._lower, self._upper, m
-        )
+        return Ramp(self._coords, m, self._m * m)
 
     def truncate(self, m: torch.Tensor) -> 'Ramp':
 
-        m = intersect(self._m, m)
-        return Ramp(
-            self._threshold, m
-        )
+        truncate_m = intersect(self._m, m)
+        pt = (truncate_m + self._coords.pt(0)) * (self._coords.pt(1) - self._coords.pt(0)) / self._m
+        coords = self._coords.replace(pt, 1)
+
+        return Ramp(coords, m)

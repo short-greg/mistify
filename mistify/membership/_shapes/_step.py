@@ -36,15 +36,14 @@ class Step(Monotonic):
         )
 
     def join(self, x: torch.Tensor) -> torch.Tensor:
-        z = (unsqueeze(x) - self._biases.pt(0)) / self._scales.pt(0)
-        return self._m_mul * torch.sigmoid(z)
+        return intersect(self._m, (unsqueeze(x) >= self._threshold.pt(0)).type_as(x))
 
     def _calc_min_cores(self):
-        return self._m
+        # NOTE: not correct if m is 0
+        return self._threshold.pt(0).squeeze(-1)
 
     def scale(self, m: torch.Tensor) -> 'Step':
-        if self._m is not None:
-            m = self._m * m
+        m = self._m * m
         return Step(
             self._threshold, m
         )

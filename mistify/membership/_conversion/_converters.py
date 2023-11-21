@@ -308,6 +308,42 @@ class TriangleFuzzyConverter(CompositeFuzzyConverter):
         )
 
 
+class SquareFuzzyConverter(CompositeFuzzyConverter):
+
+    def __init__(
+        self, 
+        square: shape.Square, 
+        implication: typing.Union[ShapeImplication, str]="area", 
+        accumulator: typing.Union[Accumulator, str]="max", 
+        truncate: bool=False
+    ):
+        super().__init__(
+            square, implication, accumulator, truncate
+        )
+
+    @classmethod
+    def from_coords(
+        cls, coords: torch.Tensor, n_terms: int,
+        implication: typing.Union[ShapeImplication, str]="area", 
+        accumulator: typing.Union[Accumulator, str]="max", 
+        truncate: bool=True
+    ):
+        square = shape.Square(ShapeParams(stride_coordinates(coords[:,:,:], n_terms, 2, 2)))
+        return SquareFuzzyConverter(square, implication, accumulator, truncate )
+
+    @classmethod
+    def from_linspace(
+        cls, n_terms: int, implication: typing.Union[ShapeImplication, str]="area", 
+        accumulator: typing.Union[Accumulator, str]="max", 
+        truncate: bool=True,
+    ):
+        coords = generate_spaced_params(n_terms + 1)
+        return SquareFuzzyConverter.from_coords(
+            coords, n_terms, implication, accumulator,
+            truncate
+        )
+
+
 class LogisticFuzzyConverter(CompositeFuzzyConverter):
 
     def __init__(
@@ -356,6 +392,7 @@ class LogisticFuzzyConverter(CompositeFuzzyConverter):
             bias_coords, scale_coords, n_terms, implication, accumulator,
             truncate
         )
+
 
 class SigmoidFuzzyConverter(CompositeFuzzyConverter):
 
@@ -410,13 +447,14 @@ class RampFuzzyConverter(CompositeFuzzyConverter):
 
     @classmethod
     def from_coords(
-        cls, coords: torch.Tensor, 
+        cls, coords: torch.Tensor, n_terms: int,
         implication: typing.Union[ShapeImplication, str]="area", 
         accumulator: typing.Union[Accumulator, str]="max", 
         truncate: bool=True
     ):
+        
         ramp = shape.Ramp(
-            ShapeParams(coords[:,:,:-2,None]), ShapeParams(coords[:,:,2:,None])
+            ShapeParams(stride_coordinates(coords[:,:,:], n_terms, 2, 2, 2))
         )
         return RampFuzzyConverter(ramp, implication, accumulator, truncate)
 

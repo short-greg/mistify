@@ -12,10 +12,10 @@ import torch
 #     return coordinates[:, dim2_index]
 
 
-def stride_coordinates(coordinates: torch.Tensor, n_terms: int=1, step: int=1, n_points: int=1):
+def stride_coordinates(coordinates: torch.Tensor, n_terms: int=1, step: int=1, n_points: int=1, skip: int=1):
 
     batch = coordinates.size(0)
     n_vars = coordinates.size(1)
     n_length = coordinates.size(2)
-    result = coordinates.as_strided((batch, n_vars, n_terms, n_points), (batch * n_vars * n_length, n_length, step, 1))
+    result = coordinates.as_strided((batch, n_vars, n_terms, n_points), (batch * n_vars * n_length, n_length, step, skip))
     return result

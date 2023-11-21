@@ -20,7 +20,7 @@ class Sigmoid(Monotonic):
         self._scales = scales
 
         self._m = self._init_m(m, biases.device)
-        self._m_mul = self._init_m(m, biases.device)
+        self._m_mul = self._init_m(m_mul, biases.device)
 
         super().__init__(
             self._biases.n_variables,
@@ -46,27 +46,26 @@ class Sigmoid(Monotonic):
     def join(self, x: torch.Tensor) -> torch.Tensor:
         z = (unsqueeze(x) - self._biases.pt(0)) / self._scales.pt(0)
         
-        return self._m_mul * torch.min(torch.sigmoid(z), self._m)
+        return intersect(self._m, self._m_mul * torch.sigmoid(z))
 
     def _calc_areas(self):
         # TODO: Need the integral of it
-        return torch.log(torch.exp(self._m) + 1)
+        return self._m_mul * torch.log(torch.exp(self._m) + 1)
         # return self._m * torch.log(self._m) + (0.5 - self._m) * torch.log(1 - self._m) + 0.5 * torch.log(2 * self._m - 2)
         
     def _calc_min_cores(self):
-        result = self._m_mul * torch.logit(self._m, 1e-7)
+
+        result = torch.logit(self._m / self._m_mul, 1e-7)
         return result * self._scales.pt(0) + self._biases.pt(0)
 
     def scale(self, m: torch.Tensor) -> 'Sigmoid':
-        updated_m = m * self._m
         updated_mul = self._m_mul * m
         
         return Sigmoid(
-            self._biases, self._scales, updated_mul, updated_m
+            self._biases, self._scales, updated_mul, intersect(updated_mul, self._m)
         )
 
     def truncate(self, m: torch.Tensor) -> 'Sigmoid':
-
         updated_m = intersect(self._m, m)
         return Sigmoid(
             self._biases, self._scales, self._m_mul, updated_m 
