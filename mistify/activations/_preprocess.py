@@ -1,15 +1,29 @@
+# 1st party
+from abc import abstractmethod
+
 # 3rd party
 import torch.nn as nn
 import torch
 
 
-class GaussianBase(nn.Module):
+class Processor(nn.Module):
+
+    @abstractmethod
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        pass
+
+    @abstractmethod
+    def reverse(self, x: torch.Tensor) -> torch.Tensor:
+        pass
+
+
+class GaussianBase(Processor):
 
     def __init__(self, mean: torch.Tensor, std: torch.Tensor):
 
         super().__init__()
-        self.mean = mean
-        self.std = std
+        self._mean = mean
+        self._std = std
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
@@ -38,12 +52,18 @@ class StdDev(GaussianBase):
     def __init__(self, mean: torch.Tensor, std: torch.Tensor, divisor: float=1):
 
         super().__init__(mean, std)
-        self._divisor = 1
-        self.divisor = divisor
+        self._divisor = divisor
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
             
-        return (x - self.mean) / (self._std * self._divisor)
+        return (x - self._mean) / (self._std * self._divisor)
+
+    def reverse(self, x: torch.Tensor) -> torch.Tensor:
+
+        std = self._align(x, self._std, self._dim)
+        mean = self._align(x, self._mean, self._dim)
+
+        return (x * (std * self._divisor)) + mean
 
     @classmethod
     def fit(cls, X: torch.Tensor, divisor: float) -> torch.Tensor:
@@ -51,7 +71,7 @@ class StdDev(GaussianBase):
         return cls(X.mean(dim=0), X.median(dim=0), divisor=divisor)
 
 
-class CumGaussian(nn.Module):
+class CumGaussian(GaussianBase):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
@@ -59,7 +79,15 @@ class CumGaussian(nn.Module):
             (x - self.mean) / self._std
         )
 
-class LogisticBase(nn.Module):
+    def reverse(self, x: torch.Tensor) -> torch.Tensor:
+
+        std = self._align(x, self._std, self._dim)
+        mean = self._align(x, self._mean, self._dim)
+
+        return (torch.erfinv(x) * std) + mean
+
+
+class LogisticBase(Processor):
 
     def __init__(self, loc: torch.Tensor, scale: torch.Tensor):
 
@@ -115,7 +143,6 @@ class LogisticBase(nn.Module):
         return CumLogistic(mean, scale)
 
 
-
 class CumLogistic(LogisticBase):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -123,6 +150,13 @@ class CumLogistic(LogisticBase):
         return torch.sigmoid(
             (x - self.loc) / self._scale
         )
+
+    def reverse(self, x: torch.Tensor) -> torch.Tensor:
+
+        loc = self._align(x, self._loc, self._dim)
+        scale = self._align(x, self._scale, self._dim)
+
+        return (torch.logit(x) * scale) + loc
 
 
 class SigmoidP(nn.Module):
@@ -153,6 +187,13 @@ class SigmoidP(nn.Module):
                 p = p.unsqueeze(i)
         return p
 
+    def reverse(self, x: torch.Tensor) -> torch.Tensor:
+
+        loc = self._align(x, self._loc, self._dim)
+        scale = self._align(x, self._scale, self._dim)
+
+        return (torch.logit(x) * scale) + loc
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
         loc = self._align(x, self._loc, self._dim)
@@ -163,7 +204,7 @@ class SigmoidP(nn.Module):
         )
 
 
-class MinMaxScaler(nn.Module):
+class MinMaxScaler(Processor):
 
     def __init__(self, lower: torch.Tensor, upper: torch.Tensor):
 
@@ -175,6 +216,10 @@ class MinMaxScaler(nn.Module):
 
         return (x - self._lower) / (self._upper - self._lower + 1e-5)
     
+    def reverse(self, x: torch.Tensor) -> torch.Tensor:
+
+        return (x * (self._upper - self._lower + 1e-5)) + self._lower
+
     @classmethod
     def fit(cls, X: torch.Tensor) -> 'MinMaxScaler':
 
