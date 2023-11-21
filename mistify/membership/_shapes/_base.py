@@ -31,7 +31,7 @@ class Shape(object):
     def _init_m(self, m: torch.Tensor=None, device='cpu') -> torch.Tensor:
 
         if m is None:
-            return torch.tensor(m, device=device)
+            return torch.tensor(1., device=device)
         return m.to(device)
 
     @abstractmethod

@@ -40,7 +40,11 @@ class Step(Monotonic):
 
     def _calc_min_cores(self):
         # NOTE: not correct if m is 0
-        return self._threshold.pt(0).squeeze(-1)
+        return self._threshold.pt(0) * torch.ones_like(self._m)
+
+    def _calc_area(self):
+        # NOTE: not correct if m is 0
+        return self._threshold.pt(0) * torch.zeros_like(self._m)
 
     def scale(self, m: torch.Tensor) -> 'Step':
         m = self._m * m

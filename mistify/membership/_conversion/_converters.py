@@ -454,7 +454,7 @@ class RampFuzzyConverter(CompositeFuzzyConverter):
     ):
         
         ramp = shape.Ramp(
-            ShapeParams(stride_coordinates(coords[:,:,:], n_terms, 2, 2, 2))
+            ShapeParams(stride_coordinates(coords, n_terms, 1, 2, 2))
         )
         return RampFuzzyConverter(ramp, implication, accumulator, truncate)
 
@@ -466,7 +466,7 @@ class RampFuzzyConverter(CompositeFuzzyConverter):
     ):
         coords = generate_spaced_params(n_terms + 2)
         return RampFuzzyConverter.from_coords(
-            coords, implication, accumulator,
+            coords, n_terms, implication, accumulator,
             truncate
         )
 
@@ -475,7 +475,7 @@ class StepFuzzyConverter(CompositeFuzzyConverter):
 
     def __init__(
         self, step: shape.Step=None, 
-        implication: typing.Union[ShapeImplication, str]="area", 
+        implication: typing.Union[ShapeImplication, str]="min_core", 
         accumulator: typing.Union[Accumulator, str]="max", 
         truncate: bool=False
     ):
@@ -485,25 +485,25 @@ class StepFuzzyConverter(CompositeFuzzyConverter):
 
     @classmethod
     def from_coords(
-        cls, coords: torch.Tensor, 
-        implication: typing.Union[ShapeImplication, str]="area", 
+        cls, coords: torch.Tensor, n_terms: int,
+        implication: typing.Union[ShapeImplication, str]="min_core", 
         accumulator: typing.Union[Accumulator, str]="max", 
         truncate: bool=True
     ):
-        ramp = shape.Step(
-            ShapeParams(coords[:,:,:,None])
+        step = shape.Step(
+            ShapeParams(stride_coordinates(coords, n_terms, 1, 1, 1))
         )
-        return RampFuzzyConverter(ramp, implication, accumulator, truncate)
+        return StepFuzzyConverter(step, implication, accumulator, truncate)
 
     @classmethod
     def from_linspace(
-        cls, n_terms: int, implication: typing.Union[ShapeImplication, str]="area", 
+        cls, n_terms: int, implication: typing.Union[ShapeImplication, str]="min_core", 
         accumulator: typing.Union[Accumulator, str]="max", 
         truncate: bool=True,
     ):
         coords = generate_spaced_params(n_terms + 2)[:,:,1:-1]
-        return RampFuzzyConverter.from_coords(
-            coords, implication, accumulator,
+        return StepFuzzyConverter.from_coords(
+            coords, n_terms, implication, accumulator,
             truncate
         )
 

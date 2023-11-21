@@ -33,5 +33,8 @@ from ._converters import (
     TriangleFuzzyConverter, 
     IsoscelesFuzzyConverter, 
     TrapezoidFuzzyConverter,
-    IsoscelesTrapezoidFuzzyConverter
+    IsoscelesTrapezoidFuzzyConverter,
+    SigmoidFuzzyConverter,
+    RampFuzzyConverter,
+    StepFuzzyConverter
 )

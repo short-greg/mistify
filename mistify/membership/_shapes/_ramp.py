@@ -36,8 +36,10 @@ class Ramp(Monotonic):
         )
 
     def join(self, x: torch.Tensor) -> torch.Tensor:
-        m = (x * ((self._m / (self._coords.pt(1) - self._coords.pt(0))) - self._coords.pt(0)))
-        return torch.clamp(x, 0, m)
+        
+        # min_ = torch.tensor(0, dtype=x.dtype, device=x.device)
+        m = (unsqueeze(x) * ((self._m / (self._coords.pt(1) - self._coords.pt(0))) - self._coords.pt(0)))
+        return torch.clamp(torch.clamp(m, max=self._m), 0.0)
     
     def _calc_min_cores(self):
 

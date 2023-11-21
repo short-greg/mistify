@@ -16,7 +16,10 @@ from ._shapes import (
     IncreasingRightTriangle,
     Logistic, 
     LogisticBell, 
-    RightLogistic
+    RightLogistic,
+    Ramp,
+    Sigmoid,
+    Step
 )
 from ._conversion import (
     ConverterFuzzifier, 
@@ -40,6 +43,9 @@ from ._conversion import (
     MinCoreImplication,
     CentroidImplication, 
     stride_coordinates, 
-    ConverterDefuzzifier, 
+    ConverterDefuzzifier,
+    SigmoidFuzzyConverter,
+    RampFuzzyConverter,
+    StepFuzzyConverter
 )
 from ._shapes import shape_utils
