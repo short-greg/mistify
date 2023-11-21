@@ -5,7 +5,7 @@ import typing
 import torch.nn as nn
 import torch
 
-from .._shapes import Shape
+from .._shapes import Shape, Concave, Monotonic
 
 
 class ShapeImplication(nn.Module):
@@ -17,7 +17,7 @@ class ShapeImplication(nn.Module):
 
 class AreaImplication(ShapeImplication):
 
-    def forward(self, shapes: Shape):
+    def forward(self, shapes: typing.List[Shape]):
         return torch.cat(
             [shape.areas for shape in shapes], dim=2
         )
@@ -25,7 +25,7 @@ class AreaImplication(ShapeImplication):
 
 class MeanCoreImplication(ShapeImplication):
 
-    def forward(self, shapes: Shape):
+    def forward(self, shapes: typing.List[Concave]):
 
         cores = []
         for shape in shapes:
@@ -37,9 +37,22 @@ class MeanCoreImplication(ShapeImplication):
         )
 
 
+class MinCoreImplication(ShapeImplication):
+
+    def forward(self, shapes: typing.List[Monotonic]):
+
+        cores = []
+        for shape in shapes:
+            if shape.min_cores is None:
+                raise ValueError('Cannot calculate mean core if None')
+            cores.append(shape.min_cores)
+        return torch.cat(
+            cores, dim=2
+        )
+
 class CentroidImplication(ShapeImplication):
 
-    def forward(self, shapes: Shape):
+    def forward(self, shapes: typing.List[Concave]):
         return torch.cat(
             [shape.centroids for shape in shapes], dim=2
         )
@@ -50,6 +63,7 @@ class ImplicationEnum(Enum):
     area = AreaImplication
     mean_core = MeanCoreImplication
     centroid = CentroidImplication
+    min_core = MinCoreImplication
 
     @classmethod
     def get(cls, implication: typing.Union['ShapeImplication', str]) -> ShapeImplication:

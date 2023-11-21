@@ -24,11 +24,25 @@ class Shape(object):
     def __init__(self, n_variables: int, n_terms: int):
 
         super().__init__()
-        self._areas = None
-        self._mean_cores = None
-        self._centroids = None
         self._n_variables = n_variables
         self._n_terms = n_terms
+        self._areas = None
+
+    def _init_m(self, m: torch.Tensor=None, device='cpu') -> torch.Tensor:
+
+        if m is None:
+            return torch.tensor(m, device=device)
+        return m.to(device)
+
+    @abstractmethod
+    def _calc_areas(self):
+        pass
+
+    @property
+    def areas(self) -> torch.Tensor:
+        if self._areas is None:
+            self._areas = self._calc_areas()
+        return self._areas
 
     @property
     def n_terms(self):
@@ -41,42 +55,6 @@ class Shape(object):
     def join(self, x: torch.Tensor):
         pass
 
-    @abstractmethod
-    def _calc_areas(self):
-        pass
-
-    @property
-    def areas(self) -> torch.Tensor:
-        if self._areas is None:
-            self._areas = self._calc_areas()
-        return self._areas
-
-    @abstractmethod
-    def _calc_mean_cores(self) -> torch.Tensor:
-        """
-        Returns:
-            torch.Tensor: The mean of the core of the shape
-        """
-        pass
-
-    @property
-    def mean_cores(self) -> torch.Tensor:
-        """
-        Returns:
-            torch.Tensor: The mean of the core of the shape
-        """
-        if self._mean_cores is None:
-            self._mean_cores = self._calc_mean_cores()
-        return self._mean_cores
-
-    @abstractmethod
-    def _calc_centroids(self) -> torch.Tensor:
-        """
-        Returns:
-            torch.Tensor: The centroid of the shape
-        """
-        pass
-
     @abstractproperty
     def m(self):
         """
@@ -84,16 +62,6 @@ class Shape(object):
             torch.Tensor: 
         """
         pass
-
-    @property
-    def centroids(self) -> torch.Tensor:
-        """
-        Returns:
-            torch.Tensor: Centroid for the 
-        """
-        if self._centroids is None:
-            self._centroids = self._calc_centroids()
-        return self._centroids
     
     @abstractmethod
     def scale(self, m: torch.Tensor) -> 'Shape':
@@ -147,6 +115,77 @@ class Shape(object):
         return x    
 
 
+class Monotonic(Shape):
+
+    def __init__(self, n_variables: int, n_terms: int):
+
+        super().__init__(n_variables, n_terms)
+        self._min_cores = None
+    
+    @abstractmethod
+    def _calc_min_cores(self) -> torch.Tensor:
+        """
+        Returns:
+            torch.Tensor: The mean of the core of the shape
+        """
+        pass
+
+    @property
+    def min_cores(self) -> torch.Tensor:
+        """
+        Returns:
+            torch.Tensor: The mean of the core of the shape
+        """
+        if self._min_cores is None:
+            self._min_cores = self._calc_min_cores()
+        return self._min_cores
+
+
+class Concave(Shape):
+
+    def __init__(self, n_variables: int, n_terms: int):
+
+        super().__init__(n_variables, n_terms)
+        self._mean_cores = None
+        self._centroids = None
+
+    @abstractmethod
+    def _calc_mean_cores(self) -> torch.Tensor:
+        """
+        Returns:
+            torch.Tensor: The mean of the core of the shape
+        """
+        pass
+
+    @property
+    def mean_cores(self) -> torch.Tensor:
+        """
+        Returns:
+            torch.Tensor: The mean of the core of the shape
+        """
+        if self._mean_cores is None:
+            self._mean_cores = self._calc_mean_cores()
+        return self._mean_cores
+
+    @abstractmethod
+    def _calc_centroids(self) -> torch.Tensor:
+        """
+        Returns:
+            torch.Tensor: The centroid of the shape
+        """
+        pass
+
+    @property
+    def centroids(self) -> torch.Tensor:
+        """
+        Returns:
+            torch.Tensor: Centroid for the 
+        """
+        if self._centroids is None:
+            self._centroids = self._calc_centroids()
+        return self._centroids
+
+
 class ShapeParams:
     """Parameters to specify the Shapes
     """
@@ -174,6 +213,11 @@ class ShapeParams:
         else:
             index = slice(*index)
         return ShapeParams(self._x[:, :, :, index])
+
+    @property
+    def device(self) -> torch.device:
+        
+        return self._x.device
 
     def pt(self, index: int) -> torch.Tensor:
         """Retrieve a given point in the shape parameters
@@ -284,7 +328,7 @@ class ShapeParams:
         )
 
 
-class Polygon(Shape):
+class Polygon(Concave):
 
     PT = None
 

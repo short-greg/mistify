@@ -1,8 +1,12 @@
+# 1st party
 import typing
 
+# 3rd party
 import torch
 
+# local
 from ._base import Shape
+
 
 class CompositeShape(Shape):
 

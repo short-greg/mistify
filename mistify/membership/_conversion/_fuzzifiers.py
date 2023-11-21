@@ -6,7 +6,7 @@ import torch.nn as nn
 from torch import clamp
 
 from ._accumulate import ValueWeight, Accumulator
-from ._converters import FuzzyConverter, SigmoidFuzzyConverter, RangeFuzzyConverter
+from ._converters import FuzzyConverter # SigmoidFuzzyConverter, RangeFuzzyConverter
 
 
 class Fuzzifier(nn.Module):
@@ -56,38 +56,38 @@ class ConverterCrispifier(Fuzzifier):
         return self.crisp_converter.crispify(x)
 
 
-class SigmoidDefuzzifier(Defuzzifier):
+# class SigmoidDefuzzifier(Defuzzifier):
 
-    def __init__(self, converter: SigmoidFuzzyConverter):
+#     def __init__(self, converter: SigmoidFuzzyConverter):
 
-        super().__init__()
-        self.converter = converter
+#         super().__init__()
+#         self.converter = converter
 
-    def forward(self, m: torch.Tensor):
-        return self.converter.defuzzify(m)
+#     def forward(self, m: torch.Tensor):
+#         return self.converter.defuzzify(m)
     
-    @classmethod
-    def build(cls, out_variables: int, out_terms: int, eps: float=1e-7, accumulator: Accumulator=None):
-        return SigmoidDefuzzifier(
-            SigmoidFuzzyConverter(out_variables, out_terms, eps, accumulator)
-        )
+#     @classmethod
+#     def build(cls, out_variables: int, out_terms: int, eps: float=1e-7, accumulator: Accumulator=None):
+#         return SigmoidDefuzzifier(
+#             SigmoidFuzzyConverter(out_variables, out_terms, eps, accumulator)
+#         )
 
 
-class RangeDefuzzifier(Defuzzifier):
+# class RangeDefuzzifier(Defuzzifier):
 
-    def __init__(self, converter: RangeFuzzyConverter):
+#     def __init__(self, converter: RangeFuzzyConverter):
 
-        super().__init__()
-        self.converter = converter
+#         super().__init__()
+#         self.converter = converter
 
-    def forward(self, m: torch.Tensor):
-        return self.converter.defuzzify(m)
+#     def forward(self, m: torch.Tensor):
+#         return self.converter.defuzzify(m)
     
-    @classmethod
-    def build(cls, out_variables: int, out_terms: int, accumulator: Accumulator=None):
-        return RangeDefuzzifier(
-            RangeFuzzyConverter(out_variables, out_terms, accumulator)
-        )
+#     @classmethod
+#     def build(cls, out_variables: int, out_terms: int, accumulator: Accumulator=None):
+#         return RangeDefuzzifier(
+#             RangeFuzzyConverter(out_variables, out_terms, accumulator)
+#         )
 
 
 class ConverterDefuzzifier(Defuzzifier):
