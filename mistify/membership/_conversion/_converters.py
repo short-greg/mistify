@@ -21,8 +21,7 @@ from ... import functional
 
 
 def generate_spaced_params(n_steps: int, lower: float=0, upper: float=1) -> torch.Tensor:
-    # n_variables n_terms
-    return torch.linspace(lower, upper, n_steps)[None, None]
+    return torch.linspace(lower, upper, n_steps)[None, None, :]
 
 
 def generate_repeat_params(n_steps: int, value: float) -> torch.Tensor:
@@ -151,23 +150,6 @@ class IsoscelesFuzzyConverter(CompositeFuzzyConverter):
             coords, n_terms, implication, accumulator,
             flat_edges, truncate
         )
-        
-        # if flat_edges:
-        #     params = generate_spaced_params(n_terms + 2)
-        #     shapes.append(shape.DecreasingRightTrapezoid(ShapeParams(params[:,:,None,:3])))
-        #     if n_terms > 2:
-        #         shapes.append(
-        #             shape.IsoscelesTriangle(ShapeParams(stride_coordinates(params[:,:,1:-1], n_terms - 2, 1, 2)))
-        #         )
-        #     shapes.append(shape.IncreasingRightTrapezoid(ShapeParams(params[:,:,None,-3:])))
-        # else:
-        #     params = generate_spaced_params(n_terms)
-        #     shapes.append(shape.DecreasingRightTriangle(ShapeParams(params[:,:,None,:2])))
-        #     if n_terms > 2:
-        #         shapes.append(shape.IsoscelesTriangle(ShapeParams(stride_coordinates(params, n_terms - 2, 1, 2))))
-        #     shapes.append(shape.IncreasingRightTriangle(ShapeParams(params[:,:,None,-2:])))
-
-        # super().__init__(shapes, implication, accumulator, truncate)
 
 
 class IsoscelesTrapezoidFuzzyConverter(CompositeFuzzyConverter):
@@ -221,29 +203,6 @@ class IsoscelesTrapezoidFuzzyConverter(CompositeFuzzyConverter):
             flat_edges, truncate
         )
 
-    # def __init__(
-    #     self, n_terms: int, 
-    #     implication: typing.Union[ShapeImplication, str]="area", 
-    #     accumulator: typing.Union[Accumulator, str]="max", 
-    #     flat_edges: bool=False, truncate: bool=True
-    # ):
-        
-    #     shapes = []
-    #     if flat_edges:
-    #         params = generate_spaced_params((n_terms - 2) * 2 + 4)
-    #         shapes.append(shape.DecreasingRightTrapezoid(ShapeParams(params[:,:,None,:3])))
-    #         if n_terms > 2:
-    #             shapes.append(shape.IsoscelesTrapezoid(ShapeParams(stride_coordinates(params[:,:,1:-1], n_terms - 2, 2, 3))))
-    #         shapes.append(shape.IncreasingRightTrapezoid(ShapeParams(params[:,:,None,-3:])))
-    #     else:
-    #         params = generate_spaced_params((n_terms - 2) * 2 + 2)
-    #         shapes.append(shape.DecreasingRightTriangle(ShapeParams(params[:,:,None,:2])))
-    #         if n_terms > 2:
-    #             shapes.append(shape.IsoscelesTrapezoid(ShapeParams(stride_coordinates(params, n_terms - 2, 2, 3))))
-    #         shapes.append(shape.IncreasingRightTriangle(ShapeParams(params[:,:,None,-2:])))
-
-    #     super().__init__(shapes, implication, accumulator, truncate)
-
 
 class TrapezoidFuzzyConverter(CompositeFuzzyConverter):
 
@@ -296,29 +255,6 @@ class TrapezoidFuzzyConverter(CompositeFuzzyConverter):
             flat_edges, truncate
         )
 
-    # def __init__(
-    #     self, n_terms: int, 
-    #     implication: typing.Union[ShapeImplication, str]="area", 
-    #     accumulator: typing.Union[Accumulator, str]="max", 
-    #     flat_edges: bool=False, truncate: bool=True
-    # ):
-        
-    #     shapes = []
-    #     if flat_edges:
-    #         params = generate_spaced_params((n_terms - 2) * 2 + 4)
-    #         shapes.append(shape.DecreasingRightTrapezoid(ShapeParams(params[:,:,None,:3])))
-    #         if n_terms > 2:
-    #             shapes.append(shape.Trapezoid(ShapeParams(stride_coordinates(params[:,:,1:-1], n_terms - 2, 2, 4))))
-    #         shapes.append(shape.IncreasingRightTrapezoid(ShapeParams(params[:,:,None,-3:])))
-    #     else:
-    #         params = generate_spaced_params((n_terms - 2) * 2 + 2)
-    #         shapes.append(shape.DecreasingRightTriangle(ShapeParams(params[:,:,None,:2])))
-    #         if n_terms > 2:
-    #             shapes.append(shape.Trapezoid(ShapeParams(stride_coordinates(params, n_terms - 2, 2, 4))))
-    #         shapes.append(shape.IncreasingRightTriangle(ShapeParams(params[:,:,None,-2:])))
-
-    #     super().__init__(shapes, implication, accumulator, truncate)
-
 
 class TriangleFuzzyConverter(CompositeFuzzyConverter):
 
@@ -370,29 +306,6 @@ class TriangleFuzzyConverter(CompositeFuzzyConverter):
             coords, n_terms, implication, accumulator,
             flat_edges, truncate
         )
-        
-    # def __init__(
-    #     self, n_terms: int, implication: typing.Union[ShapeImplication, str]="area", 
-    #     accumulator: typing.Union[Accumulator, str]="max", 
-    #     flat_edges: bool=False, truncate: bool=True,
-    # ):
-    #     shapes = []
-    #     if flat_edges:
-    #         params = generate_spaced_params(n_terms + 2)
-    #         shapes.append(shape.DecreasingRightTrapezoid(ShapeParams(params[:,:,None,:3])))
-    #         if n_terms > 2:
-    #             shapes.append(
-    #                 shape.Triangle(ShapeParams(stride_coordinates(params[:,:,1:-1], n_terms - 2, 1, 3)))
-    #             )
-    #         shapes.append(shape.IncreasingRightTrapezoid(ShapeParams(params[:,:,None,-3:])))
-    #     else:
-    #         params = generate_spaced_params(n_terms)
-    #         shapes.append(shape.DecreasingRightTriangle(ShapeParams(params[:,:,None,:2])))
-    #         if n_terms > 2:
-    #             shapes.append(shape.Triangle(ShapeParams(stride_coordinates(params, n_terms - 2, 1, 3))))
-    #         shapes.append(shape.IncreasingRightTriangle(ShapeParams(params[:,:,None,-2:])))
-
-    #     super().__init__(shapes, implication, accumulator, truncate)
 
 
 class LogisticFuzzyConverter(CompositeFuzzyConverter):
@@ -434,7 +347,7 @@ class LogisticFuzzyConverter(CompositeFuzzyConverter):
     def from_linspace(
         cls, n_terms: int, implication: typing.Union[ShapeImplication, str]="area", 
         accumulator: typing.Union[Accumulator, str]="max", 
-        flat_edges: bool=False, truncate: bool=True,
+        truncate: bool=True,
     ):
         bias_coords = generate_spaced_params(n_terms)
         width = 1.0 / 2 * (n_terms - 1.0)
@@ -444,21 +357,117 @@ class LogisticFuzzyConverter(CompositeFuzzyConverter):
             truncate
         )
 
-    # def __init__(
-    #     self, n_terms: int, 
-    #     implication: typing.Union[ShapeImplication, str]="area", 
-    #     accumulator: typing.Union[Accumulator, str]="max", 
-    #     truncate: bool=True
-    # ):
-    #     biases = generate_spaced_params(n_terms)
-    #     width = 1.0 / 2 * (n_terms - 1.0)
-    #     scales = generate_repeat_params(n_terms, width)
-    #     shapes = []
-    #     shapes.append(shape.RightLogistic(ShapeParams(biases[:,:,None,0:1]), ShapeParams(scales[:,:,None,0:1]), False))
-    #     if n_terms > 2:
-    #         shapes.append(shape.LogisticBell(ShapeParams(biases[:,:,1:-1,None]), ShapeParams(scales[:,:,1:-1,None])))
-    #     shapes.append(shape.RightLogistic(ShapeParams(biases[:,:,-1:,None]), ShapeParams(scales[:,:,-1:,None])))
-    #     super().__init__(shapes, implication, accumulator, truncate)
+class SigmoidFuzzyConverter(CompositeFuzzyConverter):
+
+    def __init__(
+        self, sigmoid: shape.Sigmoid=None, 
+        implication: typing.Union[ShapeImplication, str]="area", 
+        accumulator: typing.Union[Accumulator, str]="max", 
+        truncate: bool=False
+    ):
+        super().__init__(
+            [sigmoid], implication, accumulator, truncate
+        )
+
+    @classmethod
+    def from_coords(
+        cls, bias_coords: torch.Tensor, scale_coords: torch.Tensor, n_terms: int,
+        implication: typing.Union[ShapeImplication, str]="area", 
+        accumulator: typing.Union[Accumulator, str]="max", 
+        truncate: bool=True
+    ):
+        sigmoid = shape.Sigmoid(
+            ShapeParams(bias_coords[:,:,:,None]), ShapeParams(scale_coords[:,:,:,None])
+        )
+        return SigmoidFuzzyConverter(sigmoid, implication, accumulator, truncate)
+
+    @classmethod
+    def from_linspace(
+        cls, n_terms: int, implication: typing.Union[ShapeImplication, str]="area", 
+        accumulator: typing.Union[Accumulator, str]="max", 
+        truncate: bool=True,
+    ):
+        bias_coords = generate_spaced_params(n_terms + 2)[:,:,1:-1]
+        width = 1.0 / 2 * (n_terms - 1.0)
+        scale_coords = generate_repeat_params(n_terms, width)
+        return SigmoidFuzzyConverter.from_coords(
+            bias_coords, scale_coords, n_terms, implication, accumulator,
+            truncate
+        )
+
+
+class RampFuzzyConverter(CompositeFuzzyConverter):
+
+    def __init__(
+        self, ramp: shape.Ramp=None, 
+        implication: typing.Union[ShapeImplication, str]="area", 
+        accumulator: typing.Union[Accumulator, str]="max", 
+        truncate: bool=False
+    ):
+        super().__init__(
+            [ramp], implication, accumulator, truncate
+        )
+
+    @classmethod
+    def from_coords(
+        cls, coords: torch.Tensor, 
+        implication: typing.Union[ShapeImplication, str]="area", 
+        accumulator: typing.Union[Accumulator, str]="max", 
+        truncate: bool=True
+    ):
+        ramp = shape.Ramp(
+            ShapeParams(coords[:,:,:-2,None]), ShapeParams(coords[:,:,2:,None])
+        )
+        return RampFuzzyConverter(ramp, implication, accumulator, truncate)
+
+    @classmethod
+    def from_linspace(
+        cls, n_terms: int, implication: typing.Union[ShapeImplication, str]="area", 
+        accumulator: typing.Union[Accumulator, str]="max", 
+        truncate: bool=True,
+    ):
+        coords = generate_spaced_params(n_terms + 2)
+        return RampFuzzyConverter.from_coords(
+            coords, implication, accumulator,
+            truncate
+        )
+
+
+class StepFuzzyConverter(CompositeFuzzyConverter):
+
+    def __init__(
+        self, step: shape.Step=None, 
+        implication: typing.Union[ShapeImplication, str]="area", 
+        accumulator: typing.Union[Accumulator, str]="max", 
+        truncate: bool=False
+    ):
+        super().__init__(
+            [step], implication, accumulator, truncate
+        )
+
+    @classmethod
+    def from_coords(
+        cls, coords: torch.Tensor, 
+        implication: typing.Union[ShapeImplication, str]="area", 
+        accumulator: typing.Union[Accumulator, str]="max", 
+        truncate: bool=True
+    ):
+        ramp = shape.Step(
+            ShapeParams(coords[:,:,:,None])
+        )
+        return RampFuzzyConverter(ramp, implication, accumulator, truncate)
+
+    @classmethod
+    def from_linspace(
+        cls, n_terms: int, implication: typing.Union[ShapeImplication, str]="area", 
+        accumulator: typing.Union[Accumulator, str]="max", 
+        truncate: bool=True,
+    ):
+        coords = generate_spaced_params(n_terms + 2)[:,:,1:-1]
+        return RampFuzzyConverter.from_coords(
+            coords, implication, accumulator,
+            truncate
+        )
 
 
 class ConverterDecorator(ABC, FuzzyConverter):

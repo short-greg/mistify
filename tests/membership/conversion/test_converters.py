@@ -5,43 +5,6 @@ import torch
 import torch
 
 
-
-# class TestSigmoidFuzzyConverter:
-
-#     def test_fuzzify_converts_to_binary_set(self):
-
-#         converter = membership.SigmoidFuzzyConverter(2, 3)
-#         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
-#         assert isinstance(fuzzy_set, torch.Tensor)
-
-#     def test_fuzzify_converts_to_fuzzy_set_with_correct_size(self):
-
-#         converter = membership.SigmoidFuzzyConverter(2, 3)
-#         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
-#         assert fuzzy_set.data.size() == torch.Size([3, 2, 3])
-
-#     def test_fuzzify_converts_to_binary_set_with_correct_size_when_using_same(self):
-
-#         converter = membership.SigmoidFuzzyConverter(1, 3)
-#         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
-#         assert fuzzy_set.data.size() == torch.Size([3, 2, 3])
-
-#     def test_imply_returns_value_weight_with_correct_size(self):
-
-#         converter = membership.SigmoidFuzzyConverter(1, 3)
-#         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
-#         value_weight = converter.imply(fuzzy_set)
-#         assert value_weight.weight.size() == torch.Size([3, 2, 3])
-#         assert value_weight.value.size() == torch.Size([3, 2, 3])
-
-#     def test_accumulate_returns_tensor_of_correct_size(self):
-
-#         converter = membership.SigmoidFuzzyConverter(1, 3)
-#         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
-#         value_weight = converter.imply(fuzzy_set)
-#         result = converter.accumulate(value_weight)
-#         assert result.size() == torch.Size([3, 2])
-
 class TestIsoscelesFuzzyConverter:
     
     def test_fuzzify_converts_to_fuzzy_set(self):
@@ -256,6 +219,44 @@ class TestLogisticFuzzyConverter:
         result = converter.accumulate(value_weight)
         assert result.size() == torch.Size([3, 2])
 
+
+
+
+# class TestSigmoidFuzzyConverter:
+
+#     def test_fuzzify_converts_to_binary_set(self):
+
+#         converter = membership.SigmoidFuzzyConverter(2, 3)
+#         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
+#         assert isinstance(fuzzy_set, torch.Tensor)
+
+#     def test_fuzzify_converts_to_fuzzy_set_with_correct_size(self):
+
+#         converter = membership.SigmoidFuzzyConverter(2, 3)
+#         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
+#         assert fuzzy_set.data.size() == torch.Size([3, 2, 3])
+
+#     def test_fuzzify_converts_to_binary_set_with_correct_size_when_using_same(self):
+
+#         converter = membership.SigmoidFuzzyConverter(1, 3)
+#         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
+#         assert fuzzy_set.data.size() == torch.Size([3, 2, 3])
+
+#     def test_imply_returns_value_weight_with_correct_size(self):
+
+#         converter = membership.SigmoidFuzzyConverter(1, 3)
+#         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
+#         value_weight = converter.imply(fuzzy_set)
+#         assert value_weight.weight.size() == torch.Size([3, 2, 3])
+#         assert value_weight.value.size() == torch.Size([3, 2, 3])
+
+#     def test_accumulate_returns_tensor_of_correct_size(self):
+
+#         converter = membership.SigmoidFuzzyConverter(1, 3)
+#         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
+#         value_weight = converter.imply(fuzzy_set)
+#         result = converter.accumulate(value_weight)
+#         assert result.size() == torch.Size([3, 2])
 
 # class TestStepCrispConverter:
 

@@ -17,3 +17,6 @@ from ._triangle import (
 )
 from . import _utils as shape_utils
 from ._composite import CompositeShape
+from ._sigmoid import Sigmoid
+from ._ramp import Ramp
+from ._step import Step
