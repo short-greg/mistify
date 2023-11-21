@@ -2,7 +2,6 @@ from ._shapes import (
     Polygon, 
     Shape, 
     ShapeParams, 
-    ShapePoints,
     Square, 
     Triangle, 
     Trapezoid, 

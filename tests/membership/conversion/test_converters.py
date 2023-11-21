@@ -1,4 +1,3 @@
-import pytest
 from mistify import membership
 import torch
 

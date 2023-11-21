@@ -1,5 +1,5 @@
 from ._base import (
-    ShapeParams, Shape, ShapePoints, Polygon,
+    ShapeParams, Shape, Polygon,
     Concave, Monotonic
 )
 from ._square import (

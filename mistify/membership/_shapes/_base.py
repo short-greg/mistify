@@ -1,35 +1,41 @@
+# 1st party
 from abc import abstractmethod, abstractproperty
-import typing
-import torch
 from dataclasses import dataclass
+import typing
+
+# 3rd party
+import torch
+
+# local
 from ...utils._utils import resize_to, unsqueeze
 
 
-@dataclass
-class ShapePoints:
-
-    n_side_pts: int
-    n_pts: int
-    n_middle_pts: int
-    n_middle_shape_pts: int
-    side_step: int
-    step: int
-    n_pts: int
-
-
 class Shape(object):
-    """Shape to calculate membership for
+    """To convert an input into a membership or vice-versa
     """
 
     def __init__(self, n_variables: int, n_terms: int):
+        """Create the shape
 
+        Args:
+            n_variables (int): the number of linguistic variables
+            n_terms (int): the number of terms for each variable
+        """
         super().__init__()
         self._n_variables = n_variables
         self._n_terms = n_terms
         self._areas = None
 
     def _init_m(self, m: torch.Tensor=None, device='cpu') -> torch.Tensor:
+        """initialize m
 
+        Args:
+            m (torch.Tensor, optional): the membership. Defaults to None.
+            device (str, optional): the device for the membership. Defaults to 'cpu'.
+
+        Returns:
+            torch.Tensor: the output membership
+        """
         if m is None:
             return torch.tensor(1., device=device)
         return m.to(device)
@@ -116,6 +122,8 @@ class Shape(object):
 
 
 class Monotonic(Shape):
+    """A shape that monotonically increases or decreases
+    """
 
     def __init__(self, n_variables: int, n_terms: int):
 
@@ -126,7 +134,7 @@ class Monotonic(Shape):
     def _calc_min_cores(self) -> torch.Tensor:
         """
         Returns:
-            torch.Tensor: The mean of the core of the shape
+            torch.Tensor: The minimum of the "core" of the shape
         """
         pass
 
@@ -142,9 +150,16 @@ class Monotonic(Shape):
 
 
 class Concave(Shape):
+    """A shape that is concave. It is uncertain 
+    """
 
     def __init__(self, n_variables: int, n_terms: int):
+        """
 
+        Args:
+            n_variables (int): the number of linguistic variables
+            n_terms (int): the number of terms for each variable
+        """
         super().__init__(n_variables, n_terms)
         self._mean_cores = None
         self._centroids = None
@@ -329,7 +344,8 @@ class ShapeParams:
 
 
 class Polygon(Concave):
-
+    """
+    """
     PT = None
 
     def __init__(self, params: ShapeParams, m: typing.Optional[torch.Tensor]=None):

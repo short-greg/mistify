@@ -1,13 +1,16 @@
+# 1st party
+from abc import abstractmethod
+
+# 3rd party
 import torch.nn as nn
 import torch
-from abc import abstractmethod
 
 
 class MembershipActivation(nn.Module):
 
-    def __init__(self, n_features: int):
+    def __init__(self, n_terms: int):
         super().__init__()
-        self._n_features = n_features
+        self._n_terms = n_terms
     
     @abstractmethod
     def forward(self, m: torch.Tensor):
@@ -28,14 +31,15 @@ class Descale(nn.Module):
         return (torch.clamp(m, self._lower_bound) - self._lower_bound) / self._scale
 
 
-class SigmoidActivation(MembershipActivation):
+# TODO: check if it works with current
+class Sigmoid(MembershipActivation):
     """Inverse sigmoid followed by parameterized forward sigmoid"""
 
-    def __init__(self, n_features: int, positive_scale: bool=False, device='cpu'):
-        super().__init__(n_features)
+    def __init__(self, n_terms: int, positive_scale: bool=False, device='cpu'):
+        super().__init__(n_terms)
         self._positive_scale = positive_scale
-        self.b = torch.nn.Parameter(torch.empty((n_features,), device=device))
-        self.s = torch.nn.Parameter(torch.empty((n_features,), device=device))
+        self.b = torch.nn.Parameter(torch.empty((n_terms,), device=device))
+        self.s = torch.nn.Parameter(torch.empty((n_terms,), device=device))
         torch.nn.init.normal_(self.b, -0.05, 0.05)
         torch.nn.init.uniform_(self.s, 0.5, 1.5)
     
@@ -63,8 +67,8 @@ class SigmoidActivation(MembershipActivation):
         return result
 
 
-class TriangularActivation(MembershipActivation):
-    """Warps the membership by a triangular function"""
+class Triangular(MembershipActivation):
+    """Warps the membership by a triangular function then warps back"""
 
     def __init__(self, n_features: int, device='cpu'):
         super().__init__(n_features)
@@ -82,6 +86,8 @@ class TriangularActivation(MembershipActivation):
 
 
 class Hedge(nn.Module):
+    """Update the linguistic term with an exponential
+    """
 
     def __init__(self, n_terms: int, dim: int=-1, lower_bound: float=None, upper_bound: float=None):
 
