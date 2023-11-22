@@ -4,7 +4,7 @@ from ._utils import (
 )
 
 from ._modules import (
-    TableProcessor, ColProcessor, PandasColProcessor, Dropout,
-    Binary, BinarySTE, binary_ste, clamp, Clamp, Argmax, Sign,
+    Dropout, Binary, BinarySTE, binary_ste, clamp, Clamp, 
+    Argmax, Sign,
     SignSTE, sign_ste
 )
