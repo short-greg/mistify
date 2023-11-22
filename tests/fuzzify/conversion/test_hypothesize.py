@@ -32,3 +32,4 @@ class TestHypothesis(object):
         logistic = _shapes.LogisticBell.from_combined(_shapes.ShapeParams(x))
         hypothesis = _conversion.AreaHypothesis()
         assert (hypothesis(logistic).shape == torch.Size([2, 3, 4]))
+    

@@ -90,7 +90,7 @@ class CompositeFuzzyConverter(FuzzyConverter):
             shapes = self._composite.truncate(m).shapes
         else:
             shapes = self._composite.scale(m).shapes
-        return ValueWeight(self._hypothesis(shapes), m)
+        return ValueWeight(self._hypothesis(*shapes), m)
 
 
 def polygon(left: shape.Shape, middle: shape.Shape, right: shape.Shape):

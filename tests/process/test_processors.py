@@ -163,5 +163,3 @@ class TestMinMaxScaler:
         y_target = min_max.reverse(y_out)
         
         assert torch.isclose(y, y_target, 1e-4).all()
-
-

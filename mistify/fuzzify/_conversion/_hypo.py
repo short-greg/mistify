@@ -11,13 +11,13 @@ from .._shapes import Shape, Concave, Monotonic
 class ShapeHypothesis(nn.Module):
 
     @abstractmethod
-    def forward(self, shapes: Shape):
+    def forward(self, *shapes: Shape):
         pass
 
 
 class AreaHypothesis(ShapeHypothesis):
 
-    def forward(self, shapes: typing.List[Shape]):
+    def forward(self, *shapes: typing.List[Shape]):
         return torch.cat(
             [shape.areas for shape in shapes], dim=2
         )
@@ -25,7 +25,7 @@ class AreaHypothesis(ShapeHypothesis):
 
 class MeanCoreHypothesis(ShapeHypothesis):
 
-    def forward(self, shapes: typing.List[Concave]):
+    def forward(self, *shapes: typing.List[Concave]):
 
         cores = []
         for shape in shapes:
@@ -39,7 +39,7 @@ class MeanCoreHypothesis(ShapeHypothesis):
 
 class MinCoreHypothesis(ShapeHypothesis):
 
-    def forward(self, shapes: typing.List[Monotonic]):
+    def forward(self, *shapes: typing.List[Monotonic]):
 
         cores = []
         for shape in shapes:
@@ -50,9 +50,10 @@ class MinCoreHypothesis(ShapeHypothesis):
             cores, dim=2
         )
 
+
 class CentroidHypothesis(ShapeHypothesis):
 
-    def forward(self, shapes: typing.List[Concave]):
+    def forward(self, *shapes: typing.List[Concave]):
         return torch.cat(
             [shape.centroids for shape in shapes], dim=2
         )

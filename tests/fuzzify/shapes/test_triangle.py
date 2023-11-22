@@ -1,6 +1,4 @@
-import pytest
 import torch
-from mistify import fuzzy
 from mistify.fuzzify import ShapeParams
 from mistify.fuzzify._shapes import _trapezoid, _triangle
 
