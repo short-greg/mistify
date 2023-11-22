@@ -29,7 +29,7 @@ class Sign(nn.Module):
         return torch.sign(x)
 
 
-class Binary(nn.Module):
+class Boolean(nn.Module):
 
     def __init__(self, grad: bool = True):
         super().__init__()
@@ -37,8 +37,22 @@ class Binary(nn.Module):
 
     def forward(self, x: torch.Tensor):
         if self._grad:
-            return BinarySTE.apply(x)
+            return BooleanSTE.apply(x)
         return torch.clamp(x, 0, 1).round()
+
+
+class Clamp(nn.Module):
+
+    def __init__(self, lower: float=-1.0, upper: float=1.0, grad: bool = True):
+        super().__init__()
+        self._lower = lower
+        self._upper = upper
+        self._grad = grad
+
+    def forward(self, x: torch.Tensor):
+        if self._grad:
+            return ClampSTE.apply(x, self._lower, self._upper, -0.01, 0.01)
+        return torch.clamp(x)
 
 
 class SignSTE(torch.autograd.Function):
@@ -66,7 +80,7 @@ class SignSTE(torch.autograd.Function):
         return grad_input
 
 
-class BinarySTE(torch.autograd.Function):
+class BooleanSTE(torch.autograd.Function):
     """Use to clip the grad between two values
     Useful for smooth maximum/smooth minimum
     """
@@ -91,7 +105,7 @@ class BinarySTE(torch.autograd.Function):
         return grad_input
 
 
-class Clamp(torch.autograd.Function):
+class ClampSTE(torch.autograd.Function):
     """Use to clip the grad between two values
     Useful for smooth maximum/smooth minimum
     """
@@ -122,7 +136,7 @@ def clamp(x: torch.Tensor) -> torch.Tensor:
 
 
 def binary_ste(x: torch.Tensor) -> torch.Tensor:
-    return BinarySTE.apply(x)
+    return BooleanSTE.apply(x)
 
 
 def sign_ste(x: torch.Tensor) -> torch.Tensor:
@@ -130,10 +144,19 @@ def sign_ste(x: torch.Tensor) -> torch.Tensor:
 
 
 class Dropout(nn.Module):
-    """
+    """Dropout is designed to work with logical neurons
+    It does not divide the output by p and can be set to "dropout" to
+    any value. This is because for instance And neurons should
+    dropout to 1 not to 0.
     """
 
     def __init__(self, p: float, val: float=0.0):
+        """Create a dropout neuron to dropout logical inputs
+
+        Args:
+            p (float): The dropout probability
+            val (float, optional): The value to dropout to. Defaults to 0.0.
+        """
 
         super().__init__()
         self.p = p

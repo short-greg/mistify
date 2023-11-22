@@ -4,7 +4,7 @@ from ._utils import (
 )
 
 from ._modules import (
-    Dropout, Binary, BinarySTE, binary_ste, clamp, Clamp, 
+    Dropout, Boolean, BooleanSTE, binary_ste, clamp, Clamp, 
     Argmax, Sign,
     SignSTE, sign_ste
 )
