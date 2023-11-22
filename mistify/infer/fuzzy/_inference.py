@@ -21,9 +21,9 @@ from .._base import (
     UnionOn, IntersectionOn, Complement
 )
 from .. import _base as base
-from .. import functional
+from ... import functional
 from . import _generate
-from ..utils import weight_func
+from ...utils import weight_func
 
 
 class FuzzyComplement(Complement):

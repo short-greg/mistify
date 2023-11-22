@@ -1,4 +1,4 @@
-from mistify import boolean
+from mistify.infer import boolean
 import torch
 
 

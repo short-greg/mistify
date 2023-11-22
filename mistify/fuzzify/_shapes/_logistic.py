@@ -6,7 +6,7 @@ import torch
 # local
 from ._base import ShapeParams, Concave
 from ...utils import unsqueeze, check_contains
-from ._utils import calc_area_logistic, calc_dx_logistic, calc_area_logistic_one_side, calc_m_logistic, calc_x_logistic
+from ._utils import calc_dx_logistic, calc_area_logistic_one_side, calc_m_logistic, calc_x_logistic
 
 
 intersect = torch.min

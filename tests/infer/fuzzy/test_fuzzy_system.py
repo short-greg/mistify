@@ -1,4 +1,4 @@
-from mistify import fuzzy
+from mistify.infer import fuzzy
 import typing
 from torch import nn
 import torch
@@ -18,15 +18,15 @@ class TestBasicSigmoidFuzzySytem:
                 hidden_terms (typing.List[int]): 
             """
             super().__init__()
-            self.converter = fuzzify.SigmoidFuzzyConverter(in_features, in_terms)
+            self.converter = fuzzify.SigmoidFuzzyConverter.from_linspace(in_terms)
 
             terms = [in_terms, *hidden_terms]
             self.fuzzy_layers = nn.ModuleList()
             for in_i, out_i in zip(terms[:-1], terms[1:]):
                 self.fuzzy_layers.append(fuzzy.FuzzyOr(in_i, out_i, n_terms=in_features))
             self.hypothesis = nn.Sequential(*self.fuzzy_layers)
-            self.out_converter = fuzzify.SigmoidFuzzyConverter(in_features, hidden_terms[-1])
-            self.defuzzifier = fuzzify.SigmoidDefuzzifier(self.out_converter)
+            self.out_converter = fuzzify.SigmoidFuzzyConverter.from_linspace(hidden_terms[-1])
+            self.defuzzifier = fuzzify.ConverterDefuzzifier(self.out_converter)
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
             x = self.converter.forward(x)
@@ -62,7 +62,7 @@ class TestBasicSigmoidFuzzySytem2:
         def __init__(self, in_features: int, in_terms: int, hidden_variables: typing.List[int], out_features: typing.List[int]):
             super().__init__()
             print(in_terms, in_features)
-            self.converter = fuzzify.SigmoidFuzzyConverter(in_features, in_terms)
+            self.converter = fuzzify.SigmoidFuzzyConverter.from_linspace(in_terms)
 
             variables = [in_terms * in_features, *hidden_variables]
             self.fuzzy_layers = nn.ModuleList()
@@ -70,8 +70,8 @@ class TestBasicSigmoidFuzzySytem2:
                 self.fuzzy_layers.append(fuzzy.FuzzyOr(in_i, out_i))
             self.hypothesis = nn.Sequential(*self.fuzzy_layers)
             self._out_features = out_features
-            self.out_converter = fuzzify.SigmoidFuzzyConverter(out_features, hidden_variables[-1] // out_features)
-            self.defuzzifier = fuzzify.SigmoidDefuzzifier(self.out_converter)
+            self.out_converter = fuzzify.SigmoidFuzzyConverter.from_linspace(hidden_variables[-1] // out_features)
+            self.defuzzifier = fuzzify.ConverterDefuzzifier(self.out_converter)
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
             m = self.converter.forward(x)

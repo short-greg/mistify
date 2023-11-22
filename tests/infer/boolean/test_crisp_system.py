@@ -1,7 +1,7 @@
 from mistify import fuzzify
 import torch
 from torch import nn
-from mistify import fuzzy
+from mistify.infer import fuzzy
 import typing
 
 
@@ -11,7 +11,7 @@ class TestBasicCrispSystem2:
 
         def __init__(self, in_features: int, in_terms: int, hidden_variables: typing.List[int], out_features: typing.List[int]):
             super().__init__()
-            self.converter = fuzzify.StepFuzzyConverter(in_features, in_terms)
+            self.converter = fuzzify.StepFuzzyConverter.from_linspace(in_terms)
 
             variables = [in_terms * in_features, *hidden_variables]
             self.fuzzy_layers = nn.ModuleList()
@@ -19,7 +19,7 @@ class TestBasicCrispSystem2:
                 self.fuzzy_layers.append(fuzzy.FuzzyOr(in_i, out_i))
             self.hypothesis = nn.Sequential(*self.fuzzy_layers)
             self._out_features = out_features
-            self.out_converter = fuzzify.StepFuzzyConverter(out_features, hidden_variables[-1] // out_features)
+            self.out_converter = fuzzify.StepFuzzyConverter.from_linspace(hidden_variables[-1] // out_features)
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
             m = self.converter.forward(x)

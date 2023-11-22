@@ -1,4 +1,4 @@
-from mistify import fuzzy
+from mistify.infer import fuzzy
 import torch
 
 

@@ -2,7 +2,7 @@
 import torch
 import torch.nn as nn
 
-from mistify._base import (
+from mistify.infer._assess import (
     ToOptim
 )
 from mistify.utils import unsqueeze

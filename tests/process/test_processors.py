@@ -6,6 +6,7 @@ class TestStdDev:
 
     def test_fit_fits_the_standard_deviation(self):
 
+        torch.manual_seed(1)
         X = torch.rand(8, 4)
         stddev = processors.StdDev.fit(X)
         assert (stddev.mean == X.mean(dim=0, keepdim=True)).all()
@@ -13,6 +14,7 @@ class TestStdDev:
 
     def test_forward_will_scale_the_results(self):
 
+        torch.manual_seed(1)
         X = torch.rand(8, 4)
         y = torch.rand(8, 4)
         stddev = processors.StdDev.fit(X)
@@ -22,6 +24,7 @@ class TestStdDev:
 
     def test_forward_reduces_results_by_3_if_divisor_set(self):
 
+        torch.manual_seed(1)
         X = torch.rand(8, 4)
         y = torch.rand(8, 4)
         stddev = processors.StdDev.fit(X, divisor=3)
@@ -33,6 +36,7 @@ class TestStdDev:
 
     def test_reverse_undoes_the_transformation(self):
 
+        torch.manual_seed(1)
         X = torch.rand(8, 4)
         y = torch.rand(8, 4)
         stddev = processors.StdDev.fit(X, divisor=3)
