@@ -30,14 +30,14 @@ class TestIsoscelesFuzzyConverter:
         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
         value_weight = converter.hypo(fuzzy_set)
         assert value_weight.weight.size() == torch.Size([3, 2, 3])
-        assert value_weight.value.size() == torch.Size([3, 2, 3])
+        assert value_weight.hypo.size() == torch.Size([3, 2, 3])
 
     def test_accumulate_returns_tensor_of_correct_size(self):
 
         converter = fuzzify.IsoscelesFuzzyConverter.from_linspace(3)
         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
         value_weight = converter.hypo(fuzzy_set)
-        result = converter.accumulate(value_weight)
+        result = converter.conclude(value_weight)
         assert result.size() == torch.Size([3, 2])
 
 
@@ -73,14 +73,14 @@ class TestTriangleFuzzyConverter:
         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
         value_weight = converter.hypo(fuzzy_set)
         assert value_weight.weight.size() == torch.Size([3, 2, 3])
-        assert value_weight.value.size() == torch.Size([3, 2, 3])
+        assert value_weight.hypo.size() == torch.Size([3, 2, 3])
 
     def test_accumulate_returns_tensor_of_correct_size(self):
 
         converter = fuzzify.TriangleFuzzyConverter.from_linspace(3)
         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
         value_weight = converter.hypo(fuzzy_set)
-        result = converter.accumulate(value_weight)
+        result = converter.conclude(value_weight)
         assert result.size() == torch.Size([3, 2])
 
     # def test_params_are_different_after_calling_fuzzify_and_optimizing(self):
@@ -128,14 +128,14 @@ class TestIsoscelesTrapezoidFuzzyConverter:
         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
         value_weight = converter.hypo(fuzzy_set)
         assert value_weight.weight.size() == torch.Size([3, 2, 3])
-        assert value_weight.value.size() == torch.Size([3, 2, 3])
+        assert value_weight.hypo.size() == torch.Size([3, 2, 3])
 
     def test_accumulate_returns_tensor_of_correct_size(self):
 
         converter = fuzzify.IsoscelesTrapezoidFuzzyConverter.from_linspace(3)
         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
         value_weight = converter.hypo(fuzzy_set)
-        result = converter.accumulate(value_weight)
+        result = converter.conclude(value_weight)
         assert result.size() == torch.Size([3, 2])
 
 
@@ -171,14 +171,14 @@ class TestTrapezoidFuzzyConverter:
         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
         value_weight = converter.hypo(fuzzy_set)
         assert value_weight.weight.size() == torch.Size([3, 2, 3])
-        assert value_weight.value.size() == torch.Size([3, 2, 3])
+        assert value_weight.hypo.size() == torch.Size([3, 2, 3])
 
     def test_accumulate_returns_tensor_of_correct_size(self):
 
         converter = fuzzify.TrapezoidFuzzyConverter.from_linspace(3)
         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
         value_weight = converter.hypo(fuzzy_set)
-        result = converter.accumulate(value_weight)
+        result = converter.conclude(value_weight)
         assert result.size() == torch.Size([3, 2])
 
 
@@ -208,14 +208,14 @@ class TestLogisticFuzzyConverter:
         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
         value_weight = converter.hypo(fuzzy_set)
         assert value_weight.weight.size() == torch.Size([3, 2, 3])
-        assert value_weight.value.size() == torch.Size([3, 2, 3])
+        assert value_weight.hypo.size() == torch.Size([3, 2, 3])
 
     def test_accumulate_returns_tensor_of_correct_size(self):
 
         converter = fuzzify.LogisticFuzzyConverter.from_linspace(3)
         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
         value_weight = converter.hypo(fuzzy_set)
-        result = converter.accumulate(value_weight)
+        result = converter.conclude(value_weight)
         assert result.size() == torch.Size([3, 2])
 
 
@@ -245,14 +245,14 @@ class TestSigmoidFuzzyConverter:
         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
         value_weight = converter.hypo(fuzzy_set)
         assert value_weight.weight.size() == torch.Size([3, 2, 3])
-        assert value_weight.value.size() == torch.Size([3, 2, 3])
+        assert value_weight.hypo.size() == torch.Size([3, 2, 3])
 
     def test_accumulate_returns_tensor_of_correct_size(self):
 
         converter = fuzzify.SigmoidFuzzyConverter.from_linspace(3)
         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
         value_weight = converter.hypo(fuzzy_set)
-        result = converter.accumulate(value_weight)
+        result = converter.conclude(value_weight)
         assert result.size() == torch.Size([3, 2])
 
 
@@ -282,14 +282,14 @@ class TestRampFuzzyConverter:
         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
         value_weight = converter.hypo(fuzzy_set)
         assert value_weight.weight.size() == torch.Size([3, 2, 3])
-        assert value_weight.value.size() == torch.Size([3, 2, 3])
+        assert value_weight.hypo.size() == torch.Size([3, 2, 3])
 
     def test_accumulate_returns_tensor_of_correct_size(self):
 
         converter = fuzzify.SigmoidFuzzyConverter.from_linspace(3)
         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
         value_weight = converter.hypo(fuzzy_set)
-        result = converter.accumulate(value_weight)
+        result = converter.conclude(value_weight)
         assert result.size() == torch.Size([3, 2])
 
 
@@ -319,12 +319,12 @@ class TestStepFuzzyConverter:
         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
         value_weight = converter.hypo(fuzzy_set)
         assert value_weight.weight.size() == torch.Size([3, 2, 3])
-        assert value_weight.value.size() == torch.Size([3, 2, 3])
+        assert value_weight.hypo.size() == torch.Size([3, 2, 3])
 
     def test_accumulate_returns_tensor_of_correct_size(self):
 
         converter = fuzzify.StepFuzzyConverter.from_linspace(3)
         fuzzy_set = converter.fuzzify(torch.rand(3, 2))
         value_weight = converter.hypo(fuzzy_set)
-        result = converter.accumulate(value_weight)
+        result = converter.conclude(value_weight)
         assert result.size() == torch.Size([3, 2])

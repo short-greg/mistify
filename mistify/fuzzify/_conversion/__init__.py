@@ -1,10 +1,10 @@
 from ._conclude import (
-    ValueWeight, 
-    MaxAcc, 
+    HypoWeight, 
+    MaxConc, 
     Conclusion,
-    MaxValueAcc, 
-    WeightedAverageAcc,
-    AccEnum
+    MaxValueConc, 
+    WeightedAverageConc,
+    ConcEnum
 )
 from ._fuzzifiers import (
     Fuzzifier, 

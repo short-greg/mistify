@@ -12,10 +12,11 @@ class Composite(Nonmonotonic, Monotonic):
     """A shape that wraps several nonmonotonic shapes
     """
 
-    def __init__(self, shapes: typing.List[Shape]):
-        """Create a composite of Nonmonotonic shapes
+    def __init__(self, shapes: typing.List[typing.Union[Monotonic, Nonmonotonic]]):
+        """Create a composite of Nonmonotonic shapes. If monotonic and non_montonic shapes
+        are mixed only the area can be used for defuzzification. Fuzzification will work fine
+        though
         """
-
         n_terms = 0
         n_variables = -1
         for shape in shapes:
@@ -37,33 +38,56 @@ class Composite(Nonmonotonic, Monotonic):
         return [*self._shapes]
 
     def join(self, x: torch.Tensor) -> torch.Tensor:
+        """Join over each of the shapes and concatenate the results
 
+        Args:
+            x (torch.Tensor): The value to get the membership value for
+
+        Returns:
+            torch.Tensor: The membership
+        """
         return torch.cat(
             [shape.join(x) for shape in self._shapes], dim=2
         )
     
     def _calc_areas(self):
+        """Calculate the area for each of the shapes and concatenate
+
+        Returns:
+            torch.Tensor: The areas
+        """
         return torch.cat(
             [shape.areas for shape in self._shapes], dim=2
         )
 
     def _calc_centroids(self) -> torch.Tensor:
+        """Calculate the centroids for each of the shapes and concatenate
+        
+        Returns:
+            torch.Tensor: The centroids
+        """
         return torch.cat(
             [shape.centroids for shape in self._shapes], dim=2
         )
 
     def _calc_mean_cores(self) -> torch.Tensor:
+        """Calculate the mean_cores for each of the shapes and concatenate
+        
+        Returns:
+            torch.Tensor: The mean_cores
+        """
         return torch.cat(
             [shape.mean_cores for shape in self._shapes], dim=2
         )
 
     def _calc_min_cores(self) -> torch.Tensor:
-        """
+        """Calculate the min_cores for each of the shapes and concatenate
+        
         Returns:
-            torch.Tensor: The minimum value of the core of the set
+            torch.Tensor: The min_cores
         """
         return torch.cat(
-            [shape.mean_cores for shape in self._shapes], dim=2
+            [shape.min_cores for shape in self._shapes], dim=2
         )
 
     def truncate(self, m: torch.Tensor) -> Shape:

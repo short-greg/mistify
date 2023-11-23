@@ -5,8 +5,8 @@ import torch
 import torch.nn as nn
 from torch import clamp
 
-from ._conclude import ValueWeight, Conclusion
-from ._converters import FuzzyConverter # SigmoidFuzzyConverter, RangeFuzzyConverter
+from ._conclude import HypoWeight
+from ._converters import FuzzyConverter
 
 
 class Fuzzifier(nn.Module):
@@ -17,90 +17,54 @@ class Fuzzifier(nn.Module):
 
 
 class Defuzzifier(nn.Module):
+    """Defuzzify the input
+    """
 
     @abstractmethod
-    def hypo(self, m: torch.Tensor) -> ValueWeight:
+    def hypo(self, m: torch.Tensor) -> HypoWeight:
         pass
 
     @abstractmethod
-    def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
+    def conclude(self, value_weight: HypoWeight) -> torch.Tensor:
         pass
 
     @abstractmethod
     def forward(self, m: torch.Tensor) -> torch.Tensor:
-        return self.accumulate(self.hypo(m))
-
-
-class ConverterDecrispifier(Defuzzifier):
-
-    def __init__(self, crisp_converter: FuzzyConverter):
-
-        super().__init__()
-        self.crisp_converter = crisp_converter
-
-    def hypo(self, m: torch.Tensor) -> ValueWeight:
-        return self.crisp_converter.hypo(m)
-
-    def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
-        return self.crisp_converter.accumulate(value_weight)
-
-
-class ConverterCrispifier(Fuzzifier):
-
-    def __init__(self, crisp_converter: FuzzyConverter):
-
-        super().__init__()
-        self.crisp_converter = crisp_converter
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.crisp_converter.crispify(x)
-
-
-# class SigmoidDefuzzifier(Defuzzifier):
-
-#     def __init__(self, converter: SigmoidFuzzyConverter):
-
-#         super().__init__()
-#         self.converter = converter
-
-#     def forward(self, m: torch.Tensor):
-#         return self.converter.defuzzify(m)
-    
-#     @classmethod
-#     def build(cls, out_variables: int, out_terms: int, eps: float=1e-7, conclusion: Conclusion=None):
-#         return SigmoidDefuzzifier(
-#             SigmoidFuzzyConverter(out_variables, out_terms, eps, conclusion)
-#         )
-
-
-# class RangeDefuzzifier(Defuzzifier):
-
-#     def __init__(self, converter: RangeFuzzyConverter):
-
-#         super().__init__()
-#         self.converter = converter
-
-#     def forward(self, m: torch.Tensor):
-#         return self.converter.defuzzify(m)
-    
-#     @classmethod
-#     def build(cls, out_variables: int, out_terms: int, conclusion: Conclusion=None):
-#         return RangeDefuzzifier(
-#             RangeFuzzyConverter(out_variables, out_terms, conclusion)
-#         )
+        return self.conclude(self.hypo(m))
 
 
 class ConverterDefuzzifier(Defuzzifier):
 
     def __init__(self, converter: FuzzyConverter):
+        """Wrap a FuzzyConverter to create a defuzzifier
+
+        Args:
+            converter (FuzzyConverter): The fuzzy converter to wrap
+        """
         super().__init__()
         self.converter = converter
 
-    def hypo(self, m: torch.Tensor) -> ValueWeight:
+    def hypo(self, m: torch.Tensor) -> HypoWeight:
+        """Calculate the hypothesis
+
+        Args:
+            m (torch.Tensor): The fuzzy set input
+
+        Returns:
+            HypoWeight: The hypothesis and weight
+        """
         return self.converter.hypo(m)
 
-    def accumulate(self, value_weight: ValueWeight) -> torch.Tensor:
-        return self.converter.accumulate(value_weight)
+    def conclude(self, hypo_weight: HypoWeight) -> torch.Tensor:
+        """
+
+        Args:
+            hypo_weight (HypoWeight): _description_
+
+        Returns:
+            torch.Tensor: The defuzzified value
+        """
+        return self.converter.conclude(hypo_weight)
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         return self.converter.defuzzify(m)
@@ -109,11 +73,24 @@ class ConverterDefuzzifier(Defuzzifier):
 class ConverterFuzzifier(Fuzzifier):
 
     def __init__(self, converter: FuzzyConverter):
+        """Wrap a FuzzyConverter to create a fuzzifier
+
+        Args:
+            converter (FuzzyConverter): The fuzzy converter to wrap
+        """
         super().__init__()
         self.converter = converter
 
-    def forward(self, m: torch.Tensor) -> torch.Tensor:
-        return self.converter.fuzzify(m)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """The input
+
+        Args:
+            x (torch.Tensor): the input
+
+        Returns:
+            torch.Tensor: the fuzzified input
+        """
+        return self.converter.fuzzify(x)
 
 
 class EmbeddingFuzzifier(Fuzzifier):
@@ -139,14 +116,3 @@ class EmbeddingFuzzifier(Fuzzifier):
         if x.dim() != 2:
             raise ValueError('Embedding crispifier only works for two dimensional tensors')
         return self.f(self._embedding(x))
-
-
-# class SignedCrispifier(Crispifier):
-
-#     def __init__(self, boolean_crispifier: Crispifier):
-#         super().__init__()
-#         self._crispifier = boolean_crispifier
-
-#     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        
-#         return functional.to_signed(self._crispifier(x))
