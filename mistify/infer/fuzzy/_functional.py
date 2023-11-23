@@ -1,4 +1,4 @@
-import typing
+# 3rd party
 import torch
 
 
@@ -67,6 +67,17 @@ def unify_on(m: torch.Tensor, dim: int=-1) -> torch.Tensor:
 
 
 def inclusion(m1: torch.Tensor, m2: torch.Tensor, dim: int=None) -> 'torch.Tensor':
+    """Calculate whether m1 is included in m2. If dim is None then it will calculate per
+    element otherwise it will aggregate over that dimension
+
+    Args:
+        m1 (torch.Tensor): The membership to calculate the inclusion of
+        m2 (torch.Tensor): The membership to check if m1 is included
+        dim (int, optional): The dimension to aggregate over. Defaults to None.
+
+    Returns:
+        torch.Tensor: the tensor describing inclusion
+    """
     base = (1 - m2) + torch.min(m1, m2)
     if dim is None:
         return base.type_as(m1)
@@ -74,6 +85,17 @@ def inclusion(m1: torch.Tensor, m2: torch.Tensor, dim: int=None) -> 'torch.Tenso
 
 
 def exclusion(m1: torch.Tensor, m2: torch.Tensor, dim: int=None) -> 'torch.Tensor':
+    """Calculate whether m1 is excluded from m2. If dim is None then it will calculate per
+    element otherwise it will aggregate over that dimension
+
+    Args:
+        m1 (torch.Tensor): The membership to calculate the exclusion of
+        m2 (torch.Tensor): The membership to check if m1 is excluded
+        dim (int, optional): The dimension to aggregate over. Defaults to None.
+
+    Returns:
+        torch.Tensor: the tensor describing inclusion
+    """
     base = (1 - m1) + torch.min(m1, m2)
     if dim is None:
         return base.type_as(m1)
@@ -81,10 +103,26 @@ def exclusion(m1: torch.Tensor, m2: torch.Tensor, dim: int=None) -> 'torch.Tenso
 
 
 def complement(m: torch.Tensor) -> torch.Tensor:
+    """Calculate the fuzzy complement
+
+    Args:
+        m (torch.Tensor): The membership
+
+    Returns:
+        torch.Tensor: The fuzzy complement
+    """
     return 1 - m
 
 
 def else_(m: torch.Tensor, dim: int=-1, keepdim: bool=False) -> torch.Tensor:
+    """
+    Args:
+        m (torch.Tensor): The membership
+        dim (int, optional): The dimension to calculate on. Defaults to -1.
+        keepdim (bool, optional): Whether to keep the dimension of m. Defaults to False.
 
-        y = m.sum(dim=dim, keepdim=keepdim)
-        return torch.clamp(1 - y, 0.0)
+    Returns:
+        torch.Tensor: the else value of m along the dimension
+    """
+    y = m.sum(dim=dim, keepdim=keepdim)
+    return torch.clamp(1 - y, 0.0)

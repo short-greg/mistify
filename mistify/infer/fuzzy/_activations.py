@@ -1,6 +1,5 @@
 # 1st party
 from abc import abstractmethod
-import typing
 
 # 3rd party
 import torch.nn as nn
@@ -18,9 +17,18 @@ class MembershipActivation(nn.Module):
         raise NotImplementedError
 
 
-class Descale(nn.Module):
+class Descale(MembershipActivation):
+    """Activation scales the membership function to disregard values below a certain value and 
+    remove all other values
+    """
 
     def __init__(self, lower_bound: float):
+        """Create a 
+
+        Args:
+            lower_bound (float): The threshold 
+
+        """
         super().__init__()
         if not (0 < lower_bound < 1):
             raise ValueError(f'Argument lower_bound must be in range (0, 1) not {lower_bound}')
@@ -28,7 +36,14 @@ class Descale(nn.Module):
         self._scale = 1 / (1 - self._lower_bound)
     
     def forward(self, m: torch.Tensor) -> torch.Tensor:
-        
+        """Descale the membership
+
+        Args:
+            m (torch.Tensor): the membership
+
+        Returns:
+            torch.Tensor: The updated membership
+        """
         return (torch.clamp(m, self._lower_bound) - self._lower_bound) / self._scale
 
 
@@ -37,6 +52,14 @@ class Sigmoidal(MembershipActivation):
     """Inverse sigmoid followed by parameterized forward sigmoid"""
 
     def __init__(self, n_terms: int, positive_scale: bool=False, n_vars: int=False, device='cpu'):
+        """Create an activation with a parameterized sigmoid
+
+        Args:
+            n_terms (int): The number of terms
+            positive_scale (bool, optional): Whether it should be scaled positively or not. Defaults to False.
+            n_vars (int, optional): The number of vars. Use None if not defined, Use False if no var dimension. Defaults to False.
+            device (str, optional): _description_. Defaults to 'cpu'.
+        """
         super().__init__(n_terms)
         self._positive_scale = positive_scale
         if n_vars is False:
