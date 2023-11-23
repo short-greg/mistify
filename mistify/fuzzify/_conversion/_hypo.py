@@ -5,7 +5,7 @@ import typing
 import torch.nn as nn
 import torch
 
-from .._shapes import Shape, Concave, Monotonic
+from .._shapes import Shape, Nonmonotonic, Monotonic
 
 
 class ShapeHypothesis(nn.Module):
@@ -25,7 +25,7 @@ class AreaHypothesis(ShapeHypothesis):
 
 class MeanCoreHypothesis(ShapeHypothesis):
 
-    def forward(self, *shapes: typing.List[Concave]):
+    def forward(self, *shapes: typing.List[Nonmonotonic]):
 
         cores = []
         for shape in shapes:
@@ -53,7 +53,7 @@ class MinCoreHypothesis(ShapeHypothesis):
 
 class CentroidHypothesis(ShapeHypothesis):
 
-    def forward(self, *shapes: typing.List[Concave]):
+    def forward(self, *shapes: typing.List[Nonmonotonic]):
         return torch.cat(
             [shape.centroids for shape in shapes], dim=2
         )

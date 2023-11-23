@@ -1,6 +1,6 @@
 from ._base import (
     ShapeParams, Shape, Polygon,
-    Concave, Monotonic
+    Nonmonotonic, Monotonic
 )
 from ._square import (
     Square
@@ -16,7 +16,7 @@ from ._triangle import (
     Triangle, IsoscelesTriangle, DecreasingRightTriangle, IncreasingRightTriangle
 )
 from . import _utils as shape_utils
-from ._composite import CompositeShape
+from ._composite import Composite
 from ._sigmoid import Sigmoid
 from ._ramp import Ramp
 from ._step import Step

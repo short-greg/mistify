@@ -15,7 +15,7 @@ from .. import _shapes as shape
 from ._conclude import Conclusion, ValueWeight, MaxAcc, WeightedAverageAcc
 from ._hypo import ShapeHypothesis, HypothesisEnum
 from ._utils import stride_coordinates
-from .._shapes import Shape, ShapeParams, CompositeShape
+from .._shapes import Shape, ShapeParams, Composite
 from ._conclude import ValueWeight, Conclusion, MaxValueAcc, AccEnum
 from ... import functional
 
@@ -74,7 +74,7 @@ class CompositeFuzzyConverter(FuzzyConverter):
     ):
         super().__init__()
 
-        self._composite = CompositeShape(shapes)
+        self._composite = Composite(shapes)
         self._hypothesis = HypothesisEnum.get(hypothesis)
         self._conclusion = AccEnum.get(conclusion)
         self._truncate = truncate

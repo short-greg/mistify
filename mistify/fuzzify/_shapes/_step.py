@@ -11,10 +11,18 @@ intersect = torch.min
 
 
 class Step(Monotonic):
+    """A step membership function
+    """
 
     def __init__(
         self, threshold: ShapeParams, m: torch.Tensor=None
     ):
+        """Create a step function
+
+        Args:
+            threshold (ShapeParams): The threshold where the step occurs
+            m (torch.Tensor, optional): The max value of membership. Defaults to None.
+        """
         self._threshold = threshold
 
         self._m = self._init_m(m, threshold.device)
@@ -25,7 +33,11 @@ class Step(Monotonic):
         )
 
     @property
-    def thresholds(self):
+    def thresholds(self) -> ShapeParams:
+        """
+        Returns:
+            ShapeParams: The threshold where the step occurs
+        """
         return self._threshold
     
     @classmethod
@@ -47,13 +59,28 @@ class Step(Monotonic):
         return self._threshold.pt(0) * torch.zeros_like(self._m)
 
     def scale(self, m: torch.Tensor) -> 'Step':
-        m = self._m * m
+        """Scale the height of the step function
+
+        Args:
+            m (torch.Tensor): The value to scale by
+
+        Returns:
+            Step: The scaled step function
+        """
+        m = intersect(self._m, m)
         return Step(
             self._threshold, m
         )
 
     def truncate(self, m: torch.Tensor) -> 'Step':
+        """Reduce the height of teh step function
 
+        Args:
+            m (torch.Tensor): The value to reduce the height by
+
+        Returns:
+            Step: The updated step function
+        """
         m = intersect(self._m, m)
         return Step(
             self._threshold, m

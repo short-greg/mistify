@@ -5,12 +5,16 @@ import typing
 import torch
 
 # local
-from ._base import Shape
+from ._base import Shape, Nonmonotonic, Monotonic
 
 
-class CompositeShape(Shape):
+class Composite(Nonmonotonic, Monotonic):
+    """A shape that wraps several nonmonotonic shapes
+    """
 
     def __init__(self, shapes: typing.List[Shape]):
+        """Create a composite of Nonmonotonic shapes
+        """
 
         n_terms = 0
         n_variables = -1
@@ -25,17 +29,52 @@ class CompositeShape(Shape):
         self._shapes = shapes
 
     @property
-    def shapes(self) -> Shape:
+    def shapes(self) -> typing.List[Nonmonotonic]:
+        """
+        Returns:
+            typing.List[Nonmonotonic]: The shapes making up the CompositeNonmonotonic
+        """
         return [*self._shapes]
 
     def join(self, x: torch.Tensor) -> torch.Tensor:
 
         return torch.cat(
-            [shape.join(x) for shape in self._shapes],dim=2
+            [shape.join(x) for shape in self._shapes], dim=2
         )
     
-    def truncate(self, m: torch.Tensor) -> Shape:
+    def _calc_areas(self):
+        return torch.cat(
+            [shape.areas for shape in self._shapes], dim=2
+        )
 
+    def _calc_centroids(self) -> torch.Tensor:
+        return torch.cat(
+            [shape.centroids for shape in self._shapes], dim=2
+        )
+
+    def _calc_mean_cores(self) -> torch.Tensor:
+        return torch.cat(
+            [shape.mean_cores for shape in self._shapes], dim=2
+        )
+
+    def _calc_min_cores(self) -> torch.Tensor:
+        """
+        Returns:
+            torch.Tensor: The minimum value of the core of the set
+        """
+        return torch.cat(
+            [shape.mean_cores for shape in self._shapes], dim=2
+        )
+
+    def truncate(self, m: torch.Tensor) -> Shape:
+        """Truncate each of the shapes
+
+        Args:
+            m (torch.Tensor): The membership value to truncate by
+
+        Returns:
+            CompositeNonmonotonic: Composite with all shapes scaled 
+        """
         truncated = []
         start = 0
         last = None
@@ -48,9 +87,17 @@ class CompositeShape(Shape):
             truncated.append(shape.truncate(m_cur))
             start = last
     
-        return CompositeShape(truncated)
+        return Composite(truncated)
 
-    def scale(self, m: torch.Tensor) -> Shape:
+    def scale(self, m: torch.Tensor) -> 'Composite':
+        """Scale each of the shapes
+
+        Args:
+            m (torch.Tensor): The membership value to truncate by
+
+        Returns:
+            CompositeNonmonotonic: Composite with all shapes scaled 
+        """
         scaled = []
         start = 0
         last = None
@@ -61,4 +108,4 @@ class CompositeShape(Shape):
             scaled.append(shape.scale(m_cur))
             start = last
     
-        return CompositeShape(scaled)
+        return Composite(scaled)
