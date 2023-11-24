@@ -9,35 +9,6 @@ import torch.nn as nn
 import torch
 
 
-# TODO: Make this an enum
-# should be in inference (?)
-def weight_func(wf: typing.Union[str, typing.Callable]) -> typing.Callable:
-    """_summary_
-
-    Args:
-        wf (typing.Union[str, typing.Callable]): 
-
-    Raises:
-        ValueError: 
-
-    Returns:
-        typing.Callable: 
-    """
-    if isinstance(wf, str):
-        if wf == 'sigmoid':
-            return torch.sigmoid
-        if wf == 'clamp':
-            return partial(torch.clamp, min=0, max=1)
-        if wf == 'sign':
-            return torch.sign
-        if wf == 'binary':
-            return lambda x: torch.clamp(torch.round(x), 0, 1)
-
-        raise ValueError(f'Invalid weight function {wf}')
-
-    return wf
-
-
 def check_contains(x: torch.Tensor, pt1: torch.Tensor, pt2: torch.Tensor) -> torch.BoolTensor:
     """Check if a tensor falls between two points
 

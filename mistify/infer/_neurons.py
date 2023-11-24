@@ -1,7 +1,7 @@
 # 1st party
 import typing
-from enum import Enum
 from abc import abstractmethod
+from functools import partial
 
 # 3rd party
 import torch
@@ -9,18 +9,19 @@ import torch.nn as nn
 
 # local
 from .. import functional
-from ..utils import weight_func, EnumFactory
+from ..utils import EnumFactory
 from . import signed
 from . import fuzzy
 from . import boolean
 
 
 
-# def get_comp_weight_size(in_features: int, out_features: int, in_variables: int=None):
-
-#     if in_variables is None or in_variables == 0:
-#         return torch.Size([in_features, out_features])
-#     return torch.Size([in_variables, in_features, out_features])
+WEIGHT_FACTORY = EnumFactory(
+    sigmoid=torch.sigmoid,
+    clamp=partial(torch.clamp, min=0, max=1),
+    sign=torch.sign,
+    boolean=lambda x: torch.clamp(torch.round(x), 0, 1)
+)
 
 
 class IntersectionOn(nn.Module):
@@ -108,7 +109,7 @@ class Or(nn.Module):
             shape = (in_features,  out_features)
         self.weight = nn.parameter.Parameter(torch.ones(*shape))
         self._f = self.F.factory(f)
-        self._wf = weight_func(wf)
+        self._wf = WEIGHT_FACTORY.factory(wf)
         self._n_terms = n_terms
         self._in_features = in_features
         self._out_features = out_features
@@ -154,7 +155,7 @@ class And(nn.Module):
         else:
             shape = (in_features,  out_features)
         self.weight = nn.parameter.Parameter(torch.zeros(*shape))
-        self._wf = weight_func(wf)
+        self._wf = WEIGHT_FACTORY.factory(wf)
         self._n_terms = n_terms
         self._in_features = in_features
         self._out_features = out_features
