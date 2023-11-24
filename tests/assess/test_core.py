@@ -1,7 +1,6 @@
 
-from mistify.assess._core import (
-    ToOptim
-)
+from mistify.assess._core import ToOptim
+
 
 class TestToOptim:
 

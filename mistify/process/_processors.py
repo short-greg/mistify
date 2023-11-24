@@ -8,6 +8,8 @@ from torch.distributions import Normal
 
 
 class Processor(nn.Module):
+    """
+    """
 
     @abstractmethod
     def forward(self, x: torch.Tensor) -> torch.Tensor:
