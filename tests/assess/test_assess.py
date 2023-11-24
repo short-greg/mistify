@@ -3,7 +3,7 @@ import typing
 import torch
 from torch import nn
 import torch.nn
-from mistify.infer._assess import MistifyLoss, MistifyLossFactory
+from mistify.assess._core import MistifyLoss, MistifyLossFactory
 
 
 class ExampleMistifyLoss(MistifyLoss):

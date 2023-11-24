@@ -1,33 +1,10 @@
 # Test all utils
 import torch
-import torch.nn as nn
 
-from mistify.infer._assess import (
-    ToOptim
-)
-from mistify.utils import unsqueeze
 
 from mistify.utils import (
     check_contains
 )
-
-
-class TestToOptim:
-
-    def test_x_returns_false(self):
-
-        theta = ToOptim.THETA
-        assert theta.x() is False
-
-    def test_theta_returns_true(self):
-
-        theta = ToOptim.THETA
-        assert theta.theta() is True
-    
-    def test_theta_returns_true_when_both_set(self):
-
-        theta = ToOptim.BOTH
-        assert theta.theta() is True
 
 
 def test_check_contains_is_true_if_inside():
