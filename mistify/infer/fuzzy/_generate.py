@@ -1,7 +1,16 @@
 import torch
 
-def rand(*size: int,  dtype=torch.float32, device='cpu'):
 
+def rand(*size: int,  dtype=torch.float32, device='cpu') -> torch.Tensor:
+    """Generate random fuzzy set
+
+    Args:
+        dtype (optional): The dtype of the data . Defaults to torch.float32.
+        device (str, optional): The device of the data. Defaults to 'cpu'.
+
+    Returns:
+        torch.Tensor: The result
+    """
     return (torch.rand(*size, device=device, dtype=dtype))
 
 
@@ -10,7 +19,7 @@ def positives(*size: int, dtype=torch.float32, device='cpu') -> torch.Tensor:
     Generate a positive fuzzy set
 
     Args:
-        dtype (_type_, optional): . Defaults to torch.float32.
+        dtype (optional): . Defaults to torch.float32.
         device (str, optional): . Defaults to 'cpu'.
 
     Returns:

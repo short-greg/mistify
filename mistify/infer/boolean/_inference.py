@@ -95,7 +95,7 @@ class BooleanOr(Or):
 
     def __init__(
         self, in_features: int, out_features: int, n_terms: int=None, 
-        f: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="maxmin",
+        f: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="max_min",
         wf: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="clamp"
     ):
         super().__init__()

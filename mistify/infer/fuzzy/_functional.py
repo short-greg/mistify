@@ -2,6 +2,7 @@
 import torch
 
 
+
 def differ(m: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
     """
     Take the difference between two fuzzy sets

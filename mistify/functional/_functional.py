@@ -116,6 +116,22 @@ def smooth_min(x: torch.Tensor, x2: torch.Tensor, a: float) -> torch.Tensor:
     return smooth_max(x, x2, -a)
 
 
+def prod_on(
+        x: torch.Tensor, dim: int, keepdim: bool=False
+    ) -> torch.Tensor:
+    """Take product over the specified dimension
+
+    Args:
+        x (torch.Tensor): 
+        dim (int): Dimension to take max over
+        keepdim (bool): Whether to keep the dimension or not
+
+    Returns:
+        torch.Tensor: Result of the smooth max
+    """
+    return torch.prod(x, dim, keepdim)
+
+
 def smooth_min_on(
         x: torch.Tensor, dim: int, a: float, keepdim: bool=False
     ) -> torch.Tensor:
