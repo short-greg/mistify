@@ -1,5 +1,5 @@
 from mistify.infer import _neurons as neurons
-from mistify.infer import fuzzy, boolean, signed
+from mistify.infer import fuzzy, boolean
 
 import torch
 
@@ -111,3 +111,4 @@ class TestCrispComposition(object):
 #     #     crisp_set = crisp.CrispSet.rand(4, 2, 2)
 #     #     result = composition.forward(crisp_set)
 #     #     assert result.data.size() == torch.Size([4, 2, 4])
+

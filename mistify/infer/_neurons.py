@@ -15,68 +15,12 @@ from . import fuzzy
 from . import boolean
 
 
-
 WEIGHT_FACTORY = EnumFactory(
     sigmoid=torch.sigmoid,
     clamp=partial(torch.clamp, min=0, max=1),
     sign=torch.sign,
     boolean=lambda x: torch.clamp(torch.round(x), 0, 1)
 )
-
-
-class IntersectionOn(nn.Module):
-    """Intersect sets that comprise a fuzzy set on a dimension
-    """
-    F = EnumFactory(
-        min=functional.min_on,
-        min_ada=functional.smooth_min_on,
-        prod=functional.prod_on
-    )
-
-    def __init__(self, f: str='min', dim: int=-1, keepdim: bool=False):
-        """Intersect sets that comprise a fuzzy set on a specified dimension
-
-        Args:
-            f (str, optional): The function to use for intersection. Defaults to 'min'.
-            dim (int, optional): Dimension to intersect on. Defaults to -1.
-            keepdim (bool, optional): Whether to keep the dim or not. Defaults to False.
-
-        Raises:
-            ValueError: If the intersection function is invalid
-        """
-        super().__init__()
-        self._f = self.F.factory(f)
-        self.dim = dim
-        self.keepdim = keepdim
-
-    def forward(self, m: torch.Tensor) -> torch.Tensor:
-        return self._f(m, dim=self.dim, keepdim=self.keepdim)
-
-
-class UnionOn(nn.Module):
-    """Union on a specific dimension
-    """
-    F = EnumFactory(
-        max = functional.min_on,
-        max_ada = functional.smooth_max_on
-    )
-
-    def __init__(self, f: str='max', dim: int=-1, keepdim: bool=False):
-        """
-
-        Args:
-            f (str, optional): The function to use for dimension. Defaults to 'max'.
-            dim (int, optional): The dimension to union on. Defaults to -1.
-            keepdim (bool, optional): Whether to keep the dimension. Defaults to False.
-        """
-        super().__init__()
-        self._f = self.F.factory(f)
-        self.dim = dim
-        self.keepdim = keepdim
-
-    def forward(self, m: torch.Tensor) -> torch.Tensor:
-        return self._f(m, dim=self.dim, keepdim=self.keepdim)
-
 
 class Or(nn.Module):
     """
@@ -173,76 +117,3 @@ class And(nn.Module):
         """
         weight = self._wf(self.weight)
         return self._f(m, weight)
-
-
-class Else(nn.Module):
-
-    F = EnumFactory(
-        signed= signed.else_,
-        fuzzy= fuzzy.else_,
-        boolean= boolean.else_
-    )
-    def __init__(self, f: typing.Callable, dim=-1, keepdim: bool = False):
-        """Calculate else along a certain dimension It calculates the sum of all the membership values along the dimension
-
-        Args:
-            dim (int, optional): _description_. Defaults to -1.
-            keepdim (bool, optional): _description_. Defaults to False.
-        """
-        super().__init__(dim, keepdim)
-        self._f = self.F.factory(f)
-
-    def forward(self, m: torch.Tensor) -> torch.Tensor:
-        """Calculate the else for the fuzzy set
-
-        Args:
-            m (torch.Tensor): the membership value
-
-        Returns:
-            torch.Tensor: the else of the fuzzy set
-        """
-        return self._f(m)
-
-
-class Complement(nn.Module):
-
-    F = EnumFactory(
-        signed = signed.complement,
-        boolean = boolean.complement,
-        fuzzy= fuzzy.complement
-    )
-
-    def __init__(self, f: typing.Callable='boolean'):
-        """Calculate else along a certain dimension It calculates the sum of all the membership values along the dimension
-
-        Args:
-            dim (int, optional): _description_. Defaults to -1.
-            keepdim (bool, optional): _description_. Defaults to False.
-        """
-        super().__init__()
-        self._f = self.F.factory(f)
-
-    def forward(self, m: torch.Tensor) -> torch.Tensor:
-        """Calculate the complement for the set
-
-        Args:
-            m (torch.Tensor): the membership value
-
-        Returns:
-            torch.Tensor: the complement of the set
-        """
-        return self._f(m)
-
-
-class Exclusion(nn.Module):
-
-    @abstractmethod
-    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError
-
-
-class Inclusion(nn.Module):
-
-    @abstractmethod
-    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError

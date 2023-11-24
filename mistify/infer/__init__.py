@@ -2,8 +2,11 @@ from . import boolean
 from . import signed
 from . import fuzzy
 from ._neurons import (
-    Else, Or, And, IntersectionOn,
-    UnionOn, Complement
+    Or, And, 
+)
+from ._ops import (
+    IntersectionOn,
+    UnionOn, Complement, Else
 )
 from ._activations import (
     MembershipActivation, Descale,

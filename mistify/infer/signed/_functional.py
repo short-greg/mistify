@@ -98,4 +98,4 @@ def else_(m: torch.Tensor, dim: int=-1, keepdim: bool=False) -> torch.Tensor:
     Returns:
         torch.Tensor: the else
     """
-    return 1 - m.max(dim=dim, keepdim=keepdim)[0]
+    return -m.max(dim=dim, keepdim=keepdim)[0]
