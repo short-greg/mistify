@@ -8,7 +8,7 @@ import torch
 
 class MembershipActivation(nn.Module):
 
-    def __init__(self, n_terms: int):
+    def __init__(self, n_terms: int=None):
         super().__init__()
         self._n_terms = n_terms
     
@@ -29,7 +29,7 @@ class Descale(MembershipActivation):
             lower_bound (float): The threshold 
 
         """
-        super().__init__()
+        super().__init__(None)
         if not (0 < lower_bound < 1):
             raise ValueError(f'Argument lower_bound must be in range (0, 1) not {lower_bound}')
         self._lower_bound = lower_bound

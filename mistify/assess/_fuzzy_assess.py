@@ -4,8 +4,8 @@ import typing
 from torch.nn import functional as nn_func
 from torch import nn
 
-from .._assess import MistifyLoss, ToOptim
-from ._inference import IntersectionOn, UnionOn, FuzzyOr, FuzzyAnd
+from ..infer._assess import MistifyLoss, ToOptim
+from ..infer._neurons import IntersectionOn, UnionOn, Or, And
 
 
 class FuzzyLoss(MistifyLoss):

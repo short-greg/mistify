@@ -38,27 +38,6 @@ def weight_func(wf: typing.Union[str, typing.Callable]) -> typing.Callable:
     return wf
 
 
-def join(m: torch.Tensor, nn_module: nn.Module, dim=-1, unsqueeze_dim: int=None) -> torch.Tensor:
-    """_summary_
-
-    Args:
-        m (torch.Tensor): a membership tensor
-        nn_module (nn.Module): _description_
-        dim (int, optional): _description_. Defaults to -1.
-        unsqueeze_dim (int, optional): _description_. Defaults to None.
-
-    Returns:
-        torch.Tensor: _description_
-    """
-
-    m_out = nn_module(m)
-    if unsqueeze_dim is not None:
-        m_out = m_out.unsqueeze(unsqueeze_dim)
-    return torch.cat(
-        [m, m_out], dim=dim
-    )
-
-
 def check_contains(x: torch.Tensor, pt1: torch.Tensor, pt2: torch.Tensor) -> torch.BoolTensor:
     """Check if a tensor falls between two points
 
@@ -109,11 +88,10 @@ def unsqueeze(x: torch.Tensor) -> torch.Tensor:
     return x.unsqueeze(dim=x.dim())
 
 
-class EnumFactory(Enum):
+class EnumFactory(dict):
 
-    @classmethod
-    def factory(cls, f: typing.Union[str, typing.Callable]) -> typing.Callable[[typing.Any], torch.Tensor]:
-
+    def factory(self, f: typing.Union[str, typing.Callable]) -> typing.Callable[[typing.Any], torch.Tensor]:
+    
         if isinstance(f, typing.Callable):
             return f
-        return cls[f].value
+        return self[f]

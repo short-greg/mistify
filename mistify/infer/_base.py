@@ -5,38 +5,17 @@ import torch
 from ..utils import join
 
 
-class Exclusion(nn.Module):
+# class Join(nn.Module):
 
-    @abstractmethod
-    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError
+#     def __init__(self, nn_module: nn.Module, dim: int=-1, unsqueeze_dim: int=None):
+#         super().__init__()
+#         self.nn_module = nn_module
+#         self.dim = dim
+#         self.unsqueeze_dim = unsqueeze_dim
 
-
-class Inclusion(nn.Module):
-
-    @abstractmethod
-    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError
-
-
-class Join(nn.Module):
-
-    def __init__(self, nn_module: nn.Module, dim: int=-1, unsqueeze_dim: int=None):
-        super().__init__()
-        self.nn_module = nn_module
-        self.dim = dim
-        self.unsqueeze_dim = unsqueeze_dim
-
-    def forward(self, m: torch.Tensor) -> torch.Tensor:
+#     def forward(self, m: torch.Tensor) -> torch.Tensor:
         
-        return join(m, self.nn_module, self.dim, self.unsqueeze_dim)
-
-
-def get_comp_weight_size(in_features: int, out_features: int, in_variables: int=None):
-
-    if in_variables is None or in_variables == 0:
-        return torch.Size([in_features, out_features])
-    return torch.Size([in_variables, in_features, out_features])
+#         return join(m, self.nn_module, self.dim, self.unsqueeze_dim)
 
 
 # class IntersectionOnEnum(EnumFactory):

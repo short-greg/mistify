@@ -1,27 +1,36 @@
 # 1st party
 import typing
+from enum import Enum
+from abc import abstractmethod
 
 # 3rd party
 import torch
 import torch.nn as nn
 
 # local
-from ... import functional
-from . import _generate
+from .. import functional
 from ..utils import weight_func, EnumFactory
 from . import signed
 from . import fuzzy
 from . import boolean
 
 
+
+# def get_comp_weight_size(in_features: int, out_features: int, in_variables: int=None):
+
+#     if in_variables is None or in_variables == 0:
+#         return torch.Size([in_features, out_features])
+#     return torch.Size([in_variables, in_features, out_features])
+
+
 class IntersectionOn(nn.Module):
     """Intersect sets that comprise a fuzzy set on a dimension
     """
-    class F(EnumFactory):
-
-        min = functional.min_on
-        min_ada = functional.smooth_min_on
-        prod = functional.prod_on
+    F = EnumFactory(
+        min=functional.min_on,
+        min_ada=functional.smooth_min_on,
+        prod=functional.prod_on
+    )
 
     def __init__(self, f: str='min', dim: int=-1, keepdim: bool=False):
         """Intersect sets that comprise a fuzzy set on a specified dimension
@@ -46,10 +55,10 @@ class IntersectionOn(nn.Module):
 class UnionOn(nn.Module):
     """Union on a specific dimension
     """
-    class F(EnumFactory):
-
-        max = functional.min_on
+    F = EnumFactory(
+        max = functional.min_on,
         max_ada = functional.smooth_max_on
+    )
 
     def __init__(self, f: str='max', dim: int=-1, keepdim: bool=False):
         """
@@ -72,11 +81,11 @@ class Or(nn.Module):
     """
     """
 
-    class F(EnumFactory):
-
-        max_min = functional.maxmin
-        maxmin_ada = functional.ada_minmax
-        max_prod = functional.maxprod
+    F = EnumFactory(
+        max_min=functional.maxmin,
+        maxmin_ada=functional.ada_minmax,
+        max_prod=functional.maxprod
+    )
 
     def __init__(
         self, in_features: int, out_features: int, n_terms: int=None, 
@@ -97,7 +106,7 @@ class Or(nn.Module):
             shape = (n_terms, in_features, out_features)
         else:
             shape = (in_features,  out_features)
-        self.weight = nn.parameter.Parameter(_generate.positives(*shape))
+        self.weight = nn.parameter.Parameter(torch.ones(*shape))
         self._f = self.F.factory(f)
         self._wf = weight_func(wf)
         self._n_terms = n_terms
@@ -120,14 +129,14 @@ class Or(nn.Module):
 
 class And(nn.Module):
 
-    class F(EnumFactory):
-
-        min_max = functional.minmax
+    F = EnumFactory(
+        min_max = functional.minmax,
         min_max_ada = functional.ada_minmax
+    )
 
     def __init__(
         self, in_features: int, out_features: int, n_terms: int=None, 
-        f: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="minmax",
+        f: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="min_max",
         wf: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="clamp"
     ):
         """Create an And neuron for calculating selecting values and calculating the "and" of them
@@ -144,11 +153,12 @@ class And(nn.Module):
             shape = (n_terms, in_features, out_features)
         else:
             shape = (in_features,  out_features)
-        self.weight = nn.parameter.Parameter(_generate.negatives(*shape))
+        self.weight = nn.parameter.Parameter(torch.zeros(*shape))
         self._wf = weight_func(wf)
         self._n_terms = n_terms
         self._in_features = in_features
         self._out_features = out_features
+        print(list(self.F.keys()))
         self._f = self.F.factory(f)
     
     def forward(self, m: torch.Tensor) -> torch.Tensor:
@@ -166,12 +176,11 @@ class And(nn.Module):
 
 class Else(nn.Module):
 
-    class F(EnumFactory):
-
-        signed: signed.else_
-        fuzzy: fuzzy.else_
-        boolean: boolean.else_
-
+    F = EnumFactory(
+        signed= signed.else_,
+        fuzzy= fuzzy.else_,
+        boolean= boolean.else_
+    )
     def __init__(self, f: typing.Callable, dim=-1, keepdim: bool = False):
         """Calculate else along a certain dimension It calculates the sum of all the membership values along the dimension
 
@@ -196,13 +205,13 @@ class Else(nn.Module):
 
 class Complement(nn.Module):
 
-    class F(EnumFactory):
+    F = EnumFactory(
+        signed = signed.complement,
+        boolean = boolean.complement,
+        fuzzy= fuzzy.complement
+    )
 
-        signed = signed.complement
-        boolean = boolean.complement
-        fuzzy: fuzzy.complement
-
-    def __init__(self, f: typing.Callable):
+    def __init__(self, f: typing.Callable='boolean'):
         """Calculate else along a certain dimension It calculates the sum of all the membership values along the dimension
 
         Args:
@@ -222,3 +231,17 @@ class Complement(nn.Module):
             torch.Tensor: the complement of the set
         """
         return self._f(m)
+
+
+class Exclusion(nn.Module):
+
+    @abstractmethod
+    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
+
+
+class Inclusion(nn.Module):
+
+    @abstractmethod
+    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError

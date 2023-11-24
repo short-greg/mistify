@@ -100,14 +100,14 @@ class TestCrispComposition(object):
         crisp_set = boolean.rand(4, 2, 2)
         assert composition.forward(crisp_set).size() == torch.Size([4, 2, 4])
 
-    # def test_forward_outputs_all_ones_or_zeros(self):
-    #     composition = crisp.CrispComposition(2, 4, True, in_variables=2)
-    #     crisp_set = crisp.CrispSet.rand(4, 2, 2)
-    #     result = composition.forward(crisp_set)
-    #     assert ((result.data == torch.tensor(1.0)) | (result.data == torch.tensor(0.0))).all()
+#     # def test_forward_outputs_all_ones_or_zeros(self):
+#     #     composition = crisp.CrispComposition(2, 4, True, in_variables=2)
+#     #     crisp_set = crisp.CrispSet.rand(4, 2, 2)
+#     #     result = composition.forward(crisp_set)
+#     #     assert ((result.data == torch.tensor(1.0)) | (result.data == torch.tensor(0.0))).all()
 
-    # def test_forward_outputs_correct_size(self):
-    #     composition = crisp.CrispComposition(2, 4, True, in_variables=2)
-    #     crisp_set = crisp.CrispSet.rand(4, 2, 2)
-    #     result = composition.forward(crisp_set)
-    #     assert result.data.size() == torch.Size([4, 2, 4])
+#     # def test_forward_outputs_correct_size(self):
+#     #     composition = crisp.CrispComposition(2, 4, True, in_variables=2)
+#     #     crisp_set = crisp.CrispSet.rand(4, 2, 2)
+#     #     result = composition.forward(crisp_set)
+#     #     assert result.data.size() == torch.Size([4, 2, 4])

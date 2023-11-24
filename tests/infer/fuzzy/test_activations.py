@@ -1,4 +1,4 @@
-from mistify.infer.fuzzy import _activations as activations
+from mistify.infer import _activations as activations
 
 import torch
 
