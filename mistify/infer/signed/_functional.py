@@ -85,3 +85,17 @@ def forget(m: torch.Tensor, p: float) -> torch.Tensor:
         torch.Tensor: the tensor with randomly forgotten values
     """
     return m * (torch.rand_like(m) < p).type_as(m)
+
+
+def else_(m: torch.Tensor, dim: int=-1, keepdim: bool=False) -> torch.Tensor:
+    """
+
+    Args:
+        m (torch.Tensor): the fuzzy set
+        dim (int, optional): the dimension to take the else on. Defaults to -1.
+        keepdim (bool, optional): whether to keep the dimension. Defaults to False.
+
+    Returns:
+        torch.Tensor: the else
+    """
+    return 1 - m.max(dim=dim, keepdim=keepdim)[0]

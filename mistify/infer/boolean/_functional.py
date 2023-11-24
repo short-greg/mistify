@@ -53,5 +53,4 @@ def forget(m: torch.Tensor, p: float) -> torch.Tensor:
 
 def else_(m: torch.Tensor, dim: int=-1, keepdim: bool=False) -> torch.Tensor:
 
-        y = m.max(dim=dim, keepdim=keepdim)[0]
-        return (1 - y)
+    return 1 - m.max(dim=dim, keepdim=keepdim)[0]

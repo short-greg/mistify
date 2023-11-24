@@ -1,7 +1,7 @@
-from ._inference import (
-    BooleanAnd, BooleanComplement, BooleanElse, BooleanIntersectionOn,
-    BooleanOr, BooleanUnionOn, binary_func
-)
+# from ._inference import (
+#     BooleanAnd, BooleanComplement, BooleanElse, BooleanIntersectionOn,
+#     BooleanOr, BooleanUnionOn, binary_func
+# )
 from ._generate import (
     rand, positives, negatives
 )
