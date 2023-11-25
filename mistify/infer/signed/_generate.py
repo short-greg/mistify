@@ -12,7 +12,7 @@ def negatives(*size: int, dtype=torch.float32, device='cpu') -> torch.Tensor:
     Returns:
         torch.Tensor: Ternary set with all negative values
     """
-    return torch.full(*size, -1, dtype=dtype, device=device)
+    return torch.full(size, -1, dtype=dtype, device=device)
 
 
 def positives(*size: int, dtype=torch.float32, device='cpu'):

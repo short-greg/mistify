@@ -10,6 +10,6 @@ setup(
         'mistify', 'mistify.fuzzify', 
         'mistify.infer', 'mistify.wrap', 
         'mistify.utils', 'mistify.process', 
-        'mistify.functional', 'mistify.assess'
+        'mistify.functional', 'mistify.assess',
     ]
 )

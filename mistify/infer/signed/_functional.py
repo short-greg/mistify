@@ -7,7 +7,7 @@ import torch
 from ...functional import to_signed, to_binary
 
 
-def differ(m1: torch.Tensor, m2: 'torch.Tensor') -> 'torch.Tensor':
+def differ(m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
     """Calculate difference between Ternary tensors
 
     Args:

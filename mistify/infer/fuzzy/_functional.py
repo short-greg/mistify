@@ -79,7 +79,7 @@ def inclusion(m1: torch.Tensor, m2: torch.Tensor, dim: int=None) -> 'torch.Tenso
     Returns:
         torch.Tensor: the tensor describing inclusion
     """
-    base = (1 - m2) + torch.min(m1, m2)
+    base = (1 - m1) + torch.min(m2, m1)
     if dim is None:
         return base.type_as(m1)
     return base.min(dim=dim)[0].type_as(m1)
@@ -97,7 +97,7 @@ def exclusion(m1: torch.Tensor, m2: torch.Tensor, dim: int=None) -> 'torch.Tenso
     Returns:
         torch.Tensor: the tensor describing inclusion
     """
-    base = (1 - m1) + torch.min(m1, m2)
+    base = (1 - m2) + torch.min(m2, m1)
     if dim is None:
         return base.type_as(m1)
     return base.min(dim=dim)[0].type_as(m1)

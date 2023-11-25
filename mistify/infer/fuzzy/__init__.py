@@ -7,7 +7,6 @@
 from ._generate import (
     rand, positives, negatives
 )
-from . import _utils as utils
 from ._functional import (
     differ, intersect, intersect_on,
     unify, unify_on, intersect_on, exclusion,

@@ -45,13 +45,13 @@ class TestFuzzySet(object):
         
         c1 = fuzzy.rand(2, 3, 2, 4)
         c2 = fuzzy.rand(2, 3, 2, 4) * c1
-        assert (fuzzy._functional.inclusion(c1, c2) == 1).all()
+        assert (fuzzy._functional.inclusion(c2, c1) == 1).all()
 
     def test_union_is_excluded_in_the_tensor(self):
         
         c1 = fuzzy.rand(2, 3, 2, 4)
         c2 = fuzzy.rand(2, 3, 2, 4) + c1
-        assert (fuzzy._functional.exclusion(c1, c2).data == 1).all()
+        assert (fuzzy._functional.exclusion(c2, c1).data == 1).all()
     
     def test_differ_is_greater_than_zero_for_all(self):
         
@@ -63,7 +63,7 @@ class TestFuzzySet(object):
         
         c1 = fuzzy.rand(2, 3, 2, 4)
         c2 = fuzzy.rand(2, 3, 2, 4)
-        assert (fuzzy._functional.inclusion(c1, fuzzy._functional.differ(c1, c2)).data == 1.0).all()
+        assert (fuzzy._functional.inclusion(fuzzy._functional.differ(c1, c2), c1).data == 1.0).all()
 
     def test_transpose_tranposes_dimensions_correctly(self):
         
