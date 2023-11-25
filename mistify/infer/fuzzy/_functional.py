@@ -125,5 +125,4 @@ def else_(m: torch.Tensor, dim: int=-1, keepdim: bool=False) -> torch.Tensor:
     Returns:
         torch.Tensor: the else value of m along the dimension
     """
-    y = m.sum(dim=dim, keepdim=keepdim)
-    return torch.clamp(1 - y, 0.0)
+    return 1 - m.max(dim=dim, keepdim=keepdim)
