@@ -77,16 +77,7 @@ class TestMinMax(object):
         fuzzy_set = fuzzy.rand(4, 2, 2)
         result = composition.forward(fuzzy_set)
         assert result.data.size() == torch.Size([4, 2, 4])
-
-
-class TestBinaryComplement:
-
-    def test_binary_complement_outputs_complement(self):
-
-        complement = neurons.Complement()
-        x = torch.rand(2, 3).round()
-        assert ((1 - x) == complement(x)).all()
-
+    
 
 class TestCrispComposition(object):
     

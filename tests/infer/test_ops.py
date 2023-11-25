@@ -159,3 +159,9 @@ class TestComplement:
         y = complement(x)
         t = torch.ones(2, 2)
         assert (y == t).all()
+
+    def test_boolean_complement_outputs_complement(self):
+
+        complement = ops.Complement()
+        x = torch.rand(2, 3).round()
+        assert ((1 - x) == complement(x)).all()

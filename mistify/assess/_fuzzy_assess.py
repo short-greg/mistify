@@ -5,8 +5,8 @@ from torch.nn import functional as nn_func
 from torch import nn
 
 from ._core import MistifyLoss, ToOptim
-from ..infer._neurons import IntersectionOn, UnionOn, Or, And
-
+from ..infer._neurons import Or, And
+from ..infer._ops import IntersectionOn, UnionOn
 
 class FuzzyLoss(MistifyLoss):
 
