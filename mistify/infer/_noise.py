@@ -2,6 +2,7 @@
 import torch
 import torch.nn as nn
 
+
 class Dropout(nn.Module):
     """Dropout is designed to work with logical neurons
     It does not divide the output by p and can be set to "dropout" to
