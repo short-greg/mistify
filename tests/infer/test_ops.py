@@ -97,7 +97,7 @@ class TestElse:
         else_ = ops.Else(keepdim=True)
         x = torch.full((2, 2), 0.3)
         y = else_(x)
-        t = torch.full((2, 1), 0.4)
+        t = torch.full((2, 1), 0.7)
         assert torch.isclose(y, t).all()
 
     def test_else_returns_point7_if_all_max_is_point3(self):

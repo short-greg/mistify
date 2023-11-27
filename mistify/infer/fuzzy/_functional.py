@@ -2,7 +2,6 @@
 import torch
 
 
-
 def differ(m: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
     """
     Take the difference between two fuzzy sets
@@ -125,4 +124,4 @@ def else_(m: torch.Tensor, dim: int=-1, keepdim: bool=False) -> torch.Tensor:
     Returns:
         torch.Tensor: the else value of m along the dimension
     """
-    return 1 - m.max(dim=dim, keepdim=keepdim)
+    return 1 - m.max(dim=dim, keepdim=keepdim)[0]

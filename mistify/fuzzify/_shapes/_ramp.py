@@ -61,16 +61,16 @@ class Ramp(Monotonic):
     def _calc_area(self):
         return 0.5 * (self._coords.pt(1) - self._coords.pt(0)) * self._m
 
-    def scale(self, m: torch.Tensor) -> 'Ramp':
-        """Scale the Ramp function. This results in changing the m value
+    # def scale(self, m: torch.Tensor) -> 'Ramp':
+    #     """Scale the Ramp function. This results in changing the m value
 
-        Args:
-            m (torch.Tensor): The m value to scale by
+    #     Args:
+    #         m (torch.Tensor): The m value to scale by
 
-        Returns:
-            Ramp: The new ramp function
-        """
-        return Ramp(self._coords, m, intersect(self._m, m))
+    #     Returns:
+    #         Ramp: The new ramp function
+    #     """
+    #     return Ramp(self._coords, m, intersect(self._m, m))
 
     def truncate(self, m: torch.Tensor) -> 'Ramp':
         """Truncate the Ramp function. This results in changing the m value as well

@@ -92,17 +92,6 @@ class Shape(object):
         """
         pass
     
-    @abstractmethod
-    def scale(self, m: torch.Tensor) -> 'Shape':
-        """Scale the shape by a membership tensor
-
-        Args:
-            m (torch.Tensor): Membership tensor to scale by
-
-        Returns:
-            Shape: Scaled shape
-        """
-        pass
 
     @abstractmethod
     def truncate(self, m: torch.Tensor) -> 'Shape':
@@ -215,6 +204,18 @@ class Nonmonotonic(Shape):
         if self._centroids is None:
             self._centroids = self._calc_centroids()
         return self._centroids
+
+    @abstractmethod
+    def scale(self, m: torch.Tensor) -> 'Shape':
+        """Scale the shape by a membership tensor
+
+        Args:
+            m (torch.Tensor): Membership tensor to scale by
+
+        Returns:
+            Shape: Scaled shape
+        """
+        pass
 
 
 class ShapeParams:

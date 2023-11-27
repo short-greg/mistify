@@ -58,19 +58,19 @@ class Step(Monotonic):
         # NOTE: not correct if m is 0
         return self._threshold.pt(0) * torch.zeros_like(self._m)
 
-    def scale(self, m: torch.Tensor) -> 'Step':
-        """Scale the height of the step function
+    # def scale(self, m: torch.Tensor) -> 'Step':
+    #     """Scale the height of the step function
 
-        Args:
-            m (torch.Tensor): The value to scale by
+    #     Args:
+    #         m (torch.Tensor): The value to scale by
 
-        Returns:
-            Step: The scaled step function
-        """
-        m = intersect(self._m, m)
-        return Step(
-            self._threshold, m
-        )
+    #     Returns:
+    #         Step: The scaled step function
+    #     """
+    #     m = intersect(self._m, m)
+    #     return Step(
+    #         self._threshold, m
+    #     )
 
     def truncate(self, m: torch.Tensor) -> 'Step':
         """Reduce the height of teh step function

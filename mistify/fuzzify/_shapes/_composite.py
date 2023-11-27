@@ -102,7 +102,6 @@ class Composite(Nonmonotonic, Monotonic):
         truncated = []
         start = 0
         last = None
-        print(m.shape)
         for shape in self._shapes:
             
             # (batch, n_variables, n_terms, )
@@ -126,6 +125,8 @@ class Composite(Nonmonotonic, Monotonic):
         start = 0
         last = None
         for shape in self._shapes:
+            if isinstance(shape, Monotonic):
+                raise RuntimeError(f'Scale is not implemented for monotonic shapes')
             
             last = shape.n_terms + start
             m_cur = m[:,:,start:last]
