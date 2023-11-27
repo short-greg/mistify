@@ -1,6 +1,4 @@
 from mistify.infer import _ops as ops
-from mistify.infer import fuzzy, boolean, signed
-
 import torch
 
 
