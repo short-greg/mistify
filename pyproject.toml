@@ -21,6 +21,7 @@ packages = [
     {include="mistify/process"},
     {include="mistify/utils"},
     {include="mistify/wrap"},
+    {include="mistify/activate"}
 ]
 
 

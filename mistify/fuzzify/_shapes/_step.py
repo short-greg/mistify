@@ -82,6 +82,4 @@ class Step(Monotonic):
             Step: The updated step function
         """
         m = intersect(self._m, m)
-        return Step(
-            self._threshold, m
-        )
+        return Step(self._threshold, m)

@@ -22,10 +22,9 @@ WEIGHT_FACTORY = EnumFactory(
 class Or(nn.Module):
     """
     """
-
     F = EnumFactory(
         max_min=functional.maxmin,
-        maxmin_ada=functional.ada_minmax,
+        maxmin_ada=functional.ada_maxmin,
         max_prod=functional.maxprod
     )
 
@@ -100,7 +99,6 @@ class And(nn.Module):
         self._n_terms = n_terms
         self._in_features = in_features
         self._out_features = out_features
-        print(list(self.F.keys()))
         self._f = self.F.factory(f)
     
     def forward(self, m: torch.Tensor) -> torch.Tensor:

@@ -396,6 +396,10 @@ class ShapeParams:
         return ShapeParams(
             torch.cat([sub_i._x for sub_i in sub], dim=3)
         )
+    
+    @property
+    def shape(self) -> torch.Size:
+        return self.x.shape
 
 
 class Polygon(Nonmonotonic):

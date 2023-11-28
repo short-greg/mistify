@@ -15,7 +15,7 @@ class Ramp(Monotonic):
     """
 
     def __init__(
-        self, coords: ShapeParams, m: torch.Tensor=None, scale_m: torch.Tensor=None
+        self, coords: ShapeParams, m: torch.Tensor=None# , scale_m: torch.Tensor=None
     ):
         """Create a ramp function that has a lower bound and an upper bound
 
@@ -26,7 +26,7 @@ class Ramp(Monotonic):
         """
         self._coords = coords
         self._m = self._init_m(m, coords.device)
-        self._scale_m = self._init_m(scale_m, coords.device)
+        # self._scale_m = self._init_m(scale_m, coords.device)
 
         super().__init__(
             self._coords.n_variables,
@@ -56,21 +56,10 @@ class Ramp(Monotonic):
     
     def _calc_min_cores(self):
 
-        return self._coords.pt(1)
+        return self._resize_to_m(self._coords.pt(1), self._m)
 
-    def _calc_area(self):
-        return 0.5 * (self._coords.pt(1) - self._coords.pt(0)) * self._m
-
-    # def scale(self, m: torch.Tensor) -> 'Ramp':
-    #     """Scale the Ramp function. This results in changing the m value
-
-    #     Args:
-    #         m (torch.Tensor): The m value to scale by
-
-    #     Returns:
-    #         Ramp: The new ramp function
-    #     """
-    #     return Ramp(self._coords, m, intersect(self._m, m))
+    # def _calc_area(self):
+    #     return 0.5 * (self._coords.pt(1) - self._coords.pt(0)) * self._m
 
     def truncate(self, m: torch.Tensor) -> 'Ramp':
         """Truncate the Ramp function. This results in changing the m value as well
@@ -82,9 +71,8 @@ class Ramp(Monotonic):
         Returns:
             Ramp: The truncated ramp
         """
-
         truncate_m = intersect(self._m, m)
         pt = (truncate_m + self._coords.pt(0)) * (self._coords.pt(1) - self._coords.pt(0)) / self._m
-        coords = self._coords.replace(pt, 1)
+        coords = self._coords.replace(pt, 1, True, truncate_m)
 
         return Ramp(coords, m)

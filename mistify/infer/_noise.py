@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 
 
-class Dropout(nn.Module):
+class DropoutNoise(nn.Module):
     """Dropout is designed to work with logical neurons
     It does not divide the output by p and can be set to "dropout" to
     any value. This is because for instance And neurons should
@@ -31,14 +31,14 @@ class Dropout(nn.Module):
         Returns:
             torch.Tensor: the dropped out tensor
         """
-        if self.training:
+        if self.training and self.p is not None:
             x = x.clone()
-            x[(torch.rand_like(x) > self.p)] = self.val
+            x[(torch.rand_like(x) < self.p)] = self.val
         
         return x
 
 
-class Gaussian(nn.Module):
+class GaussianClampNoise(nn.Module):
     """Gaussian noise adds random Gaussian noise to the membership
     """
 
@@ -75,7 +75,7 @@ class Gaussian(nn.Module):
         return x
 
 
-class Exp(nn.Module):
+class ExpNoise(nn.Module):
     """Gaussian noise adds random Gaussian noise to the membership
     """
 

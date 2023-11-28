@@ -8,7 +8,7 @@ class TestDropout:
         
         torch.manual_seed(1)
         x = torch.randn(8, 2)
-        dropout = noise.Dropout(0.25)
+        dropout = noise.DropoutNoise(0.25)
         y = dropout(x)
         assert ((y == 0.0) | (y == x)).all()
 
@@ -16,7 +16,7 @@ class TestDropout:
         
         torch.manual_seed(1)
         x = torch.randn(8, 2)
-        dropout = noise.Dropout(0.25)
+        dropout = noise.DropoutNoise(0.25)
         y = dropout(x)
         assert ((y != 0.0)).any()
 
@@ -24,7 +24,7 @@ class TestDropout:
         
         torch.manual_seed(1)
         x = torch.randn(8, 2)
-        dropout = noise.Dropout(0.25)
+        dropout = noise.DropoutNoise(0.25)
         y = dropout(x)
         assert ((y == 0.0)).any()
 
@@ -32,6 +32,6 @@ class TestDropout:
         
         torch.manual_seed(1)
         x = torch.randn(8, 2)
-        dropout = noise.Dropout(0.25, 1.0)
+        dropout = noise.DropoutNoise(0.25, 1.0)
         y = dropout(x)
         assert ((y == 1.0)).any()
