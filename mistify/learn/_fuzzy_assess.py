@@ -8,6 +8,7 @@ from ._core import MistifyLoss, ToOptim
 from ..infer._neurons import Or, And
 from ..infer._ops import IntersectionOn, UnionOn
 
+
 class FuzzyLoss(MistifyLoss):
 
     def calc_loss(self, x: torch.Tensor, t: torch.Tensor, mask: torch.BoolTensor=None, weight: torch.Tensor=None):

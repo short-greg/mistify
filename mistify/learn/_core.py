@@ -5,6 +5,7 @@ import torch
 import typing
 from functools import partial
 from enum import Enum
+from zenkai import XCriterion
 
 
 class ToOptim(Enum):
@@ -23,15 +24,9 @@ class ToOptim(Enum):
         return self in (ToOptim.THETA, ToOptim.BOTH)
 
 
-class MistifyLoss(nn.Module):
+class MistifyLoss(XCriterion):
     """Loss to use in modules for Mistify
     """
-
-    def __init__(self, reduction: str='mean'):
-        super().__init__()
-        self.reduction = reduction
-        if reduction not in ('mean', 'sum', 'batchmean', 'none'):
-            raise ValueError(f"Reduction {reduction} is not a valid reduction")
 
     def reduce(self, y: torch.Tensor):
 
