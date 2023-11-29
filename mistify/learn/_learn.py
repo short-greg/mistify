@@ -4,7 +4,7 @@ import typing
 import torch
 
 from zenkai.kikai import GradLearner
-from zenkai import Criterion, XCriterion, OptimFactory
+from zenkai import Criterion, XCriterion, OptimFactory, ThLoss
 from ..infer import Or, And
 from ._fuzzy_assess import MistifyLoss, MaxMinLoss3, MaxMinLoss2, MinMaxLoss2, MinMaxLoss3, MaxMinLoss
 
@@ -26,13 +26,13 @@ class PreFit(object):
 class OrLearner(GradLearner):
 
     def __init__(
-        self, in_features: int, out_features: int, criterion: Criterion, 
+        self, in_features: int, out_features: int, 
         optim_factory: OptimFactory=None, n_terms: int=None, 
         f: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="max_min",
         wf: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="clamp",
         reduction: str='mean', x_lr: float=None
     ):
-        learn_criterion = ''
+        criterion = ThLoss('MSELoss', reduction=reduction)
         or_ = Or(
             in_features, out_features, n_terms, f, wf
         )
@@ -48,12 +48,13 @@ class OrLearner(GradLearner):
 class AndLearner(GradLearner):
 
     def __init__(
-        self, in_features: int, out_features: int, criterion: Criterion, 
+        self, in_features: int, out_features: int, 
         optim_factory: OptimFactory=None, n_terms: int=None, 
         f: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="min_max",
         wf: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="clamp",
         reduction: str='mean', x_lr: float=None
     ):
+        criterion = ThLoss('MSELoss', reduction=reduction)
         and_ = And(
             in_features, out_features, n_terms, f, wf
         )
