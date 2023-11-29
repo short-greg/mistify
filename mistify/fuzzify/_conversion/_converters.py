@@ -18,6 +18,7 @@ from ._utils import stride_coordinates
 from .._shapes import Shape, ShapeParams, Composite
 from ._conclude import HypoWeight, Conclusion, MaxValueConc, ConcEnum
 from ... import functional
+from ._fuzzifiers import Fuzzifier, Defuzzifier
 
 
 def generate_spaced_params(n_steps: int, lower: float=0, upper: float=1) -> torch.Tensor:
@@ -52,6 +53,12 @@ class FuzzyConverter(nn.Module):
     
     def reverse(self, m: torch.Tensor) -> torch.Tensor:
         return self.defuzzify(m)
+    
+    def fuzzifier(self) -> 'ConverterFuzzifier':
+        return ConverterFuzzifier(self)
+    
+    def defuzzifier(self) -> 'ConverterDefuzzifier':
+        return ConverterDefuzzifier(self)
 
 
 class CompositeFuzzyConverter(FuzzyConverter):
@@ -696,3 +703,65 @@ class FuncConverterDecorator(ConverterDecorator):
 
     def decorate_defuzzify(self, m: torch.Tensor) -> torch.Tensor:
         return self._defuzzify(m)
+
+
+
+class ConverterDefuzzifier(Defuzzifier):
+
+    def __init__(self, converter: FuzzyConverter):
+        """Wrap a FuzzyConverter to create a defuzzifier
+
+        Args:
+            converter (FuzzyConverter): The fuzzy converter to wrap
+        """
+        super().__init__()
+        self.converter = converter
+
+    def hypo(self, m: torch.Tensor) -> HypoWeight:
+        """Calculate the hypothesis
+
+        Args:
+            m (torch.Tensor): The fuzzy set input
+
+        Returns:
+            HypoWeight: The hypothesis and weight
+        """
+        return self.converter.hypo(m)
+
+    def conclude(self, hypo_weight: HypoWeight) -> torch.Tensor:
+        """
+
+        Args:
+            hypo_weight (HypoWeight): _description_
+
+        Returns:
+            torch.Tensor: The defuzzified value
+        """
+        return self.converter.conclude(hypo_weight)
+
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        return self.converter.defuzzify(m)
+
+
+class ConverterFuzzifier(Fuzzifier):
+
+    def __init__(self, converter: FuzzyConverter):
+        """Wrap a FuzzyConverter to create a fuzzifier
+
+        Args:
+            converter (FuzzyConverter): The fuzzy converter to wrap
+        """
+        super().__init__()
+        self.converter = converter
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """The input
+
+        Args:
+            x (torch.Tensor): the input
+
+        Returns:
+            torch.Tensor: the fuzzified input
+        """
+        return self.converter.fuzzify(x)
+

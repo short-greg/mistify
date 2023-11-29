@@ -8,9 +8,6 @@ from ._conclude import (
 )
 from ._fuzzifiers import (
     Fuzzifier, 
-    ConverterFuzzifier, 
-    ConverterDefuzzifier, 
-    FuzzyConverter, 
     EmbeddingFuzzifier
 )
 from ._hypo import (
@@ -25,7 +22,9 @@ from ._utils import (
     stride_coordinates
 )
 from ._converters import (
+    ConverterFuzzifier, 
     FuzzyConverter, 
+    ConverterDefuzzifier, 
     CompositeFuzzyConverter,  
     LogisticFuzzyConverter, 
     ConverterDecorator, 

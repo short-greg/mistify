@@ -6,7 +6,6 @@ import torch.nn as nn
 from torch import clamp
 
 from ._conclude import HypoWeight
-from ._converters import FuzzyConverter
 
 
 class Fuzzifier(nn.Module):
@@ -31,66 +30,6 @@ class Defuzzifier(nn.Module):
     @abstractmethod
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         return self.conclude(self.hypo(m))
-
-
-class ConverterDefuzzifier(Defuzzifier):
-
-    def __init__(self, converter: FuzzyConverter):
-        """Wrap a FuzzyConverter to create a defuzzifier
-
-        Args:
-            converter (FuzzyConverter): The fuzzy converter to wrap
-        """
-        super().__init__()
-        self.converter = converter
-
-    def hypo(self, m: torch.Tensor) -> HypoWeight:
-        """Calculate the hypothesis
-
-        Args:
-            m (torch.Tensor): The fuzzy set input
-
-        Returns:
-            HypoWeight: The hypothesis and weight
-        """
-        return self.converter.hypo(m)
-
-    def conclude(self, hypo_weight: HypoWeight) -> torch.Tensor:
-        """
-
-        Args:
-            hypo_weight (HypoWeight): _description_
-
-        Returns:
-            torch.Tensor: The defuzzified value
-        """
-        return self.converter.conclude(hypo_weight)
-
-    def forward(self, m: torch.Tensor) -> torch.Tensor:
-        return self.converter.defuzzify(m)
-
-
-class ConverterFuzzifier(Fuzzifier):
-
-    def __init__(self, converter: FuzzyConverter):
-        """Wrap a FuzzyConverter to create a fuzzifier
-
-        Args:
-            converter (FuzzyConverter): The fuzzy converter to wrap
-        """
-        super().__init__()
-        self.converter = converter
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """The input
-
-        Args:
-            x (torch.Tensor): the input
-
-        Returns:
-            torch.Tensor: the fuzzified input
-        """
-        return self.converter.fuzzify(x)
 
 
 class EmbeddingFuzzifier(Fuzzifier):
