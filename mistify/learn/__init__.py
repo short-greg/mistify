@@ -6,5 +6,5 @@ from ._core import (
     ToOptim, MistifyLoss, MistifyLossFactory
 )
 from ._learn import (
-    PreFit, PostFit
+    PreFit, PostFit, OrLearner, AndLearner
 )
