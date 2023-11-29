@@ -1,5 +1,5 @@
 
-from mistify.assess._core import ToOptim
+from mistify.learn._core import ToOptim
 
 
 class TestToOptim:

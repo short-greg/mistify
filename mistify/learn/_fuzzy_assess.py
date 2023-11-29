@@ -228,7 +228,7 @@ class MinMaxLoss3(FuzzyLoss):
         self, minmax: And, reduction='batchmean', not_chosen_x_weight: float=1.0, not_chosen_theta_weight: float=1.0, 
         default_optim: ToOptim=ToOptim.BOTH
     ):
-        super().__init__(minmax, reduction)
+        super().__init__(reduction)
         self._minmax = minmax
         self._default_optim = default_optim
         self.not_chosen_theta_weight = not_chosen_theta_weight
@@ -412,7 +412,7 @@ class MinMaxLoss2(FuzzyLoss):
         self, minmax: And, reduction='batchmean', not_chosen_x_weight: float=1.0, not_chosen_theta_weight: float=1.0, 
         default_optim: ToOptim=ToOptim.BOTH
     ):
-        super().__init__(minmax, reduction)
+        super().__init__(reduction)
         self._minmax = minmax
         self._default_optim = default_optim
         self.not_chosen_theta_weight = not_chosen_theta_weight

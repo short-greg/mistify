@@ -53,26 +53,6 @@ class FuzzyConverter(nn.Module):
     def reverse(self, m: torch.Tensor) -> torch.Tensor:
         return self.defuzzify(m)
 
-    # def get_conclusion(self, conclusion: typing.Union['Conclusion', str]):
-    #     """Get the conclusion to use in conversion
-
-    #     Args:
-    #         conclusion (typing.Union[&#39;Conclusion&#39;, str]): _description_
-
-    #     Raises:
-    #         ValueError: _description_
-
-    #     Returns:
-    #         _type_: _description_
-    #     """
-    #     if isinstance(conclusion, Conclusion):
-    #         return conclusion
-    #     if conclusion == 'max':
-    #         return MaxConc()
-    #     if conclusion == 'weighted_average':
-    #         return WeightedAverageConc()
-    #     raise ValueError(f"Name {conclusion} cannot be created")
-
 
 class CompositeFuzzyConverter(FuzzyConverter):
     """Define a conversion of multiple shapes to and from fuzzy sets

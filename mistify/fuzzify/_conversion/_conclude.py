@@ -82,6 +82,7 @@ class WeightedAverageConc(Conclusion):
             / torch.sum(hypo_weight.weight, dim=-1)
         )
 
+
 class ConcEnum(Enum):
 
     max = MaxConc

@@ -15,12 +15,12 @@ readme = "README.md"
 packages = [
     {include="mistify"},
     {include="mistify/functional"},
-    {include="mistify/assess"},
+    {include="mistify/learn"},
     {include="mistify/fuzzify"},
     {include="mistify/infer"},
     {include="mistify/process"},
     {include="mistify/utils"},
-    {include="mistify/wrap"},
+    {include="mistify/systems"},
     {include="mistify/activate"}
 ]
 

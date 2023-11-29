@@ -19,6 +19,7 @@ WEIGHT_FACTORY = EnumFactory(
     boolean=lambda x: torch.clamp(torch.round(x), 0, 1)
 )
 
+
 class Or(nn.Module):
     """
     """
@@ -63,7 +64,6 @@ class Or(nn.Module):
         Returns:
             torch.Tensor: 
         """
-        
         weight = self._wf(self.weight)
         return self._f(m, weight)
 

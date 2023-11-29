@@ -99,6 +99,7 @@ class Sigmoid(Monotonic):
         Returns:
             Sigmoid: The updated sigmoid
         """
+        
         updated_m = intersect(self._truncate_m, m)
         return Sigmoid(
             self._biases, self._scales, self._scale_m, updated_m 
