@@ -7,24 +7,25 @@ from torch import nn
 from ._core import MistifyLoss, ToOptim
 from ..infer._neurons import Or, And
 from ..infer._ops import IntersectionOn, UnionOn
+from zenkai import IO, Reduction
 
 
 class FuzzyLoss(MistifyLoss):
 
-    def calc_loss(self, x: torch.Tensor, t: torch.Tensor, mask: torch.BoolTensor=None, weight: torch.Tensor=None):
+    def calc_loss(self, x: torch.Tensor, t: torch.Tensor, mask: torch.BoolTensor=None, weight: torch.Tensor=None, reduction_override: str=None):
         
         result = (x - t) ** 2
         if mask is not None:
             result = result * mask.float()
         if weight is not None:
             result = result * weight
-        return 0.5 * self.reduce(result)
+        return 0.5 * self.reduce(result, reduction_override)
 
 
 class FuzzyAggregatorLoss(FuzzyLoss):
     
     @abstractmethod
-    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: IO, y: IO, t: IO, reduction_override: float=None) -> torch.Tensor:
         pass
 
 
@@ -36,7 +37,11 @@ class IntersectionOnLoss(FuzzyAggregatorLoss):
         self.not_chosen_weight = not_chosen_weight
         self._mse = nn.MSELoss(reduction='none')
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: IO, y: IO, t: IO, reduction_override: float=None) -> torch.Tensor:
+
+        x = x.f
+        y = y.f
+        t = t.f
         if not self.intersect.keepdim:
             y = y.unsqueeze(self.intersect.dim)
             t = t.unsqueeze(self.intersect.dim)
@@ -49,9 +54,9 @@ class IntersectionOnLoss(FuzzyAggregatorLoss):
             chosen = x == y
 
         return (
-            self.calc_loss(x, t.detach(), x_less_than)
-            + self.calc_loss(x, x_t.detach(), chosen & x_not_less_than)
-            + self.calc_loss(x, x_t.detach(), ~chosen & x_not_less_than, self.not_chosen_weight)
+            self.calc_loss(x, t.detach(), x_less_than, reduction_override=reduction_override)
+            + self.calc_loss(x, x_t.detach(), chosen & x_not_less_than, reduction_override=reduction_override)
+            + self.calc_loss(x, x_t.detach(), ~chosen & x_not_less_than, self.not_chosen_weight, reduction_override=reduction_override)
         )
 
     @classmethod
@@ -71,7 +76,10 @@ class UnionOnLoss(FuzzyAggregatorLoss):
         self.not_chosen_weight = not_chosen_weight
         self._mse = nn.MSELoss(reduction='none')
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: IO, y: IO, t: IO, reduction_override: float=None) -> torch.Tensor:
+        x = x.f
+        y = y.f
+        t = t.f
         if not self.union.keepdim:
             y = y.unsqueeze(self.union.dim)
             t = t.unsqueeze(self.union.dim)
@@ -84,9 +92,9 @@ class UnionOnLoss(FuzzyAggregatorLoss):
             chosen = x == y
 
         return (
-            self.calc_loss(x, t.detach(), x_greater_than)
-            + self.calc_loss(x, x_t.detach(), chosen & x_not_greater_than)
-            + self.calc_loss(x, x_t.detach(), ~chosen & x_not_greater_than, self.not_chosen_weight)
+            self.calc_loss(x, t.detach(), x_greater_than, reduction_override=reduction_override)
+            + self.calc_loss(x, x_t.detach(), chosen & x_not_greater_than, reduction_override=reduction_override)
+            + self.calc_loss(x, x_t.detach(), ~chosen & x_not_greater_than, self.not_chosen_weight, reduction_override=reduction_override)
         )
 
     @classmethod
@@ -138,11 +146,14 @@ class MaxMinLoss(FuzzyLoss):
         greater_than_error = (0.5 * (x - t) ** 2) * greater_than_multiplier
         return less_than_error + greater_than_error
 
-    def forward(self, x: torch.Tensor, y: torch.torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: IO, y: IO, t: IO, reduction_override: float=None) -> torch.Tensor:
+        x = x.f
+        y = y.f
+        t = t.f
 
         loss = self.forward_w(x, y, t) + self.forward_x(x, y, t)
         # TODO: add in redution
-        return loss.mean()
+        return Reduction[reduction_override](loss)
 
 
 class MaxMinLoss3(FuzzyLoss):
@@ -169,8 +180,11 @@ class MaxMinLoss3(FuzzyLoss):
         # chosen.scatter_(1, idx,  1.0)
         # return chosen
     
-    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: IO, y: IO, t: IO, reduction_override: float=None) -> torch.Tensor:
         
+        x = x.f
+        y = y.f
+        t = t.f
         x = x.unsqueeze(x.dim())
         y = y.unsqueeze(x.dim() - 2)
         t = t.unsqueeze(x.dim() - 2)
@@ -191,9 +205,9 @@ class MaxMinLoss3(FuzzyLoss):
 
             # print('W loss:')
             loss = (
-                self.calc_loss(w, w_target_2.detach()) +
-                self.calc_loss(w, w_target.detach(), chosen) +
-                self.calc_loss(w, w_target.detach(), ~chosen, self.not_chosen_theta_weight)
+                self.calc_loss(w, w_target_2.detach(), reduction_override=reduction_override) +
+                self.calc_loss(w, w_target.detach(), chosen, reduction_override=reduction_override) +
+                self.calc_loss(w, w_target.detach(), ~chosen, self.not_chosen_theta_weight, reduction_override=reduction_override)
             )
         if self._default_optim.x():
             with torch.no_grad():
@@ -202,9 +216,9 @@ class MaxMinLoss3(FuzzyLoss):
                 x_target_2 = x - d_greater
 
             cur_loss = (
-                self.calc_loss(x, x_target_2.detach()) +
-                self.calc_loss(x, x_target.detach(), chosen) +
-                self.calc_loss(x, x_target.detach(), ~chosen, self.not_chosen_x_weight) 
+                self.calc_loss(x, x_target_2.detach(), reduction_override=reduction_override) +
+                self.calc_loss(x, x_target.detach(), chosen, reduction_override=reduction_override) +
+                self.calc_loss(x, x_target.detach(), ~chosen, self.not_chosen_x_weight, reduction_override=reduction_override) 
             )
             loss = cur_loss if loss is None else loss + cur_loss
 
@@ -226,7 +240,8 @@ class MaxMinLoss3(FuzzyLoss):
 class MinMaxLoss3(FuzzyLoss):
 
     def __init__(
-        self, minmax: And, reduction='batchmean', not_chosen_x_weight: float=1.0, not_chosen_theta_weight: float=1.0, 
+        self, minmax: And, reduction='batchmean', not_chosen_x_weight: float=1.0, 
+        not_chosen_theta_weight: float=1.0, 
         default_optim: ToOptim=ToOptim.BOTH
     ):
         super().__init__(reduction)
@@ -243,8 +258,11 @@ class MinMaxLoss3(FuzzyLoss):
         val, idx = torch.max(inner_values, dim=-2, keepdim=True)
         return inner_values == val
     
-    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: IO, y: IO, t: IO, reduction_override: float=None) -> torch.Tensor:
         
+        x = x.f
+        y = y.f
+        t = t.f
         x = x.unsqueeze(x.dim())
         y = y.unsqueeze(x.dim() - 2)
         t = t.unsqueeze(x.dim() - 2)
@@ -262,9 +280,9 @@ class MinMaxLoss3(FuzzyLoss):
                 w_target_2 = w + d_inner
             
             loss = (
-                self.calc_loss(w, w_target_2.detach()) +
-                self.calc_loss(w, w_target.detach(), chosen) +
-                self.calc_loss(w, w_target.detach(), ~chosen, self.not_chosen_theta_weight)
+                self.calc_loss(w, w_target_2.detach(), reduction_override=reduction_override) +
+                self.calc_loss(w, w_target.detach(), chosen, reduction_override=reduction_override) +
+                self.calc_loss(w, w_target.detach(), ~chosen, self.not_chosen_theta_weight, reduction_override=reduction_override)
             )
         if self._default_optim.x():
             with torch.no_grad():
@@ -272,9 +290,9 @@ class MinMaxLoss3(FuzzyLoss):
                 x_target_2 = x + d_inner
 
             cur_loss = (
-                self.calc_loss(x, x_target_2.detach()) +
-                self.calc_loss(x, x_target.detach(), chosen) +
-                self.calc_loss(x, x_target.detach(), ~chosen, self.not_chosen_x_weight) 
+                self.calc_loss(x, x_target_2.detach(), reduction_override=reduction_override) +
+                self.calc_loss(x, x_target.detach(), chosen, reduction_override=reduction_override) +
+                self.calc_loss(x, x_target.detach(), ~chosen, self.not_chosen_x_weight, reduction_override=reduction_override) 
             )
             loss = cur_loss if loss is None else loss + cur_loss
 
@@ -316,8 +334,11 @@ class MaxMinLoss2(FuzzyLoss):
         # chosen.scatter_(1, idx,  1.0)
         # return chosen
     
-    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: IO, y: IO, t: IO, reduction_override: float=None) -> torch.Tensor:
         
+        x = x.f
+        y = y.f
+        t = t.f
         x = x.unsqueeze(x.dim())
         y = y.unsqueeze(x.dim() - 2)
         t = t.unsqueeze(x.dim() - 2)
@@ -355,10 +376,10 @@ class MaxMinLoss2(FuzzyLoss):
 
             # print('W loss:')
             loss = (
-                self.calc_loss(w, w_target_2.detach()) +
+                self.calc_loss(w, w_target_2.detach(), reduction_override=reduction_override) +
                 # self.calc_loss(w, t.detach(), inner_values > t) +
-                self.calc_loss(w, w_target.detach(), chosen) +
-                self.calc_loss(w, w_target.detach(), ~chosen, self.not_chosen_theta_weight)
+                self.calc_loss(w, w_target.detach(), chosen, reduction_override=reduction_override) +
+                self.calc_loss(w, w_target.detach(), ~chosen, self.not_chosen_theta_weight, reduction_override=reduction_override)
             )
         if self._default_optim.x():
             with torch.no_grad():
@@ -384,9 +405,9 @@ class MaxMinLoss2(FuzzyLoss):
 
             # print('X loss:')
             cur_loss = (
-                self.calc_loss(x, x_target_2.detach()) +
-                self.calc_loss(x, x_target.detach(), chosen) +
-                self.calc_loss(x, x_target.detach(), ~chosen, self.not_chosen_x_weight) 
+                self.calc_loss(x, x_target_2.detach(), reduction_override=reduction_override) +
+                self.calc_loss(x, x_target.detach(), chosen, reduction_override=reduction_override) +
+                self.calc_loss(x, x_target.detach(), ~chosen, self.not_chosen_x_weight, reduction_override=reduction_override) 
             )
             # print(cur_loss.sum() / len(cur_loss))
             loss = cur_loss if loss is None else loss + cur_loss
@@ -430,8 +451,11 @@ class MinMaxLoss2(FuzzyLoss):
         # chosen.scatter_(1, idx,  1.0)
         # return chosen
     
-    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: IO, y: IO, t: IO, reduction_override: float=None) -> torch.Tensor:
         
+        x = x.f
+        y = y.f
+        t = t.f
         x = x.unsqueeze(x.dim())
         y = y.unsqueeze(x.dim() - 2)
         t = t.unsqueeze(x.dim() - 2)
@@ -454,9 +478,9 @@ class MinMaxLoss2(FuzzyLoss):
                 w_target_2 = w + d_inner
             
             loss = (
-                self.calc_loss(w, w_target_2.detach()) +
-                self.calc_loss(w, w_target.detach(), chosen) +
-                self.calc_loss(w, w_target.detach(), ~chosen, self.not_chosen_theta_weight)
+                self.calc_loss(w, w_target_2.detach(), reduction_override=reduction_override) +
+                self.calc_loss(w, w_target.detach(), chosen, reduction_override=reduction_override) +
+                self.calc_loss(w, w_target.detach(), ~chosen, self.not_chosen_theta_weight, reduction_override=reduction_override)
             )
         if self._default_optim.x():
             with torch.no_grad():
@@ -468,9 +492,9 @@ class MinMaxLoss2(FuzzyLoss):
                 x_target_2 = x + d_inner
 
             cur_loss = (
-                self.calc_loss(x, x_target_2.detach()) +
-                self.calc_loss(x, x_target.detach(), chosen) +
-                self.calc_loss(x, x_target.detach(), ~chosen, self.not_chosen_x_weight) 
+                self.calc_loss(x, x_target_2.detach(), reduction_override=reduction_override) +
+                self.calc_loss(x, x_target.detach(), chosen, reduction_override=reduction_override) +
+                self.calc_loss(x, x_target.detach(), ~chosen, self.not_chosen_x_weight, reduction_override=reduction_override) 
             )
             loss = cur_loss if loss is None else loss + cur_loss
 
@@ -516,8 +540,11 @@ class MaxProdLoss(FuzzyLoss):
 
         self._maxprod.weight.data = torch.clamp(self._maxprod.weight.data, 0, 1).detach()
     
-    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: IO, y: IO, t: IO, reduction_override: float=None) -> torch.Tensor:
         
+        x = x.f
+        y = y.f
+        t = t.f
         x = x.unsqueeze(x.dim())
         y = y.unsqueeze(x.dim() - 2)
         t = t.unsqueeze(x.dim() - 2)
@@ -536,9 +563,9 @@ class MaxProdLoss(FuzzyLoss):
     
         if self._default_optim.theta():
             loss = (
-                self.calc_loss(inner_values, t.detach(), inner_values > t) +
-                self.calc_loss(inner_values, inner_target.detach(), chosen)  +
-                self.calc_loss(inner_values, inner_target.detach(), ~chosen, self.not_chosen_weight) 
+                self.calc_loss(inner_values, t.detach(), inner_values > t, reduction_override=reduction_override) +
+                self.calc_loss(inner_values, inner_target.detach(), chosen, reduction_override=reduction_override)  +
+                self.calc_loss(inner_values, inner_target.detach(), ~chosen, self.not_chosen_weight, reduction_override=reduction_override) 
             )
 
         return loss

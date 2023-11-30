@@ -4,9 +4,9 @@ import typing
 import torch
 
 from zenkai.kikai import GradLearner
-from zenkai import Criterion, XCriterion, OptimFactory, ThLoss
+from zenkai import OptimFactory, ThLoss
 from ..infer import Or, And
-from ._fuzzy_assess import MistifyLoss, MaxMinLoss3, MaxMinLoss2, MinMaxLoss2, MinMaxLoss3, MaxMinLoss
+from ._fuzzy_assess import MaxMinLoss2, MinMaxLoss2
 
 
 class PostFit(object):
@@ -41,7 +41,7 @@ class OrLearner(GradLearner):
             not_chosen_x_weight=0.1
         )
         super().__init__(
-            or_, criterion, optim_factory, True, reduction, x_lr, False, learn_criterion
+            or_, criterion, optim_factory, True, reduction, x_lr, learn_criterion
         )
 
 
@@ -63,8 +63,5 @@ class AndLearner(GradLearner):
             not_chosen_x_weight=0.1
         )
         super().__init__(
-            and_, criterion, optim_factory, True, reduction, x_lr, False, learn_criterion
+            and_, criterion, optim_factory, True, reduction, x_lr, learn_criterion
         )
-
-# can 
-

@@ -5,7 +5,7 @@ import torch
 import typing
 from functools import partial
 from enum import Enum
-from zenkai import XCriterion
+from zenkai import XCriterion, Reduction, IO
 
 
 class ToOptim(Enum):
@@ -28,19 +28,22 @@ class MistifyLoss(XCriterion):
     """Loss to use in modules for Mistify
     """
 
-    def reduce(self, y: torch.Tensor):
+    def reduce(self, y: torch.Tensor, reduction_override: str=None):
 
-        if self.reduction == 'mean':
-            return y.mean()
-        elif self.reduction == 'sum':
-            return y.sum()
-        elif self.reduction == 'batchmean':
-            return y.sum() / len(y)
-        elif self.reduction == 'none':
-            return y
+        reduction = reduction_override or self.reduction
+        return Reduction[reduction].reduce(y)
+
+        # if self.reduction == 'mean':
+        #     return y.mean()
+        # elif self.reduction == 'sum':
+        #     return y.sum()
+        # elif self.reduction == 'batchmean':
+        #     return y.sum() / len(y)
+        # elif self.reduction == 'none':
+        #     return y
         
     @abstractmethod
-    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: IO, y: IO, t: IO, reduction_override: float=None) -> torch.Tensor:
         raise NotImplementedError
     
     @classmethod

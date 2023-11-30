@@ -104,7 +104,6 @@ class TestElse:
         x = torch.full((2, 2), 0.3)
         y = else_(x)
         t = torch.full((2, 1), 0.7)
-        print(y)
         assert torch.isclose(y, t).all()
 
     def test_else_returns_neg1_if_all_positive(self):

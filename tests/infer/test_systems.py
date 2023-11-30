@@ -63,7 +63,6 @@ class TestBasicSigmoidFuzzySytem2:
 
         def __init__(self, in_features: int, in_terms: int, hidden_variables: typing.List[int], out_features: typing.List[int]):
             super().__init__()
-            print(in_terms, in_features)
             self.converter = fuzzify.SigmoidFuzzyConverter.from_linspace(in_terms)
 
             variables = [in_terms * in_features, *hidden_variables]
