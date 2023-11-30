@@ -1,10 +1,8 @@
-from mistify.infer import fuzzy
 import typing
 from torch import nn
 import torch
 from mistify import fuzzify
 from mistify.infer import _neurons as neurons
-from mistify.infer import fuzzy, boolean, signed
 
 
 class TestBasicSigmoidFuzzySytem:

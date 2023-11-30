@@ -566,31 +566,30 @@ class SigmoidFuzzyConverter(CompositeFuzzyConverter):
     @classmethod
     def from_coords(
         cls, bias_coords: torch.Tensor, scale_coords: torch.Tensor, n_terms: int,
-        hypothesis: typing.Union[ShapeHypothesis, str]="area", 
-        conclusion: typing.Union[Conclusion, str]="max", 
-        truncate: bool=True
+        hypothesis: typing.Union[ShapeHypothesis, str]="min_core", 
+        conclusion: typing.Union[Conclusion, str]="max",
     ):
         sigmoid = shape.Sigmoid(
             ShapeParams(bias_coords[:,:,:,None]), ShapeParams(scale_coords[:,:,:,None])
         )
-        return SigmoidFuzzyConverter(sigmoid, hypothesis, conclusion, truncate)
+        return SigmoidFuzzyConverter(sigmoid, hypothesis, conclusion, True)
 
     @classmethod
     def from_linspace(
-        cls, n_terms: int, hypothesis: typing.Union[ShapeHypothesis, str]="area", 
+        cls, n_terms: int, hypothesis: typing.Union[ShapeHypothesis, str]="min_core", 
         conclusion: typing.Union[Conclusion, str]="max", 
-        truncate: bool=True,
     ):
         bias_coords = generate_spaced_params(n_terms + 2)[:,:,1:-1]
-        width = 1.0 / 2 * (n_terms - 1.0)
+        width = 1.0 / (2 * n_terms)
         scale_coords = generate_repeat_params(n_terms, width)
         return SigmoidFuzzyConverter.from_coords(
-            bias_coords, scale_coords, n_terms, hypothesis, conclusion,
-            truncate
+            bias_coords, scale_coords, n_terms, hypothesis, conclusion
         )
 
 
 class RampFuzzyConverter(CompositeFuzzyConverter):
+    """A fuzzifier that makes use of a series of ramps
+    """
 
     def __init__(
         self, ramp: shape.Ramp=None, 
@@ -605,26 +604,44 @@ class RampFuzzyConverter(CompositeFuzzyConverter):
     @classmethod
     def from_coords(
         cls, coords: torch.Tensor, n_terms: int,
-        hypothesis: typing.Union[ShapeHypothesis, str]="area", 
-        conclusion: typing.Union[Conclusion, str]="max", 
-        truncate: bool=True
-    ):
+        hypothesis: typing.Union[ShapeHypothesis, str]="min_core", 
+        conclusion: typing.Union[Conclusion, str]="max"
+    ) -> 'RampFuzzyConverter':
+        """Create the converter from coordinates. Each ramp function uses two coordinates with a stride of two
+
+        Args:
+            coords (torch.Tensor): The coordinates defining the ramp function
+            n_terms (int): The number of terms for the fuzzy converter
+            hypothesis (typing.Union[ShapeHypothesis, str], optional): The hypothesis function. Defaults to "min_core".
+            conclusion (typing.Union[Conclusion, str], optional): The conclusion function for the ramp function. Defaults to "max".
+
+        Returns:
+            RampFuzzyConverter: The resulting FuzzyConverter using ramp functions
+        """
         
         ramp = shape.Ramp(
             ShapeParams(stride_coordinates(coords, n_terms, 1, 2, 2))
         )
-        return RampFuzzyConverter(ramp, hypothesis, conclusion, truncate)
+        return RampFuzzyConverter(ramp, hypothesis, conclusion, True)
 
     @classmethod
     def from_linspace(
-        cls, n_terms: int, hypothesis: typing.Union[ShapeHypothesis, str]="area", 
+        cls, n_terms: int, hypothesis: typing.Union[ShapeHypothesis, str]="min_core", 
         conclusion: typing.Union[Conclusion, str]="max", 
-        truncate: bool=True,
-    ):
+    ) -> 'RampFuzzyConverter':
+        """Create the converter from a linspace with n terms
+
+        Args:
+            n_terms (int): The number of terms for the fuzzy converter
+            hypothesis (typing.Union[ShapeHypothesis, str], optional): The hypothesis function. Defaults to "min_core".
+            conclusion (typing.Union[Conclusion, str], optional): The conclusion function for the ramp function. Defaults to "max".
+
+        Returns:
+            RampFuzzyConverter: The resulting FuzzyConverter using ramp functions
+        """
         coords = generate_spaced_params(n_terms + 2)
         return RampFuzzyConverter.from_coords(
             coords, n_terms, hypothesis, conclusion,
-            truncate
         )
 
 
@@ -645,23 +662,20 @@ class StepFuzzyConverter(CompositeFuzzyConverter):
         cls, coords: torch.Tensor, n_terms: int,
         hypothesis: typing.Union[ShapeHypothesis, str]="min_core", 
         conclusion: typing.Union[Conclusion, str]="max", 
-        truncate: bool=True
     ):
         step = shape.Step(
             ShapeParams(stride_coordinates(coords, n_terms, 1, 1, 1))
         )
-        return StepFuzzyConverter(step, hypothesis, conclusion, truncate)
+        return StepFuzzyConverter(step, hypothesis, conclusion, True)
 
     @classmethod
     def from_linspace(
         cls, n_terms: int, hypothesis: typing.Union[ShapeHypothesis, str]="min_core", 
         conclusion: typing.Union[Conclusion, str]="max", 
-        truncate: bool=True,
     ):
         coords = generate_spaced_params(n_terms + 2)[:,:,1:-1]
         return StepFuzzyConverter.from_coords(
             coords, n_terms, hypothesis, conclusion,
-            truncate
         )
 
 
