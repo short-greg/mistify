@@ -149,7 +149,7 @@ class MaxMinLoss(FuzzyLoss):
     def forward(self, x: IO, y: IO, t: IO, reduction_override: float=None) -> torch.Tensor:
         x = x.f
         y = y.f
-        t = t.f
+        t = torch.clamp(t.f, 0, 1)
 
         loss = self.forward_w(x, y, t) + self.forward_x(x, y, t)
         # TODO: add in redution
@@ -187,7 +187,7 @@ class MaxMinLoss3(FuzzyLoss):
         t = t.f
         x = x.unsqueeze(x.dim())
         y = y.unsqueeze(x.dim() - 2)
-        t = t.unsqueeze(x.dim() - 2)
+        t = torch.clamp(t.unsqueeze(x.dim() - 2), 0, 1)
         w = self._maxmin.weight[None]
         inner_values = self.calc_inner_values(x, w)
         chosen = self.set_chosen(inner_values)
@@ -265,7 +265,7 @@ class MinMaxLoss3(FuzzyLoss):
         t = t.f
         x = x.unsqueeze(x.dim())
         y = y.unsqueeze(x.dim() - 2)
-        t = t.unsqueeze(x.dim() - 2)
+        t = torch.clamp(t.unsqueeze(x.dim() - 2), 0, 1)
         w = self._minmax.weight[None]
         inner_values = self.calc_inner_values(x, w)
         chosen = self.set_chosen(inner_values)
@@ -338,7 +338,7 @@ class MaxMinLoss2(FuzzyLoss):
         
         x = x.f
         y = y.f
-        t = t.f
+        t = torch.clamp(t.f, 0, 1)
         x = x.unsqueeze(x.dim())
         y = y.unsqueeze(x.dim() - 2)
         t = t.unsqueeze(x.dim() - 2)
@@ -455,7 +455,7 @@ class MinMaxLoss2(FuzzyLoss):
         
         x = x.f
         y = y.f
-        t = t.f
+        t = torch.clamp(t.f, 0, 1)
         x = x.unsqueeze(x.dim())
         y = y.unsqueeze(x.dim() - 2)
         t = t.unsqueeze(x.dim() - 2)
@@ -544,7 +544,7 @@ class MaxProdLoss(FuzzyLoss):
         
         x = x.f
         y = y.f
-        t = t.f
+        t = torch.clamp(t.f, 0, 1)
         x = x.unsqueeze(x.dim())
         y = y.unsqueeze(x.dim() - 2)
         t = t.unsqueeze(x.dim() - 2)
