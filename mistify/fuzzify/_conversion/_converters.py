@@ -3,7 +3,6 @@
 from abc import abstractmethod, ABC
 import typing
 
-
 # 3rd party
 import torch
 import torch.nn as nn
@@ -12,12 +11,11 @@ import torch.nn.functional
 # local
 from .._shapes import Shape
 from .. import _shapes as shape
-from ._conclude import Conclusion, HypoWeight, MaxConc, WeightedAverageConc
+from ._conclude import Conclusion, HypoWeight
 from ._hypo import ShapeHypothesis, HypothesisEnum
 from ._utils import stride_coordinates
 from .._shapes import Shape, ShapeParams, Composite
-from ._conclude import HypoWeight, Conclusion, MaxValueConc, ConcEnum
-from ... import functional
+from ._conclude import HypoWeight, Conclusion, ConcEnum
 from ._fuzzifiers import Fuzzifier, Defuzzifier
 
 
@@ -474,6 +472,14 @@ class SquareFuzzyConverter(CompositeFuzzyConverter):
         conclusion: typing.Union[Conclusion, str]="max", 
         truncate: bool=False
     ):
+        """Create a fuzzy converter based on a 'square' function
+
+        Args:
+            square (Square), The set of squares to use.
+            hypothesis (typing.Union[ShapeHypothesis, str], optional): The hypothesis function to use. Defaults to "area".
+            conclusion (typing.Union[Conclusion, str], optional): The conclusion function to use. Defaults to "max".
+            truncate (bool, optional): Whether to use truncate or scale. Defaults to True.
+        """
         super().__init__(
             square, hypothesis, conclusion, truncate
         )
@@ -509,8 +515,18 @@ class LogisticFuzzyConverter(CompositeFuzzyConverter):
         middle: shape.LogisticBell=None, 
         hypothesis: typing.Union[ShapeHypothesis, str]="area", 
         conclusion: typing.Union[Conclusion, str]="max", 
-        truncate: bool=False
+        truncate: bool=True
     ):
+        """Create a fuzzy converter based on the logistic distribution
+
+        Args:
+            left (shape.RightLogistic): The left logistic
+            right (shape.RightLogistic): The right logistic
+            middle (shape.LogisticBell, optional): The middle logistics . Defaults to None.
+            hypothesis (typing.Union[ShapeHypothesis, str], optional): The hypothesis function to use. Defaults to "area".
+            conclusion (typing.Union[Conclusion, str], optional): The conclusion function to use. Defaults to "max".
+            truncate (bool, optional): Whether to use truncate or scale. Defaults to True.
+        """
         super().__init__(
             polygon(left, middle, right), hypothesis, conclusion, truncate
         )
