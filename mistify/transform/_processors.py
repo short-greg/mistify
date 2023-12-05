@@ -5,6 +5,8 @@ from abc import abstractmethod
 import torch.nn as nn
 import torch
 from torch.distributions import Normal
+import typing
+
 
 
 class Transform(nn.Module):
@@ -16,12 +18,17 @@ class Transform(nn.Module):
         pass
 
     @abstractmethod
-    def reverse(self, x: torch.Tensor) -> torch.Tensor:
+    def reverse(self, y: torch.Tensor) -> torch.Tensor:
         pass
 
     @abstractmethod
-    def fit(self, X: torch.Tensor, t: torch.Tensor=None):
+    def fit(self, X: torch.Tensor, t=None, *args, **kwargs):
         pass
+
+    def fit_transform(self, X: torch.Tensor, t=None, *args, **kwargs):
+        
+        self.fit(X, t, *args, **kwargs)
+        return self(X)
 
 
 class GaussianBase(Transform):
@@ -51,7 +58,7 @@ class GaussianBase(Transform):
 
         return self._mean
 
-    def fit(self, X: torch.Tensor, t: torch.Tensor=None):
+    def fit(self, X: torch.Tensor, t=None):
 
         self._mean = X.mean(dim=0, keepdim=True)
         self._std = X.std(dim=0, keepdim=True)
@@ -81,12 +88,12 @@ class StdDev(GaussianBase):
     
         return (x - self._mean + self.offset) / (self._std * self._divisor)
 
-    def reverse(self, x: torch.Tensor) -> torch.Tensor:
+    def reverse(self, y: torch.Tensor) -> torch.Tensor:
 
         # std = self._align(x, self._std, self._dim)
         # mean = self._align(x, self._mean, self._dim)
 
-        return (x * (self._std * self._divisor)) + self._mean - self.offset
+        return (y * (self._std * self._divisor)) + self._mean - self.offset
 
     @property
     def divisor(self) -> float:
@@ -99,11 +106,40 @@ class StdDev(GaussianBase):
             raise ValueError(f'Divisor must be greater than 0 not {divisor}')
         self._divisor = divisor
 
-    def fit(self, X: torch.Tensor, t: torch.Tensor=None, fit_mean: bool=False) -> torch.Tensor:
+    def fit(self, X: torch.Tensor, t=None) -> torch.Tensor:
 
-        if fit_mean:
-            self._mean = X.mean(dim=0, keepdim=True)
+        self._mean = X.mean(dim=0, keepdim=True)
         self._std = X.std(dim=0, keepdim=True)
+
+
+class Compound(Transform):
+
+    def __init__(self, transforms: typing.List[Transform]):
+
+        super().__init__()
+        self._transforms: nn.ModuleList = nn.ModuleList(transforms)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        
+        for transform in self._transforms:
+            x = transform(x)
+        return x
+    
+    def reverse(self, y: torch.Tensor) -> torch.Tensor:
+        
+        for transform in reversed(self._transforms):
+            y = transform.reverse(y)
+        return y
+    
+    def fit(self, X: torch.Tensor, t: typing.Dict[int, torch.Tensor] = None, kwargs: typing.Dict[int, typing.Dict]=None):
+
+        kwargs = kwargs or {}
+        t = t or {}
+
+        for i, transform in enumerate(self._transforms):
+            cur_kwargs = kwargs.get(i, {})
+            transform.fit(X, t.get(i), **cur_kwargs)
+            X = transform(X)
 
 
 class CumGaussian(GaussianBase):
@@ -121,7 +157,7 @@ class CumGaussian(GaussianBase):
         z = (x - self._mean) / (self._std * torch.sqrt(torch.tensor(2.0)))
         return 0.5 * (1 + torch.erf(z))
 
-    def reverse(self, x: torch.Tensor) -> torch.Tensor:
+    def reverse(self, y: torch.Tensor) -> torch.Tensor:
         """Map the data from percentiles to values
 
         Args:
@@ -130,7 +166,7 @@ class CumGaussian(GaussianBase):
         Returns:
             torch.Tensor: value
         """
-        return self._mean + self._std * torch.sqrt(torch.tensor(2.0)) * torch.erfinv(2 * x - 1)
+        return self._mean + self._std * torch.sqrt(torch.tensor(2.0)) * torch.erfinv(2 * y - 1)
 
 
 class LogisticBase(Transform):
@@ -173,7 +209,7 @@ class LogisticBase(Transform):
         )
         return numerator - denominator
 
-    def fit(self, X: torch.Tensor, t: torch.Tensor=None, lr: float=1e-2, iterations: int=1000):
+    def fit(self, X: torch.Tensor, t=None, lr: float=1e-2, iterations: int=1000):
         """Fit the logistic distribution function
 
         Args:
@@ -214,7 +250,7 @@ class CumLogistic(LogisticBase):
             (x - self.loc) / self._scale
         )
 
-    def reverse(self, x: torch.Tensor) -> torch.Tensor:
+    def reverse(self, y: torch.Tensor) -> torch.Tensor:
         """Map the data from percentiles to values
 
         Args:
@@ -224,7 +260,7 @@ class CumLogistic(LogisticBase):
             torch.Tensor: The value
         """
 
-        return (torch.logit(x) * self._scale) + self._loc
+        return (torch.logit(y) * self._scale) + self._loc
 
 
 class SigmoidParam(LogisticBase):
@@ -236,12 +272,12 @@ class SigmoidParam(LogisticBase):
             nn.parameter.Parameter(torch.rand(n_features))
         )
 
-    def reverse(self, x: torch.Tensor) -> torch.Tensor:
+    def reverse(self, y: torch.Tensor) -> torch.Tensor:
 
         # loc = self._align(x, self._loc, self._dim)
         # scale = self._align(x, self._scale, self._dim)
 
-        return (torch.logit(x) * self._scale) + self._loc
+        return (torch.logit(y) * self._scale) + self._loc
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
@@ -289,7 +325,7 @@ class MinMaxScaler(Transform):
         """
         return (x - self._lower) / (self._upper - self._lower + 1e-5)
     
-    def reverse(self, x: torch.Tensor) -> torch.Tensor:
+    def reverse(self, y: torch.Tensor) -> torch.Tensor:
         """Undo MinMax scaling
 
         Args:
@@ -298,9 +334,9 @@ class MinMaxScaler(Transform):
         Returns:
             torch.Tensor: The unscaled output
         """
-        return (x * (self._upper - self._lower + 1e-5)) + self._lower
+        return (y * (self._upper - self._lower + 1e-5)) + self._lower
 
-    def fit(self, X: torch.Tensor, t: torch.Tensor=None):
+    def fit(self, X: torch.Tensor, t=None):
         """Fit the scaling parameters
 
         Args:
@@ -314,7 +350,7 @@ class MinMaxScaler(Transform):
         self._upper = X.max(dim=0, keepdim=True)[0]
 
 
-class ReverseTransform(Transform):
+class Reverse(Transform):
 
     def __init__(self, processor: Transform):
         super().__init__()
@@ -324,10 +360,15 @@ class ReverseTransform(Transform):
 
         return self.processor.reverse(x)
     
-    def reverse(self, x: torch.Tensor) -> torch.Tensor:
+    def reverse(self, y: torch.Tensor) -> torch.Tensor:
 
-        return self.processor(x)
+        return self.processor(y)
     
-    def fit(self, X: torch.Tensor, t: torch.Tensor, **kwargs):
+    def fit(self, Y: torch.Tensor, t=None, *args, **kwargs):
 
-        self.processor.fit(X, t, **kwargs)
+        self.processor.fit(Y, t, *args, **kwargs)
+
+    def fit_transform(self, Y: torch.Tensor, t=None, *args, **kwargs):
+
+        self.processor.fit(Y, t, *args, **kwargs)
+        return self.processor(Y)
