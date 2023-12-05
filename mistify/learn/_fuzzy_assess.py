@@ -5,7 +5,7 @@ from torch.nn import functional as nn_func
 from torch import nn
 
 from ._core import MistifyLoss, ToOptim
-from ..infer._neurons import Or, And
+from ..infer._neurons import Or, And, LogicalNeuron
 from ..infer._ops import IntersectionOn, UnionOn
 from zenkai import IO, Reduction
 
@@ -236,6 +236,46 @@ class MaxMinLoss3(FuzzyLoss):
                 not_chosen_theta_weight, default_optim
             )
         return _
+
+
+class NeuronMSELoss(FuzzyLoss):
+
+    def __init__(
+        self, neuron: LogicalNeuron, reduction='batchmean', 
+        not_chosen_x_weight: float=0.01, not_chosen_theta_weight: float=0.01, 
+        default_optim: ToOptim=ToOptim.BOTH
+    ):
+        super().__init__(reduction)
+        self._neuron = neuron
+        self._default_optim = default_optim
+        self.not_chosen_theta_weight = not_chosen_theta_weight
+        self.not_chosen_x_weight = not_chosen_x_weight
+
+    def _loss(self, x: torch.Tensor, t: torch.Tensor, reduction_override: float=None, weight: float=None) -> torch.Tensor:
+
+        reduced = Reduction[reduction_override].reduce((x - t).pow(2))
+        return reduced * weight if weight is not None else reduced 
+    
+    def forward(self, x: IO, y: IO, t: IO, reduction_override: float=None) -> torch.Tensor:
+        
+        x = x.f
+        y = y.f
+
+        t = torch.clamp(t.f, 0, 1)
+
+        x = x.unsqueeze(x.dim())
+        y = y.unsqueeze(x.dim() - 2)
+        t = t.unsqueeze(x.dim() - 2)
+        w = self._neuron.weight[None]
+        base_loss = self._loss(y, t, reduction_override)
+
+        t_x = (x + torch.sign(t - x) * torch.abs(x - t)).detach()
+        t_w = (w + torch.sign(t - w) * torch.abs(w - t)).detach()
+        x_loss = self._loss(x, t_x, reduction_override, self.not_chosen_x_weight)
+        w_loss = self._loss(w, t_w, reduction_override, self.not_chosen_theta_weight)
+
+        loss = w_loss + base_loss + x_loss
+        return loss
 
 
 class MinMaxLoss3(FuzzyLoss):

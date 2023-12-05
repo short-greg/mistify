@@ -83,11 +83,30 @@ class WeightedAverageConc(Conclusion):
         )
 
 
+class AverageConc(Conclusion):
+    """Take the weighted average of all the hypotheses
+    """
+
+    def forward(self, hypo_weight: HypoWeight) -> torch.Tensor:
+        """
+        Args:
+            hypo_weight (HypoWeight): The hypotheses and weights
+
+        Returns:
+            torch.Tensor: the weighted average of the hypotheses
+        """
+        return (
+            torch.mean(hypo_weight.hypo, dim=-1)
+        )
+
+
+
 class ConcEnum(Enum):
 
     max = MaxConc
     max_value = MaxValueConc
     weighted_average = WeightedAverageConc
+    average = AverageConc
 
     @classmethod
     def get(cls, conc: typing.Union[Conclusion, str]) -> Conclusion:
