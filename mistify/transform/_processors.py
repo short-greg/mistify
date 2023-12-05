@@ -7,7 +7,7 @@ import torch
 from torch.distributions import Normal
 
 
-class Processor(nn.Module):
+class Transform(nn.Module):
     """
     """
 
@@ -19,12 +19,20 @@ class Processor(nn.Module):
     def reverse(self, x: torch.Tensor) -> torch.Tensor:
         pass
 
+    @abstractmethod
+    def fit(self, X: torch.Tensor, t: torch.Tensor=None):
+        pass
 
-class GaussianBase(Processor):
 
-    def __init__(self, mean: torch.Tensor, std: torch.Tensor):
+class GaussianBase(Transform):
+
+    def __init__(self, mean: torch.Tensor=0.0, std: torch.Tensor=1.0):
 
         super().__init__()
+        if not isinstance(mean, torch.Tensor) and mean is not None:
+            mean = torch.tensor(mean)
+        if not isinstance(std, torch.Tensor) and std is not None:
+            std = torch.tensor(std)
         self._mean = mean[None]
         self._std = std[None]
         self._normal = Normal(mean, std)
@@ -43,17 +51,17 @@ class GaussianBase(Processor):
 
         return self._mean
 
-    @classmethod
-    def fit(cls, X: torch.Tensor) -> torch.Tensor:
+    def fit(self, X: torch.Tensor, t: torch.Tensor=None):
 
-        return cls(X.mean(dim=0), X.std(dim=0))
+        self._mean = X.mean(dim=0, keepdim=True)
+        self._std = X.std(dim=0, keepdim=True)
         
 
 class StdDev(GaussianBase):
     """Use the standard deviation to preprocess the inputs
     """
 
-    def __init__(self, std: torch.Tensor, mean: torch.Tensor=None, divisor: float=1, offset: float=0.):
+    def __init__(self, std: torch.Tensor=1.0, mean: torch.Tensor=None, divisor: float=1, offset: float=0.):
         """Preprocess with the standard deviation. The standard deviation will be
         multiplied by the divisor. If the default 1 is used roughly 67% of the data will
         be in the range -1 and 1. The percentage can be increased by increasing the divisor
@@ -67,23 +75,35 @@ class StdDev(GaussianBase):
         """
         super().__init__(mean if isinstance(mean, torch.Tensor) else 0.0, std)
         self._divisor = divisor
-        self._offset = offset
+        self.offset = offset
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
     
-        return (x - self._mean + self._offset) / (self._std * self._divisor)
+        return (x - self._mean + self.offset) / (self._std * self._divisor)
 
     def reverse(self, x: torch.Tensor) -> torch.Tensor:
 
         # std = self._align(x, self._std, self._dim)
         # mean = self._align(x, self._mean, self._dim)
 
-        return (x * (self._std * self._divisor)) + self._mean - self._offset
+        return (x * (self._std * self._divisor)) + self._mean - self.offset
 
-    @classmethod
-    def fit(cls, X: torch.Tensor, divisor: float=1.0, offset: float=0.0) -> torch.Tensor:
+    @property
+    def divisor(self) -> float:
+        return self._divisor
+    
+    @divisor.setter
+    def divisor(self, divisor: float) -> float:
 
-        return cls(X.std(dim=0), X.mean(dim=0), divisor=divisor, offset=offset)
+        if divisor <= 0:
+            raise ValueError(f'Divisor must be greater than 0 not {divisor}')
+        self._divisor = divisor
+
+    def fit(self, X: torch.Tensor, t: torch.Tensor=None, fit_mean: bool=False) -> torch.Tensor:
+
+        if fit_mean:
+            self._mean = X.mean(dim=0, keepdim=True)
+        self._std = X.std(dim=0, keepdim=True)
 
 
 class CumGaussian(GaussianBase):
@@ -113,11 +133,15 @@ class CumGaussian(GaussianBase):
         return self._mean + self._std * torch.sqrt(torch.tensor(2.0)) * torch.erfinv(2 * x - 1)
 
 
-class LogisticBase(Processor):
+class LogisticBase(Transform):
 
-    def __init__(self, loc: torch.Tensor, scale: torch.Tensor):
+    def __init__(self, loc: torch.Tensor=None, scale: torch.Tensor=None):
 
         super().__init__()
+        if loc is None:
+            loc = torch.tensor(0.0)
+        if scale is None:
+            scale = torch.tensor(1.0)
         self._loc = loc[None]
         self._scale = scale[None]
     
@@ -149,23 +173,30 @@ class LogisticBase(Processor):
         )
         return numerator - denominator
 
-    @classmethod
-    def fit(cls, X: torch.Tensor, lr: float=1e-2, iterations: int=1000) -> 'CumLogistic':
+    def fit(self, X: torch.Tensor, t: torch.Tensor=None, lr: float=1e-2, iterations: int=1000):
+        """Fit the logistic distribution function
 
+        Args:
+            X (torch.Tensor): the training inputs
+            t (torch.Tensor, optional): the training targets. Defaults to None.
+            lr (float, optional): the learning rate. Defaults to 1e-2.
+            iterations (int, optional): the number of iterations to run. Defaults to 1000.
+        """
         mean = X.mean(dim=0)
         scale = torch.ones_like(mean) + torch.randn_like(mean) * 0.05
         scale.requires_grad_()
         scale.retain_grad()
         
         for _ in range(iterations):
-            log_likelihood = cls.log_pdf(X, mean, scale)
+            log_likelihood = self.log_pdf(X, mean, scale)
             (-log_likelihood.mean()).backward()
             scale.data = scale - lr * scale.grad
             scale.grad = None
 
         scale = scale.detach()
         scale.requires_grad_(False)
-        return cls(mean, scale)
+        self._loc = mean[None]
+        self._scale = scale[None]
 
 
 class CumLogistic(LogisticBase):
@@ -204,15 +235,6 @@ class SigmoidParam(LogisticBase):
             nn.parameter.Parameter(torch.randn(n_features)),
             nn.parameter.Parameter(torch.rand(n_features))
         )
-    
-    # def _align(self, x: torch.Tensor, p: torch.Tensor) -> torch.Tensor:
-
-    #     unsqueeze = [1] * x.dim()
-    #     unsqueeze[self._dim] = 0
-    #     for i, u in enumerate(unsqueeze):
-    #         if u == 1:
-    #             p = p.unsqueeze(i)
-    #     return p
 
     def reverse(self, x: torch.Tensor) -> torch.Tensor:
 
@@ -231,9 +253,9 @@ class SigmoidParam(LogisticBase):
         )
 
 
-class MinMaxScaler(Processor):
+class MinMaxScaler(Transform):
 
-    def __init__(self, lower: torch.Tensor, upper: torch.Tensor):
+    def __init__(self, lower: torch.Tensor=None, upper: torch.Tensor=None):
         """
 
         Args:
@@ -241,6 +263,10 @@ class MinMaxScaler(Processor):
             upper (torch.Tensor): The upper value for scaling
         """
         super().__init__()
+        if lower is None:
+            lower = torch.tensor(0.0)
+        if upper is None:
+            upper = torch.tensor(1.0)
         self._lower = lower[None]
         self._upper = upper[None]
 
@@ -274,8 +300,7 @@ class MinMaxScaler(Processor):
         """
         return (x * (self._upper - self._lower + 1e-5)) + self._lower
 
-    @classmethod
-    def fit(cls, X: torch.Tensor) -> 'MinMaxScaler':
+    def fit(self, X: torch.Tensor, t: torch.Tensor=None):
         """Fit the scaling parameters
 
         Args:
@@ -285,6 +310,24 @@ class MinMaxScaler(Processor):
             MinMaxScaler: The scaler based on the X
         """
 
-        return MinMaxScaler(
-            X.min(dim=0)[0], X.max(dim=0)[0]
-        )
+        self._lower = X.min(dim=0, keepdim=True)[0]
+        self._upper = X.max(dim=0, keepdim=True)[0]
+
+
+class ReverseTransform(Transform):
+
+    def __init__(self, processor: Transform):
+        super().__init__()
+        self.processor = processor
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+
+        return self.processor.reverse(x)
+    
+    def reverse(self, x: torch.Tensor) -> torch.Tensor:
+
+        return self.processor(x)
+    
+    def fit(self, X: torch.Tensor, t: torch.Tensor, **kwargs):
+
+        self.processor.fit(X, t, **kwargs)

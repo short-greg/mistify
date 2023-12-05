@@ -1,4 +1,4 @@
-from mistify.process import _processors as processors
+from mistify.transform import _processors as processors
 import torch
 
 
@@ -8,7 +8,8 @@ class TestStdDev:
 
         torch.manual_seed(1)
         X = torch.rand(8, 4)
-        stddev = processors.StdDev.fit(X)
+        stddev = processors.StdDev()
+        stddev.fit(X, fit_mean=True)
         assert (stddev.mean == X.mean(dim=0, keepdim=True)).all()
         assert (stddev.std == X.std(dim=0, keepdim=True)).all()
 
@@ -17,7 +18,8 @@ class TestStdDev:
         torch.manual_seed(1)
         X = torch.rand(8, 4)
         y = torch.rand(8, 4)
-        stddev = processors.StdDev.fit(X)
+        stddev = processors.StdDev()
+        stddev.fit(X)
         y_out = stddev(y)
         
         assert y_out.shape == torch.Size([8, 4])
@@ -27,8 +29,11 @@ class TestStdDev:
         torch.manual_seed(1)
         X = torch.rand(8, 4)
         y = torch.rand(8, 4)
-        stddev = processors.StdDev.fit(X, divisor=3)
-        stddev_target = processors.StdDev.fit(X)
+        stddev_target = processors.StdDev()
+        stddev = processors.StdDev(divisor=3)
+        stddev.fit(X, fit_mean=False)
+        stddev_target.fit(X, fit_mean=False)
+        # stddev_target = processors.StdDev.fit(X)
         y_out = stddev(y)
         y_target = stddev_target(y)
         
@@ -39,7 +44,9 @@ class TestStdDev:
         torch.manual_seed(1)
         X = torch.rand(8, 4)
         y = torch.rand(8, 4)
-        stddev = processors.StdDev.fit(X, divisor=3)
+        stddev = processors.StdDev(divisor=3)
+        stddev.fit(X)
+
         y_out = stddev(y)
         y_target = stddev.reverse(y_out)
         
@@ -51,7 +58,8 @@ class TestCumGaussian:
     def test_fit_fits_the_standard_deviation(self):
 
         X = torch.rand(8, 4)
-        stddev = processors.CumGaussian.fit(X)
+        stddev = processors.CumGaussian()
+        stddev.fit(X)
         assert (stddev.mean == X.mean(dim=0, keepdim=True)).all()
         assert (stddev.std == X.std(dim=0, keepdim=True)).all()
 
@@ -59,7 +67,8 @@ class TestCumGaussian:
 
         X = torch.rand(8, 4)
         y = torch.rand(8, 4)
-        cum_gaussian = processors.CumGaussian.fit(X)
+        cum_gaussian = processors.CumGaussian()
+        cum_gaussian.fit(X)
         y_out = cum_gaussian(y)
         
         assert y_out.shape == torch.Size([8, 4])
@@ -69,7 +78,8 @@ class TestCumGaussian:
 
         X = torch.rand(8, 4)
         y = torch.rand(8, 4)
-        cum_gaussian = processors.CumGaussian.fit(X)
+        cum_gaussian = processors.CumGaussian()
+        cum_gaussian.fit(X)
         y_out = cum_gaussian(y)
         y_target = cum_gaussian.reverse(y_out)
         
@@ -81,7 +91,8 @@ class TestCumLogistic:
     def test_fit_fits_the_logistic(self):
 
         X = torch.rand(8, 4)
-        logistic = processors.CumLogistic.fit(X)
+        logistic = processors.CumLogistic()
+        logistic.fit(X)
         assert (logistic.scale.shape == torch.Size([1, 4]))
         assert (logistic.loc.shape == torch.Size([1, 4]))
 
@@ -90,7 +101,8 @@ class TestCumLogistic:
         torch.manual_seed(1)
         X = torch.rand(8, 4)
         y = torch.rand(8, 4)
-        logistic = processors.CumLogistic.fit(X, iterations=10)
+        logistic = processors.CumLogistic()
+        logistic.fit(X, iterations=10)
         y_out = logistic(y)
         
         assert y_out.shape == torch.Size([8, 4])
@@ -101,7 +113,8 @@ class TestCumLogistic:
         torch.manual_seed(1)
         X = torch.rand(8, 4)
         y = torch.rand(8, 4)
-        logistic = processors.CumLogistic.fit(X, iterations=10)
+        logistic = processors.CumLogistic()
+        logistic.fit(X, iterations=10)
         y_out = logistic(y)
         y_target = logistic.reverse(y_out)
         
@@ -142,7 +155,8 @@ class TestMinMaxScaler:
     def test_creates_parameters_of_the_correct_size(self):
 
         X = torch.rand(8, 4)
-        min_max = processors.MinMaxScaler.fit(X)
+        min_max = processors.MinMaxScaler()
+        min_max.fit(X)
         assert (min_max.lower.shape == torch.Size([1, 4]))
         assert (min_max.upper.shape == torch.Size([1, 4]))
 
@@ -151,7 +165,8 @@ class TestMinMaxScaler:
         torch.manual_seed(1)
         X = torch.cat([torch.rand(8, 4), torch.ones(1, 4), torch.zeros(1, 4)], dim=0)
         y = torch.rand(8, 4)
-        min_max = processors.MinMaxScaler.fit(X)
+        min_max = processors.MinMaxScaler()
+        min_max.fit(X)
         y_out = min_max(y)
         
         assert y_out.shape == torch.Size([8, 4])
@@ -162,7 +177,8 @@ class TestMinMaxScaler:
         torch.manual_seed(1)
         y = torch.rand(8, 4)
         X = torch.cat([torch.rand(8, 4), torch.ones(1, 4), torch.zeros(1, 4)], dim=0)
-        min_max = processors.MinMaxScaler.fit(X)
+        min_max = processors.MinMaxScaler()
+        min_max.fit(X)
         y_out = min_max(y)
         y_target = min_max.reverse(y_out)
         

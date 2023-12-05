@@ -2,7 +2,7 @@ from . import boolean
 from . import signed
 from . import fuzzy
 from ._neurons import (
-    Or, And, LogicalNeuron
+    Or, And, LogicalNeuron, WEIGHT_FACTORY
 )
 from ._ops import (
     IntersectionOn,

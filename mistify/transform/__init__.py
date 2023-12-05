@@ -1,4 +1,4 @@
 from ._processors import (
-    Processor, GaussianBase, CumGaussian, StdDev,
+    Transform, GaussianBase, CumGaussian, StdDev,
     LogisticBase, CumLogistic, SigmoidParam, MinMaxScaler
 )

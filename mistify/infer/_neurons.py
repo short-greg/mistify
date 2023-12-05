@@ -18,6 +18,7 @@ WEIGHT_FACTORY = EnumFactory(
     sign=torch.sign,
     boolean=lambda x: torch.clamp(torch.round(x), 0, 1)
 )
+WEIGHT_FACTORY[None] = (lambda x: x)
 
 
 class LogicalNeuron(nn.Module):
@@ -53,9 +54,12 @@ class LogicalNeuron(nn.Module):
         Returns:
             torch.Tensor: 
         """
+        greater = (self.weight > 1.0).float().sum()
+        lesser = (self.weight < 0.0).float().sum()
+        if greater > 0 or lesser > 0:
+            print(f'Counts {greater} {lesser}')
         weight = self._wf(self.weight)
         return self._f(m, weight)
-    
 
 
 class Or(LogicalNeuron):
