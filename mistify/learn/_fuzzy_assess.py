@@ -6,7 +6,8 @@ from torch import nn
 
 from ._core import MistifyLoss, ToOptim
 from ..infer._neurons import Or, And, LogicalNeuron
-from ..infer._ops import IntersectionOn, UnionOn
+
+from ..infer._ops import IntersectionOn, UnionOn, JunctionOn
 from zenkai import IO, Reduction
 
 
@@ -238,6 +239,13 @@ class MaxMinLoss3(FuzzyLoss):
         return _
 
 
+
+# TODO: I noticed a problem with NeuronMSELoss and JunctionLoss
+# if it is maxmin and the output is less than the target. The target that
+# is chosen may end up being greater than the actual target..
+# I need to update this by inheritance and improving how the
+# target is set
+
 class NeuronMSELoss(FuzzyLoss):
 
     def __init__(
@@ -258,10 +266,10 @@ class NeuronMSELoss(FuzzyLoss):
     
     def forward(self, x: IO, y: IO, t: IO, reduction_override: float=None) -> torch.Tensor:
         
-        x = x.f
-        y = y.f
+        x: torch.Tensor = x.f
+        y: torch.Tensor = y.f
 
-        t = torch.clamp(t.f, 0, 1)
+        t: torch.Tensor = torch.clamp(t.f, 0, 1)
 
         x = x.unsqueeze(x.dim())
         y = y.unsqueeze(x.dim() - 2)
@@ -269,12 +277,55 @@ class NeuronMSELoss(FuzzyLoss):
         w = self._neuron.weight[None]
         base_loss = self._loss(y, t, reduction_override)
 
-        t_x = (x + torch.sign(t - x) * torch.abs(x - t)).detach()
-        t_w = (w + torch.sign(t - w) * torch.abs(w - t)).detach()
+        dy = torch.abs(y - t)
+        dx = torch.min(torch.abs(x - t), dy)
+        dw = torch.min(torch.abs(w - t), dy)
+        t_x = (x + torch.sign(t - x) * dx).detach()
+        t_w = (w + torch.sign(t - w) * dw).detach()
         x_loss = self._loss(x, t_x, reduction_override, self.not_chosen_x_weight)
         w_loss = self._loss(w, t_w, reduction_override, self.not_chosen_theta_weight)
 
         loss = w_loss + base_loss + x_loss
+        return loss
+
+
+class JunctionMSELoss(FuzzyLoss):
+    """Calculate the loss for a 'JunctionOn' operation such as 'UnionOn' or 'IntersectionOn'
+    It assigns a loss based on the displacement from the chosen value
+    """
+
+    def __init__(
+        self, junction: JunctionOn, reduction='batchmean', 
+        not_chosen_x_weight: float=0.01,
+        default_optim: ToOptim=ToOptim.BOTH
+    ):
+        super().__init__(reduction)
+        self._junction = junction
+        self._default_optim = default_optim
+        self.not_chosen_x_weight = not_chosen_x_weight
+
+    def _loss(self, x: torch.Tensor, t: torch.Tensor, reduction_override: float=None, weight: float=None) -> torch.Tensor:
+
+        reduced = Reduction[reduction_override].reduce((x - t).pow(2))
+        return reduced * weight if weight is not None else reduced 
+    
+    def forward(self, x: IO, y: IO, t: IO, reduction_override: float=None) -> torch.Tensor:
+        
+        x: torch.Tensor = x.f
+        y: torch.Tensor = y.f
+
+        t: torch.Tensor = torch.clamp(t.f, 0, 1)
+        if not self._junction.keepdim:
+            y.unsqueeze(self._junction.dim)
+            t.unsqueeze(self._junction.dim)
+
+        base_loss = self._loss(y, t, reduction_override)
+
+        dx = torch.min(torch.abs(x - t), torch.abs(y - t))
+        t_x = (x + torch.sign(t - x) * dx).detach()
+        x_loss = self._loss(x, t_x, reduction_override, self.not_chosen_x_weight)
+
+        loss = base_loss + x_loss
         return loss
 
 

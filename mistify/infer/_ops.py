@@ -14,14 +14,10 @@ from . import fuzzy
 from . import boolean
 
 
-class IntersectionOn(nn.Module):
+class JunctionOn(nn.Module):
     """Intersect sets that comprise a fuzzy set on a dimension
     """
-    F = EnumFactory(
-        min=functional.min_on,
-        min_ada=functional.smooth_min_on,
-        prod=functional.prod_on
-    )
+    F = EnumFactory()
 
     def __init__(self, f: str='min', dim: int=-1, keepdim: bool=False):
         """Intersect sets that comprise a fuzzy set on a specified dimension
@@ -43,6 +39,16 @@ class IntersectionOn(nn.Module):
         return self._f(m, dim=self.dim, keepdim=self.keepdim)
 
 
+class IntersectionOn(nn.Module):
+    """Intersect sets that comprise a fuzzy set on a dimension
+    """
+    F = EnumFactory(
+        min=functional.min_on,
+        min_ada=functional.smooth_min_on,
+        prod=functional.prod_on
+    )
+
+
 class UnionOn(nn.Module):
     """Union on a specific dimension
     """
@@ -50,22 +56,6 @@ class UnionOn(nn.Module):
         max = functional.max_on,
         max_ada = functional.smooth_max_on
     )
-
-    def __init__(self, f: str='max', dim: int=-1, keepdim: bool=False):
-        """
-
-        Args:
-            f (str, optional): The function to use for dimension. Defaults to 'max'.
-            dim (int, optional): The dimension to union on. Defaults to -1.
-            keepdim (bool, optional): Whether to keep the dimension. Defaults to False.
-        """
-        super().__init__()
-        self._f = self.F.factory(f)
-        self.dim = dim
-        self.keepdim = keepdim
-
-    def forward(self, m: torch.Tensor) -> torch.Tensor:
-        return self._f(m, dim=self.dim, keepdim=self.keepdim)
 
 
 class Else(nn.Module):
