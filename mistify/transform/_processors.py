@@ -8,7 +8,6 @@ from torch.distributions import Normal
 import typing
 
 
-
 class Transform(nn.Module):
     """
     """
@@ -114,9 +113,10 @@ class StdDev(GaussianBase):
 
 class Compound(Transform):
 
-    def __init__(self, transforms: typing.List[Transform]):
+    def __init__(self, transforms: typing.List[Transform], no_fit: typing.Set[int]=None):
 
         super().__init__()
+        self._no_fit = no_fit
         self._transforms: nn.ModuleList = nn.ModuleList(transforms)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -124,6 +124,17 @@ class Compound(Transform):
         for transform in self._transforms:
             x = transform(x)
         return x
+    
+    def to_fit(self, i: int, to_fit: bool):
+
+        if not to_fit:
+            try:
+                self._no_fit.remove(i)
+            except KeyError:
+                # Don't need to throw error if fit is set to false
+                pass
+        else:
+            self._no_fit.add(i)
     
     def reverse(self, y: torch.Tensor) -> torch.Tensor:
         
@@ -138,7 +149,8 @@ class Compound(Transform):
 
         for i, transform in enumerate(self._transforms):
             cur_kwargs = kwargs.get(i, {})
-            transform.fit(X, t.get(i), **cur_kwargs)
+            if i not in self._no_fit:
+                transform.fit(X, t.get(i), **cur_kwargs)
             X = transform(X)
 
 
