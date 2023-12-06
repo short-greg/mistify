@@ -42,6 +42,7 @@ class JunctionOn(nn.Module):
 class IntersectionOn(nn.Module):
     """Intersect sets that comprise a fuzzy set on a dimension
     """
+
     F = EnumFactory(
         min=functional.min_on,
         min_ada=functional.smooth_min_on,
@@ -65,12 +66,14 @@ class Else(nn.Module):
         fuzzy=fuzzy.else_,
         signed= signed.else_
     )
+
     def __init__(self, f: typing.Callable='fuzzy', dim=-1, keepdim: bool = False):
         """Calculate else along a certain dimension It calculates the sum of all the membership values along the dimension
 
         Args:
-            dim (int, optional): _description_. Defaults to -1.
-            keepdim (bool, optional): _description_. Defaults to False.
+            f (typing.Callable, optional): The else function. Defaults to 'fuzzy'.
+            dim (int, optional): The dimension to take the else on. Defaults to -1.
+            keepdim (bool, optional): Whether to keep the dimension after taking the else. Defaults to False.
         """
         super().__init__()
         self.dim = dim
@@ -89,6 +92,26 @@ class Else(nn.Module):
         return self._f(m, dim=self.dim, keepdim=self.keepdim)
 
 
+class CatElse(nn.Module):
+
+    def __init__(self, f: typing.Callable='fuzzy', dim=-1):
+        """Take the "Else" of the fuzzy set and then complement
+
+        Args:
+            f (typing.Callable, optional): The else function. Defaults to 'fuzzy'.
+            dim (int, optional): The dimension to take the else on. Defaults to -1.
+        """
+        super().__init__()
+        self._else = Else(f, dim, True)
+
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+
+        else_ = self._else(m)
+        return torch.cat(
+            [m, else_], dim=self._else.dim
+        )
+
+
 class Complement(nn.Module):
 
     F = EnumFactory(
@@ -98,11 +121,10 @@ class Complement(nn.Module):
     )
 
     def __init__(self, f: typing.Callable='boolean'):
-        """Calculate else along a certain dimension It calculates the sum of all the membership values along the dimension
+        """Take the complement of the set
 
         Args:
-            dim (int, optional): _description_. Defaults to -1.
-            keepdim (bool, optional): _description_. Defaults to False.
+            f (typing.Callable, optional): The complement function. Defaults to 'boolean'.
         """
         super().__init__()
         self._f = self.F.factory(f)
@@ -117,6 +139,27 @@ class Complement(nn.Module):
             torch.Tensor: the complement of the set
         """
         return self._f(m)
+
+
+class CatComplement(nn.Module):
+
+    def __init__(self, f: typing.Callable='boolean', dim=-1):
+        """Take the complement and then concatenate it
+
+        Args:
+            f (typing.Callable, optional): The complement function. Defaults to 'boolean'.
+            dim (int, optional): The dim to cat on. Defaults to -1.
+        """
+        super().__init__()
+        self._complement = Complement(f)
+        self.dim = dim
+
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+
+        complement = self._complement(m)
+        return torch.cat(
+            [m, complement], dim=self.dim
+        )
 
 
 class Exclusion(nn.Module):

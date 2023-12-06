@@ -36,9 +36,9 @@ class GaussianBase(Transform):
 
         super().__init__()
         if not isinstance(mean, torch.Tensor) and mean is not None:
-            mean = torch.tensor(mean)
+            mean = torch.tensor(mean, dtype=torch.float32)
         if not isinstance(std, torch.Tensor) and std is not None:
-            std = torch.tensor(std)
+            std = torch.tensor(std, dtype=torch.float32)
         self._mean = mean[None]
         self._std = std[None]
         self._normal = Normal(mean, std)
@@ -116,7 +116,7 @@ class Compound(Transform):
     def __init__(self, transforms: typing.List[Transform], no_fit: typing.Set[int]=None):
 
         super().__init__()
-        self._no_fit = no_fit
+        self._no_fit = no_fit or set()
         self._transforms: nn.ModuleList = nn.ModuleList(transforms)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -183,13 +183,13 @@ class CumGaussian(GaussianBase):
 
 class LogisticBase(Transform):
 
-    def __init__(self, loc: torch.Tensor=None, scale: torch.Tensor=None):
+    def __init__(self, loc: torch.Tensor=0.0, scale: torch.Tensor=1.0):
 
         super().__init__()
-        if loc is None:
-            loc = torch.tensor(0.0)
-        if scale is None:
-            scale = torch.tensor(1.0)
+        if not isinstance(loc, torch.Tensor):
+            loc = torch.tensor(loc, dtype=torch.float32)
+        if not isinstance(scale, torch.Tensor):
+            scale = torch.tensor(scale, dtype=torch.float32)
         self._loc = loc[None]
         self._scale = scale[None]
     
@@ -303,7 +303,7 @@ class SigmoidParam(LogisticBase):
 
 class MinMaxScaler(Transform):
 
-    def __init__(self, lower: torch.Tensor=None, upper: torch.Tensor=None):
+    def __init__(self, lower: torch.Tensor=0.0, upper: torch.Tensor=1.0):
         """
 
         Args:
@@ -311,10 +311,11 @@ class MinMaxScaler(Transform):
             upper (torch.Tensor): The upper value for scaling
         """
         super().__init__()
-        if lower is None:
-            lower = torch.tensor(0.0)
-        if upper is None:
-            upper = torch.tensor(1.0)
+        if not isinstance(lower, torch.Tensor) :
+            lower = torch.tensor(lower, dtype=torch.float32)
+        
+        if not isinstance(upper, torch.Tensor):
+            upper = torch.tensor(upper, dtype=torch.float32)
         self._lower = lower[None]
         self._upper = upper[None]
 
