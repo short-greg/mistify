@@ -9,6 +9,7 @@ import pandas as pd
 
 
 class Argmax(nn.Module):
+
     def __init__(self, dim=-1):
         super().__init__()
         self._dim = dim
@@ -143,22 +144,22 @@ def sign_ste(x: torch.Tensor) -> torch.Tensor:
     return SignSTE.apply(x)
 
 
-def join(m: torch.Tensor, nn_module: nn.Module, dim=-1, unsqueeze_dim: int=None) -> torch.Tensor:
-    """
+# def join(m: torch.Tensor, nn_module: nn.Module, dim=-1, unsqueeze_dim: int=None) -> torch.Tensor:
+#     """
 
-    Args:
-        m (torch.Tensor): a membership tensor
-        nn_module (nn.Module): _description_
-        dim (int, optional): _description_. Defaults to -1.
-        unsqueeze_dim (int, optional): _description_. Defaults to None.
+#     Args:
+#         m (torch.Tensor): a membership tensor
+#         nn_module (nn.Module): _description_
+#         dim (int, optional): _description_. Defaults to -1.
+#         unsqueeze_dim (int, optional): _description_. Defaults to None.
 
-    Returns:
-        torch.Tensor: _description_
-    """
+#     Returns:
+#         torch.Tensor: _description_
+#     """
 
-    m_out = nn_module(m)
-    if unsqueeze_dim is not None:
-        m_out = m_out.unsqueeze(unsqueeze_dim)
-    return torch.cat(
-        [m, m_out], dim=dim
-    )
+#     m_out = nn_module(m)
+#     if unsqueeze_dim is not None:
+#         m_out = m_out.unsqueeze(unsqueeze_dim)
+#     return torch.cat(
+#         [m, m_out], dim=dim
+#     )

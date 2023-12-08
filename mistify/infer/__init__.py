@@ -6,7 +6,7 @@ from ._neurons import (
 )
 from ._ops import (
     IntersectionOn,
-    UnionOn, Complement, Else, JunctionOn
+    UnionOn, Complement, Else, JunctionOn, CatComplement, CatElse
 )
 from ._noise import DropoutNoise, ExpNoise, GaussianClampNoise
 from ._shape import swap, expand_term, collapse_term

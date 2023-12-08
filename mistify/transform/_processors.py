@@ -365,23 +365,51 @@ class MinMaxScaler(Transform):
 
 class Reverse(Transform):
 
-    def __init__(self, processor: Transform):
+    def __init__(self, transform: Transform):
+        """
+
+        Args:
+            transform (Transform): The transform to reverse
+        """
         super().__init__()
-        self.processor = processor
+        self.transform = transform
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Reverse the member transform
 
-        return self.processor.reverse(x)
+        Args:
+            x (torch.Tensor): The tensor to reverse
+
+        Returns:
+            torch.Tensor: The reversed tensor
+        """
+
+        return self.transform.reverse(x)
     
     def reverse(self, y: torch.Tensor) -> torch.Tensor:
 
-        return self.processor(y)
+        return self.transform(y)
     
     def fit(self, Y: torch.Tensor, t=None, *args, **kwargs):
+        """Fit the reversed transform. Note: That this expects 
+        the input to the transform that is reversed not the input
+        to this transform
 
-        self.processor.fit(Y, t, *args, **kwargs)
+        Args:
+            Y (torch.Tensor): The output of the reversed transform
+            t (optional): The target if necessary. Defaults to None.
+        """
+        self.transform.fit(Y, t, *args, **kwargs)
 
-    def fit_transform(self, Y: torch.Tensor, t=None, *args, **kwargs):
+    def fit_transform(self, Y: torch.Tensor, t=None, *args, **kwargs) -> torch.Tensor:
+        """Run the fit process followed by the transform
 
-        self.processor.fit(Y, t, *args, **kwargs)
-        return self.processor(Y)
+        Args:
+            Y (torch.Tensor): _description_
+            t (_type_, optional): _description_. Defaults to None.
+
+        Returns:
+            torch.Tensor: The output of the transform
+        """
+        self.transform.fit(Y, t, *args, **kwargs)
+        return self.transform(Y)

@@ -596,8 +596,9 @@ class SigmoidFuzzyConverter(CompositeFuzzyConverter):
         conclusion: typing.Union[Conclusion, str]="max", 
     ):
         bias_coords = generate_spaced_params(n_terms + 2)[:,:,1:-1]
-        width = 1.0 / (2 * n_terms)
+        width = 1.0 / (2 * (n_terms + 1))
         scale_coords = generate_repeat_params(n_terms, width)
+
         return SigmoidFuzzyConverter.from_coords(
             bias_coords, scale_coords, n_terms, hypothesis, conclusion
         )
@@ -662,15 +663,23 @@ class RampFuzzyConverter(CompositeFuzzyConverter):
 
 
 class StepFuzzyConverter(CompositeFuzzyConverter):
+    """A 'fuzzifier' that makes use of a series of step functions
+    """
 
     def __init__(
         self, step: shape.Step=None, 
         hypothesis: typing.Union[ShapeHypothesis, str]="min_core", 
-        conclusion: typing.Union[Conclusion, str]="max", 
-        truncate: bool=False
+        conclusion: typing.Union[Conclusion, str]="max",
     ):
+        """Create a 'fuzzifier' that uses the step function. 
+
+        Args:
+            step (shape.Step, optional): The step function to use. Defaults to None.
+            hypothesis (typing.Union[ShapeHypothesis, str], optional): The hypothesizer to use. Defaults to "min_core".
+            conclusion (typing.Union[Conclusion, str], optional): The conclusion to use. Defaults to "max".
+        """
         super().__init__(
-            [step], hypothesis, conclusion, truncate
+            [step], hypothesis, conclusion, True
         )
 
     @classmethod
@@ -678,7 +687,18 @@ class StepFuzzyConverter(CompositeFuzzyConverter):
         cls, coords: torch.Tensor, n_terms: int,
         hypothesis: typing.Union[ShapeHypothesis, str]="min_core", 
         conclusion: typing.Union[Conclusion, str]="max", 
-    ):
+    ) -> 'StepFuzzyConverter':
+        """Create the StepFuzzyConverter from coordinates
+
+        Args:
+            coords (torch.Tensor): A series of thresholds use for the step functions
+            n_terms (int): The number of terms to use
+            hypothesis (typing.Union[ShapeHypothesis, str], optional): The hypothesizer to use. Defaults to "min_core".
+            conclusion (typing.Union[Conclusion, str], optional): The conclusion to use. Defaults to "max".
+
+        Returns:
+            StepFuzzyConverter: the created StepFuzzyConverter
+        """
         step = shape.Step(
             ShapeParams(stride_coordinates(coords, n_terms, 1, 1, 1))
         )
@@ -688,52 +708,131 @@ class StepFuzzyConverter(CompositeFuzzyConverter):
     def from_linspace(
         cls, n_terms: int, hypothesis: typing.Union[ShapeHypothesis, str]="min_core", 
         conclusion: typing.Union[Conclusion, str]="max", 
-    ):
+    ) -> 'StepFuzzyConverter':
+        """Create the StepFuzzyConverter from coordinates
+
+        Args:
+            n_terms (int): The number of terms
+            hypothesis (typing.Union[ShapeHypothesis, str], optional): The hypothesizer to use. Defaults to "min_core".
+            conclusion (typing.Union[Conclusion, str], optional): The conclusion to use. Defaults to "max".
+
+        Returns:
+            StepFuzzyConverter: the created StepFuzzyConverter
+        """
         coords = generate_spaced_params(n_terms + 2)[:,:,1:-1]
+        
         return StepFuzzyConverter.from_coords(
             coords, n_terms, hypothesis, conclusion,
         )
 
 
 class ConverterDecorator(ABC, FuzzyConverter):
+    """Define a decorator for the converter
+    """
 
     def __init__(self, converter: FuzzyConverter):
+        """
 
+        Args:
+            converter (FuzzyConverter): 
+        """
         super().__init__()
         self._converter = converter
 
     @abstractmethod
     def decorate_fuzzify(self, x: torch.Tensor) -> torch.Tensor:
+        """Decorate the fuzzification function
+
+        Args:
+            x (torch.Tensor): The crisp value to fuzzify
+
+        Returns:
+            torch.Tensor: The decorated crisp value
+        """
         pass
 
     @abstractmethod
     def decorate_defuzzify(self, m: torch.Tensor) -> torch.Tensor:
+        """Decorate the defuzzifier
+
+        Args:
+            m (torch.Tensor): The membership
+
+        Returns:
+            torch.Tensor: The decorated membership
+        """
         pass
 
     def fuzzify(self, x: torch.Tensor) -> torch.Tensor:
+        """Fuzzify the message
+
+        Args:
+            x (torch.Tensor): The crisp value to fuzzify
+
+        Returns:
+            torch.Tensor: The resulting tensor
+        """
         return self._converter.fuzzify(self.decorate_fuzzify(x))
 
-    def conclude(self, value_weight: HypoWeight) -> torch.Tensor:
-        return self._converter.conclude(value_weight)
+    def conclude(self, hypo_weight: HypoWeight) -> torch.Tensor:
+        """Use the hyptoheses to determine the result
+
+        Args:
+            hypo_weight (HypoWeight): The hypotheses and  their weights
+
+        Returns:
+            torch.Tensor: The conclusion based on the hypotheses
+        """
+        return self._converter.conclude(hypo_weight)
     
     def hypo(self, m: torch.Tensor) -> HypoWeight:
+        """
+
+        Args:
+            m (torch.Tensor): The membership value
+
+        Returns:
+            HypoWeight: The hypothesis and the weight
+        """
         return self.decorate_defuzzify(self._converter.hypo(m))
     
 
 class FuncConverterDecorator(ConverterDecorator):
 
     def __init__(self, converter: FuzzyConverter, fuzzify: typing.Callable[[torch.Tensor], torch.Tensor], defuzzify: typing.Callable[[torch.Tensor], torch.Tensor]):
+        """Use functions to decorate the fuzzification and defuzzification functions
 
+        Args:
+            converter (FuzzyConverter): The converter to decorate
+            fuzzify (typing.Callable[[torch.Tensor], torch.Tensor]): The fuzzification function
+            defuzzify (typing.Callable[[torch.Tensor], torch.Tensor]): The defuzzification function
+        """
         super().__init__(converter)
         self._fuzzify = fuzzify
         self._defuzzify = defuzzify
 
     def decorate_fuzzify(self, x: torch.Tensor) -> torch.Tensor:
+
+        """Decorate the defuzzifier
+
+        Args:
+            m (torch.Tensor): The membership
+
+        Returns:
+            torch.Tensor: The fuzzified value
+        """
         return self._fuzzify(x)
 
     def decorate_defuzzify(self, m: torch.Tensor) -> torch.Tensor:
-        return self._defuzzify(m)
+        """Decorate the defuzzifier
 
+        Args:
+            m (torch.Tensor): The membership
+
+        Returns:
+            torch.Tensor: The decorated crisp value
+        """
+        return self._defuzzify(m)
 
 
 class ConverterDefuzzifier(Defuzzifier):
@@ -759,13 +858,13 @@ class ConverterDefuzzifier(Defuzzifier):
         return self.converter.hypo(m)
 
     def conclude(self, hypo_weight: HypoWeight) -> torch.Tensor:
-        """
+        """Use the hyptoheses to determine the result
 
         Args:
-            hypo_weight (HypoWeight): _description_
+            hypo_weight (HypoWeight): The hypotheses and  their weights
 
         Returns:
-            torch.Tensor: The defuzzified value
+            torch.Tensor: The conclusion based on the hypotheses
         """
         return self.converter.conclude(hypo_weight)
 
