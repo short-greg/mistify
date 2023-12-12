@@ -2,11 +2,11 @@ import torch.nn as nn
 import torch
 
 class ANFIS(nn.Module):
-    """
+    """Allows to define variations on the ANFIS algorithm  
     """
     
     def __init__(self, fuzzy_system: nn.Module, net: nn.Module, out_features: int):
-        """Define various types of ANFIS
+        """Create a system that implements ANFIS
 
         Args:
             fuzzy_system (nn.Module): A system that outputs membership values. The output
@@ -20,7 +20,14 @@ class ANFIS(nn.Module):
         self._out_features = out_features
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Evaluate the output of ANFIS
 
+        Args:
+            x (torch.Tensor): The input to the network
+
+        Returns:
+            torch.Tensor: The output
+        """
         x = self._net(x)
         x = x.reshape(x.shape[0], self._out_features, -1)
         m = self._fuzzy_system(x).view(x.shape[0], self._out_features, -1)
