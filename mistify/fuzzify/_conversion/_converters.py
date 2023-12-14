@@ -28,34 +28,92 @@ def generate_repeat_params(n_steps: int, value: float) -> torch.Tensor:
 
 
 class FuzzyConverter(nn.Module):
-    """Convert tensor to fuzzy set
+    """Convert tensor to fuzzy set and vice versa
     """
 
     @abstractmethod
     def fuzzify(self, x: torch.Tensor) -> torch.Tensor:
+        """Fuzzify the crisp value
+
+        Args:
+            x (torch.Tensor): The value to fuzzify
+
+        Returns:
+            torch.Tensor: The fuzzy set
+        """
         pass
 
     @abstractmethod
     def hypo(self, m: torch.Tensor) -> HypoWeight:
+        """Convert the fuzzy set to a 'hypothesis' about how to defuzzify
+
+        Args:
+            m (torch.Tensor): The fuzzy set
+
+        Returns:
+            HypoWeight: The hypothesis and their weights
+        """
         pass
 
     @abstractmethod
     def conclude(self, hypo_weight: HypoWeight) -> torch.Tensor:
+        """Make a conclusion about how to defuzzify from the hypotheses
+
+        Args:
+            hypo_weight (HypoWeight): The hypotheses to use in the conclusion
+
+        Returns:
+            torch.Tensor: The defuzzified tensor
+        """
         pass
 
     def defuzzify(self, m: torch.Tensor) -> torch.Tensor:
+        """Convenience function to form a hypothesis and make a conclusion
+
+        Args:
+            m (torch.Tensor): The fuzzy set
+
+        Returns:
+            torch.Tensor: The defuzzified value
+        """
         return self.conclude(self.hypo(m))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Convenience function to fuzzify the value
+
+        Args:
+            x (torch.Tensor): The input
+
+        Returns:
+            torch.Tensor: The fuzzy set
+        """
         return self.fuzzify(x)
     
     def reverse(self, m: torch.Tensor) -> torch.Tensor:
+        """Convenience function to defuzzify the value
+
+        Args:
+            x (torch.Tensor): The fuzzy set
+
+        Returns:
+            torch.Tensor: The defuzzified value
+        """
         return self.defuzzify(m)
     
     def fuzzifier(self) -> 'ConverterFuzzifier':
+        """
+
+        Returns:
+            ConverterFuzzifier: A fuzzifier built from self
+        """
         return ConverterFuzzifier(self)
     
     def defuzzifier(self) -> 'ConverterDefuzzifier':
+        """
+
+        Returns:
+            ConverterFuzzifier: A defuzzifier built from self
+        """
         return ConverterDefuzzifier(self)
 
 

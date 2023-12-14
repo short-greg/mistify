@@ -100,7 +100,6 @@ class AverageConc(Conclusion):
         )
 
 
-
 class ConcEnum(Enum):
 
     max = MaxConc
