@@ -55,14 +55,41 @@ def intersect(m1: torch.Tensor, m2: 'torch.Tensor') -> 'torch.Tensor':
 
 
 def unify_on(m1: torch.Tensor, dim: int=-1, keepdim: bool=False) -> 'torch.Tensor':
+    """Unify elements of a set on specfiied dimension
+
+    Args:
+        m (torch.Tensor): Fuzzy set to take the union of
+
+    Returns:
+        torch.Tensor: Union of two sets
+    """
     return torch.max(m1, dim=dim, keepdim=keepdim)
 
 
 def intersect_on(m1: torch.Tensor, dim: int=-1, keepdim: bool=False) -> 'torch.Tensor':
+    """Intersect elements of a fuzzy set on specfiied dimension
+
+    Args:
+        m (torch.Tensor): Fuzzy set to intersect
+
+    Returns:
+        torch.Tensor: Intersection of two fuzzy sets
+    """
     return torch.min(m1, dim=dim, keepdim=keepdim)
 
 
 def inclusion(m1: torch.Tensor, m2: torch.Tensor, dim: int=None) -> 'torch.Tensor':
+    """Calculate whether m1 is included in m2. If dim is None then it will calculate per
+    element otherwise it will aggregate over that dimension
+
+    Args:
+        m1 (torch.Tensor): The membership to calculate the inclusion of
+        m2 (torch.Tensor): The membership to check if m1 is included
+        dim (int, optional): The dimension to aggregate over. Defaults to None.
+
+    Returns:
+        torch.Tensor: the tensor describing inclusion
+    """
     base = (m1 <= m2).type_as(m1)
     if dim is None:
         return base
@@ -70,6 +97,17 @@ def inclusion(m1: torch.Tensor, m2: torch.Tensor, dim: int=None) -> 'torch.Tenso
 
 
 def exclusion(m1: torch.Tensor, m2: torch.Tensor, dim: int=None) -> 'torch.Tensor':
+    """Calculate whether m1 is excluded from m2. If dim is None then it will calculate per
+    element otherwise it will aggregate over that dimension
+
+    Args:
+        m1 (torch.Tensor): The membership to calculate the exclusion of
+        m2 (torch.Tensor): The membership to check if m1 is excluded
+        dim (int, optional): The dimension to aggregate over. Defaults to None.
+
+    Returns:
+        torch.Tensor: the tensor describing inclusion
+    """
     base = (m1 >= m2).type_as(m1)    
     if dim is None:
         return base
@@ -77,6 +115,14 @@ def exclusion(m1: torch.Tensor, m2: torch.Tensor, dim: int=None) -> 'torch.Tenso
 
 
 def complement(m: torch.Tensor) -> torch.Tensor:
+    """Calculate the complement
+
+    Args:
+        m (torch.Tensor): The membership
+
+    Returns:
+        torch.Tensor: The complement
+    """
     return -m
 
 
@@ -94,7 +140,7 @@ def forget(m: torch.Tensor, p: float) -> torch.Tensor:
 
 
 def else_(m: torch.Tensor, dim: int=-1, keepdim: bool=False) -> torch.Tensor:
-    """
+    """Take the 'else' on a set
 
     Args:
         m (torch.Tensor): the fuzzy set

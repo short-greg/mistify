@@ -9,8 +9,16 @@ import pandas as pd
 
 
 class ColProcessor(ABC, nn.Module):
+    """Define a processor for a column in a dataframe
+    """
 
     def __init__(self, module: nn.Module, columns: typing.Union[str, typing.List[str]]):
+        """
+
+        Args:
+            module (nn.Module): The module to process the columns with
+            columns (typing.Union[str, typing.List[str]]): The columns to process
+        """
         super().__init__()
         self._columns = [columns] if isinstance(columns, str) else columns
         self._module = module
@@ -20,9 +28,27 @@ class ColProcessor(ABC, nn.Module):
         pass
 
     def process(self, x: torch.Tensor) -> torch.Tensor:
+        """Process the column with the processor
+
+        Args:
+            x (torch.Tensor): The input to process
+
+        Returns:
+            torch.Tensor: 
+        """
         return self._module(x)
     
     def forward(self, table, dtype: torch.dtype, device: typing.Union[str, torch.device]) -> torch.Tensor:
+        """
+
+        Args:
+            table : The table to retrieve the column from
+            dtype (torch.dtype): The type to convert to
+            device (typing.Union[str, torch.device]): The output device
+
+        Returns:
+            torch.Tensor: The processed column
+        """
         return self.process(self.prepare(table, dtype, device))
 
 
@@ -31,7 +57,19 @@ class PandasColProcessor(ColProcessor):
     """
 
     def prepare(self, table: pd.DataFrame, dtype: torch.dtype=torch.float32, device="cpu") -> torch.Tensor:
-        
+        """
+
+        Args:
+            table (pd.DataFrame): Pandas dataframe
+            dtype (torch.dtype, optional): The dtype for the output value. Defaults to torch.float32.
+            device (str, optional): The device to output. Defaults to "cpu".
+
+        Raises:
+            KeyError: If columns are not passed in
+
+        Returns:
+            torch.Tensor: The 'prepared' column
+        """
         try:
             return torch.tensor(
                 table[self._columns].values,
@@ -71,7 +109,16 @@ class TableProcessor(nn.Module):
         self._cat_dim = cat_dim
 
     def forward(self, table, dtype: torch.dtype=torch.float32, device="cpu") -> torch.Tensor:
+        """Pass the table through each column processor to get the output of each column
 
+        Args:
+            table : The table to process
+            dtype (torch.dtype, optional): The dtype of to use for torch. Defaults to torch.float32.
+            device (str, optional): The torch device to use. Defaults to "cpu".
+
+        Returns:
+            torch.Tensor: The output tensor
+        """
         y = [
             column_processor(table, dtype, device) for column_processor in self._column_processors
         ]
