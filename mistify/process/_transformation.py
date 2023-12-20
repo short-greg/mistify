@@ -9,7 +9,7 @@ import typing
 
 
 class Transform(nn.Module):
-    """
+    """Preprocess or postprocess the input
     """
 
     @abstractmethod
@@ -33,7 +33,12 @@ class Transform(nn.Module):
 class GaussianBase(Transform):
 
     def __init__(self, mean: torch.Tensor=0.0, std: torch.Tensor=1.0):
+        """Base class for a Gaussian Transform
 
+        Args:
+            mean (torch.Tensor, optional): The mean. Defaults to 0.0.
+            std (torch.Tensor, optional): The standard deviation. Defaults to 1.0.
+        """
         super().__init__()
         if not isinstance(mean, torch.Tensor) and mean is not None:
             mean = torch.tensor(mean, dtype=torch.float32)
@@ -49,16 +54,27 @@ class GaussianBase(Transform):
 
     @property
     def std(self) -> torch.Tensor:
-
+        """
+        Returns:
+            torch.Tensor: The standard deviation used
+        """
         return self._std
     
     @property
     def mean(self) -> torch.Tensor:
-
+        """
+        Returns:
+            torch.Tensor: The mean used
+        """
         return self._mean
 
     def fit(self, X: torch.Tensor, t=None):
+        """Fit the Gaussian with the input. t is not used for this
 
+        Args:
+            X (torch.Tensor): The input to fit on
+            t (_type_, optional): The target to fit on. Defaults to None.
+        """
         self._mean = X.mean(dim=0, keepdim=True)
         self._std = X.std(dim=0, keepdim=True)
         
@@ -72,6 +88,8 @@ class StdDev(GaussianBase):
         multiplied by the divisor. If the default 1 is used roughly 67% of the data will
         be in the range -1 and 1. The percentage can be increased by increasing the divisor
 
+        Useful if you use clamp after normalizing, otherwise it is just like scaling
+
         Args:
             std (torch.Tensor): The standard deviation of the data
             mean (torch.Tensor): The mean to offset by
@@ -84,11 +102,26 @@ class StdDev(GaussianBase):
         self.offset = offset
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-    
+        """Normalize the input to have mean of 0 and std of 1 and then divide
+        by divisor
+
+        Args:
+            x (torch.Tensor): The input
+
+        Returns:
+            torch.Tensor: The normalized input
+        """
         return (x - self._mean + self.offset) / (self._std * self._divisor)
 
     def reverse(self, y: torch.Tensor) -> torch.Tensor:
+        """Descale the input using the standard deviation and the mean
 
+        Args:
+            y (torch.Tensor): The value to reverse
+
+        Returns:
+            torch.Tensor: The original value
+        """
         # std = self._align(x, self._std, self._dim)
         # mean = self._align(x, self._mean, self._dim)
 
@@ -96,37 +129,63 @@ class StdDev(GaussianBase):
 
     @property
     def divisor(self) -> float:
+        """
+        Returns:
+            float: The value to divide by after normalizing
+        """
         return self._divisor
     
     @divisor.setter
     def divisor(self, divisor: float) -> float:
+        """_summary_
 
+        Args:
+            divisor (float): The value to divide by after normalizing
+
+        Raises:
+            ValueError: If divisor is less than or equal to zero
+
+        Returns:
+            float: The divisor
+        """
         if divisor <= 0:
             raise ValueError(f'Divisor must be greater than 0 not {divisor}')
         self._divisor = divisor
-
-    def fit(self, X: torch.Tensor, t=None) -> torch.Tensor:
-
-        self._mean = X.mean(dim=0, keepdim=True)
-        self._std = X.std(dim=0, keepdim=True)
 
 
 class Compound(Transform):
 
     def __init__(self, transforms: typing.List[Transform], no_fit: typing.Set[int]=None):
+        """Perform multiple transformations
 
+        Args:
+            transforms (typing.List[Transform]): The transformations
+            no_fit (typing.Set[int], optional): Set the transformations not to fit when fit is called. Defaults to None.
+        """
         super().__init__()
         self._no_fit = no_fit or set()
         self._transforms: nn.ModuleList = nn.ModuleList(transforms)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        
+        """Send the input through each of the transformatios
+
+        Args:
+            x (torch.Tensor): The input
+
+        Returns:
+            torch.Tensor: The transformed input
+        """
         for transform in self._transforms:
             x = transform(x)
         return x
     
     def to_fit(self, i: int, to_fit: bool):
+        """Set one of the transforms to fit or not to fit
 
+        Args:
+            i (int): the index
+            to_fit (bool): whether to fit or not to fit
+        """
         if not to_fit:
             try:
                 self._no_fit.remove(i)
@@ -137,13 +196,26 @@ class Compound(Transform):
             self._no_fit.add(i)
     
     def reverse(self, y: torch.Tensor) -> torch.Tensor:
-        
+        """
+
+        Args:
+            y (torch.Tensor): 
+
+        Returns:
+            torch.Tensor: 
+        """
         for transform in reversed(self._transforms):
             y = transform.reverse(y)
         return y
     
     def fit(self, X: torch.Tensor, t: typing.Dict[int, torch.Tensor] = None, kwargs: typing.Dict[int, typing.Dict]=None):
+        """Fit the composite transform
 
+        Args:
+            X (torch.Tensor): The input
+            t (typing.Dict[int, torch.Tensor], optional): The targets for each of the transforms if needed. Defaults to None.
+            kwargs (typing.Dict[int, typing.Dict], optional): The kwargs for each of the transforms if needed. Defaults to None.
+        """
         kwargs = kwargs or {}
         t = t or {}
 
@@ -184,7 +256,12 @@ class CumGaussian(GaussianBase):
 class LogisticBase(Transform):
 
     def __init__(self, loc: torch.Tensor=0.0, scale: torch.Tensor=1.0):
+        """The base logistic function
 
+        Args:
+            loc (torch.Tensor, optional): The location parameter. Defaults to 0.0.
+            scale (torch.Tensor, optional): The scale parameter. Defaults to 1.0.
+        """
         super().__init__()
         if not isinstance(loc, torch.Tensor):
             loc = torch.tensor(loc, dtype=torch.float32)
@@ -199,17 +276,32 @@ class LogisticBase(Transform):
 
     @property
     def scale(self) -> torch.Tensor:
-
+        """
+        Returns:
+            torch.Tensor: The scale parameter
+        """
         return self._scale
     
     @property
     def loc(self) -> torch.Tensor:
-
+        """
+        Returns:
+            torch.Tensor: The location parameter
+        """
         return self._loc
 
     @classmethod
     def log_pdf(cls, X: torch.Tensor, mean: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
-        
+        """Get the probability density output for an input
+
+        Args:
+            X (torch.Tensor): The input
+            mean (torch.Tensor): The mean of the logistic
+            scale (torch.Tensor): The scale of the logistic
+
+        Returns:
+            torch.Tensor: The density value
+        """
         mean = mean[None]
         scale = scale[None]
 
@@ -278,7 +370,11 @@ class CumLogistic(LogisticBase):
 class SigmoidParam(LogisticBase):
 
     def __init__(self, n_features: int):
+        """Use a parameterized sigmoid for the transform
 
+        Args:
+            n_features (int): The number of features to train
+        """
         super().__init__(
             nn.parameter.Parameter(torch.randn(n_features)),
             nn.parameter.Parameter(torch.rand(n_features))
@@ -321,10 +417,18 @@ class MinMaxScaler(Transform):
 
     @property
     def lower(self) -> torch.Tensor:
+        """
+        Returns:
+            torch.Tensor: The lower bound for the scale
+        """
         return self._lower
 
     @property
     def upper(self) -> torch.Tensor:
+        """
+        Returns:
+            torch.Tensor: The upper bound for the scale
+        """
         return self._upper
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -387,7 +491,14 @@ class Reverse(Transform):
         return self.transform.reverse(x)
     
     def reverse(self, y: torch.Tensor) -> torch.Tensor:
+        """Compute the forward value of the member transform
 
+        Args:
+            y (torch.Tensor): The output
+
+        Returns:
+            torch.Tensor: The input
+        """
         return self.transform(y)
     
     def fit(self, Y: torch.Tensor, t=None, *args, **kwargs):

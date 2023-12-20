@@ -174,19 +174,3 @@ class CatComplement(nn.Module):
         return torch.cat(
             [m, complement], dim=self.dim
         )
-
-
-# TODO: Implement the following
-
-class Exclusion(nn.Module):
-
-    @abstractmethod
-    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError
-
-
-class Inclusion(nn.Module):
-
-    @abstractmethod
-    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError

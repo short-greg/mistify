@@ -1,4 +1,4 @@
-from mistify.transform import _processors as processors
+from mistify.process import _transformation as processors
 import torch
 
 

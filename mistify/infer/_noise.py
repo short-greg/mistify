@@ -22,20 +22,20 @@ class DropoutNoise(nn.Module):
         self.p = p
         self.val = val
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
         """
 
         Args:
-            x (torch.Tensor): the input
+            m (torch.Tensor): the input
 
         Returns:
             torch.Tensor: the dropped out tensor
         """
         if self.training and self.p is not None:
-            x = x.clone()
-            x[(torch.rand_like(x) < self.p)] = self.val
+            m = m.clone()
+            m[(torch.rand_like(m) < self.p)] = self.val
         
-        return x
+        return m
 
 
 class GaussianClampNoise(nn.Module):
@@ -59,21 +59,21 @@ class GaussianClampNoise(nn.Module):
         self.max_ = max_
         self.dim = dim
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
         """
 
         Args:
-            x (torch.Tensor): the input
+            m: (torch.Tensor): the input
 
         Returns:
             torch.Tensor: the dropped out tensor
         """
         if self.training:
-            shape = list(x.shape)
+            shape = list(m.shape)
             shape[self.dim] = 1
-            return torch.clamp(x + torch.randn(*shape, dtype=x.dtype, device=x.device) * self.std, self.min_, self.max_)
+            return torch.clamp(m + torch.randn(*shape, dtype=m.dtype, device=m.device) * self.std, self.min_, self.max_)
         
-        return x
+        return m
 
 
 class ExpNoise(nn.Module):
@@ -96,18 +96,18 @@ class ExpNoise(nn.Module):
         self._mul = self._max - self._min
         self.dim = dim
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
         """
 
         Args:
-            x (torch.Tensor): the input
+            m (torch.Tensor): the input
 
         Returns:
             torch.Tensor: the dropped out tensor
         """
         if self.training:
-            shape = list(x.shape)
+            shape = list(m.shape)
             shape[self.dim] = 1
-            return x.exp(torch.rand(*shape, dtype=x.dtype, device=x.device) * self._mul + self._min)
+            return m.exp(torch.rand(*shape, dtype=m.dtype, device=m.device) * self._mul + self._min)
         
-        return x
+        return m
