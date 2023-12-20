@@ -17,18 +17,19 @@ from . import boolean
 class JunctionOn(nn.Module):
     """Intersect sets that comprise a fuzzy set on a dimension
     """
+
     F = EnumFactory()
 
     def __init__(self, f: str='min', dim: int=-1, keepdim: bool=False):
-        """Intersect sets that comprise a fuzzy set on a specified dimension
+        """Join sets that comprise a fuzzy set on a specified dimension
 
         Args:
-            f (str, optional): The function to use for intersection. Defaults to 'min'.
-            dim (int, optional): Dimension to intersect on. Defaults to -1.
+            f (str, optional): The function to use for junction. Defaults to 'min'.
+            dim (int, optional): Dimension to junction on. Defaults to -1.
             keepdim (bool, optional): Whether to keep the dim or not. Defaults to False.
 
         Raises:
-            ValueError: If the intersection function is invalid
+            ValueError: If the junction function is invalid
         """
         super().__init__()
         self._f = self.F.factory(f)
@@ -39,7 +40,7 @@ class JunctionOn(nn.Module):
         return self._f(m, dim=self.dim, keepdim=self.keepdim)
 
 
-class IntersectionOn(nn.Module):
+class IntersectionOn(JunctionOn):
     """Intersect sets that comprise a fuzzy set on a dimension
     """
 
@@ -50,13 +51,26 @@ class IntersectionOn(nn.Module):
     )
 
 
-class UnionOn(nn.Module):
+class UnionOn(JunctionOn):
     """Union on a specific dimension
     """
     F = EnumFactory(
         max = functional.max_on,
         max_ada = functional.smooth_max_on
     )
+
+    def __init__(self, f: str='max', dim: int=-1, keepdim: bool=False):
+        """Union sets that comprise a fuzzy set on a specified dimension
+
+        Args:
+            f (str, optional): The function to use for union. Defaults to 'min'.
+            dim (int, optional): Dimension to union on. Defaults to -1.
+            keepdim (bool, optional): Whether to keep the dim or not. Defaults to False.
+
+        Raises:
+            ValueError: If the union function is invalid
+        """
+        super().__init__(f, dim, keepdim)
 
 
 class Else(nn.Module):
@@ -161,6 +175,8 @@ class CatComplement(nn.Module):
             [m, complement], dim=self.dim
         )
 
+
+# TODO: Implement the following
 
 class Exclusion(nn.Module):
 

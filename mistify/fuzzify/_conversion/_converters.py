@@ -20,10 +20,29 @@ from ._fuzzifiers import Fuzzifier, Defuzzifier
 
 
 def generate_spaced_params(n_steps: int, lower: float=0, upper: float=1) -> torch.Tensor:
+    """Generate parameters that are equally spaced
+
+    Args:
+        n_steps (int): The number of steps to generate
+        lower (float, optional): The lower bound for the spaced parameters. Defaults to 0.
+        upper (float, optional): The upper bound for the spaced parameters. Defaults to 1.
+
+    Returns:
+        torch.Tensor: 
+    """
     return torch.linspace(lower, upper, n_steps)[None, None, :]
 
 
 def generate_repeat_params(n_steps: int, value: float) -> torch.Tensor:
+    """Generate several parameters
+
+    Args:
+        n_steps (int): The number of parameters
+        value (float): The value for the parameters
+
+    Returns:
+        torch.Tensor: The set of parameters
+    """
     return torch.full((1, 1, n_steps), value)
 
 
@@ -164,8 +183,17 @@ class CompositeFuzzyConverter(FuzzyConverter):
         return HypoWeight(self._hypothesis(*shapes), m)
 
 
-def polygon(left: shape.Shape, middle: shape.Shape, right: shape.Shape):
+def polygon_set(left: shape.Shape, middle: shape.Shape, right: shape.Shape) -> typing.List[Shape]:
+    """Create a set of shapes from left middle and right. If middle is none only middle will be returned
 
+    Args:
+        left (shape.Shape): The leftmost polygon
+        middle (shape.Shape): The center polygon
+        right (shape.Shape): The rightmost polygon
+
+    Returns:
+        typing.List[Shape]: The set of shapes created
+    """
     if middle is None:
         return [left, right]
     return [left, right, middle]
@@ -194,7 +222,7 @@ class IsoscelesFuzzyConverter(CompositeFuzzyConverter):
             truncate (bool, optional): _description_. Defaults to False.
         """
         super().__init__(
-            polygon(left, middle, right), hypothesis, conclusion, truncate
+            polygon_set(left, middle, right), hypothesis, conclusion, truncate
         )
 
     @classmethod
@@ -281,7 +309,7 @@ class IsoscelesTrapezoidFuzzyConverter(CompositeFuzzyConverter):
             truncate (bool, optional): _description_. Defaults to False.
         """
         super().__init__(
-            polygon(left, middle, right), hypothesis, conclusion, truncate
+            polygon_set(left, middle, right), hypothesis, conclusion, truncate
         )
 
     @classmethod
@@ -368,7 +396,7 @@ class TrapezoidFuzzyConverter(CompositeFuzzyConverter):
             truncate (bool, optional): _description_. Defaults to False.
         """
         super().__init__(
-            polygon(left, middle, right), hypothesis, conclusion, truncate
+            polygon_set(left, middle, right), hypothesis, conclusion, truncate
         )
 
     @classmethod
@@ -455,7 +483,7 @@ class TriangleFuzzyConverter(CompositeFuzzyConverter):
             truncate (bool, optional): _description_. Defaults to False.
         """
         super().__init__(
-            polygon(left, middle, right), hypothesis, conclusion, truncate
+            polygon_set(left, middle, right), hypothesis, conclusion, truncate
         )
 
     @classmethod
@@ -586,7 +614,7 @@ class LogisticFuzzyConverter(CompositeFuzzyConverter):
             truncate (bool, optional): Whether to use truncate or scale. Defaults to True.
         """
         super().__init__(
-            polygon(left, middle, right), hypothesis, conclusion, truncate
+            polygon_set(left, middle, right), hypothesis, conclusion, truncate
         )
 
     @classmethod
@@ -669,11 +697,17 @@ class RampFuzzyConverter(CompositeFuzzyConverter):
     def __init__(
         self, ramp: shape.Ramp=None, 
         hypothesis: typing.Union[ShapeHypothesis, str]="area", 
-        conclusion: typing.Union[Conclusion, str]="max", 
-        truncate: bool=False
+        conclusion: typing.Union[Conclusion, str]="max",
     ):
+        """Create a fuzzy converter that makes use of the ramp function
+
+        Args:
+            ramp (shape.Ramp, optional): The ramp function. Defaults to None.
+            hypothesis (typing.Union[ShapeHypothesis, str], optional): The hypothesizer to use. Defaults to "area".
+            conclusion (typing.Union[Conclusion, str], optional): The concluder to use. Defaults to "max".
+        """
         super().__init__(
-            [ramp], hypothesis, conclusion, truncate
+            [ramp], hypothesis, conclusion, True
         )
 
     @classmethod
@@ -697,7 +731,7 @@ class RampFuzzyConverter(CompositeFuzzyConverter):
         ramp = shape.Ramp(
             ShapeParams(stride_coordinates(coords, n_terms, 1, 2, 2))
         )
-        return RampFuzzyConverter(ramp, hypothesis, conclusion, True)
+        return RampFuzzyConverter(ramp, hypothesis, conclusion)
 
     @classmethod
     def from_linspace(
@@ -760,7 +794,7 @@ class StepFuzzyConverter(CompositeFuzzyConverter):
         step = shape.Step(
             ShapeParams(stride_coordinates(coords, n_terms, 1, 1, 1))
         )
-        return StepFuzzyConverter(step, hypothesis, conclusion, True)
+        return StepFuzzyConverter(step, hypothesis, conclusion)
 
     @classmethod
     def from_linspace(

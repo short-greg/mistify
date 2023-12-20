@@ -5,7 +5,7 @@ def rand(*size: int,  dtype=torch.float32, device='cpu') -> torch.Tensor:
     """Generate random fuzzy set
 
     Args:
-        dtype (optional): The dtype of the data . Defaults to torch.float32.
+        dtype (optional): The dtype of the data. Defaults to torch.float32.
         device (str, optional): The device of the data. Defaults to 'cpu'.
 
     Returns:
@@ -19,8 +19,8 @@ def positives(*size: int, dtype=torch.float32, device='cpu') -> torch.Tensor:
     Generate a positive fuzzy set
 
     Args:
-        dtype (optional): . Defaults to torch.float32.
-        device (str, optional): . Defaults to 'cpu'.
+        dtype (optional): The dtype of the data. Defaults to torch.float32.
+        device (str, optional): The device of the data. Defaults to 'cpu'.
 
     Returns:
         torch.Tensor: Positive fuzzy set
@@ -33,8 +33,8 @@ def negatives(*size: int, dtype: torch.dtype=torch.float32, device='cpu') -> tor
     Generate a negative fuzzy set
 
     Args:
-        dtype (torch.dtype, optional): The data type for the fuzzys set. Defaults to torch.float32.
-        device (str, optional): The device for the fuzzy set. Defaults to 'cpu'.
+        dtype (optional): The dtype of the data. Defaults to torch.float32.
+        device (str, optional): The device of the data. Defaults to 'cpu'.
 
     Returns:
         torch.Tensor: Negative fuzzy set

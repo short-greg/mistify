@@ -408,7 +408,15 @@ class Polygon(Nonmonotonic):
     PT = None
 
     def __init__(self, params: ShapeParams, m: typing.Optional[torch.Tensor]=None):
+        """Create a polygon consisting of Nonmonotonic shapes
 
+        Args:
+            params (ShapeParams): The parameters of the shapes
+            m (typing.Optional[torch.Tensor], optional): The membership value. Defaults to None.
+
+        Raises:
+            ValueError: If the number of points is not valid
+        """
         if params.x.size(3) != self.PT:
             raise ValueError(f'Number of points must be {self.PT} not {params.x.size(3)}')
         self._params = params

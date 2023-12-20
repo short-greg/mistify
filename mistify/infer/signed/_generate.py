@@ -5,24 +5,28 @@ import torch
 
 def negatives(*size: int, dtype=torch.float32, device='cpu') -> torch.Tensor:
     """
+    Generate a negative signed set
+
     Args:
-        dtype (, optional): The type to set the ternary set to. Defaults to torch.float32.
-        device (str, optional): _description_. Defaults to 'cpu'.
+        dtype (optional): The dtype of the data. Defaults to torch.float32.
+        device (str, optional): The device of the data. Defaults to 'cpu'.
 
     Returns:
-        torch.Tensor: Ternary set with all negative values
+        torch.Tensor: Negative signed set
     """
     return torch.full(size, -1, dtype=dtype, device=device)
 
 
 def positives(*size: int, dtype=torch.float32, device='cpu'):
     """
+    Generate a positive signed set
+
     Args:
-        dtype (, optional): The type to set the ternary set to. Defaults to torch.float32.
-        device (str, optional): _description_. Defaults to 'cpu'.
+        dtype (optional): The dtype of the data. Defaults to torch.float32.
+        device (str, optional): The device of the data. Defaults to 'cpu'.
 
     Returns:
-        torch.Tensor: Ternary set with all positive values
+        torch.Tensor: Positive signed set
     """
 
     return torch.ones(*size, dtype=dtype, device=device)
@@ -30,25 +34,29 @@ def positives(*size: int, dtype=torch.float32, device='cpu'):
 
 def unknowns(*size: int, dtype=torch.float32, device='cpu') -> torch.Tensor:
     """
+    Generate a signed set of unknowns. Unknowns are represented by 0
+
     Args:
-        dtype (, optional): The type to set the ternary set to. Defaults to torch.float32.
-        device (str, optional): _description_. Defaults to 'cpu'.
+        dtype (optional): The dtype of the data. Defaults to torch.float32.
+        device (str, optional): The device of the data. Defaults to 'cpu'.
 
     Returns:
-        torch.Tensor: Ternary set with all unknown values
+        torch.Tensor: Unknown signed set
     """
 
     return torch.zeros(*size, dtype=dtype, device=device)
 
 
-def rand(*size: int, positive_p: float=0.5, unknown_p: float=0.0, dtype=torch.float32, device='cpu') -> torch.Tensor:
-    """
+def rand(*size: int, positive_p: float=0.5, dtype=torch.float32, device='cpu') -> torch.Tensor:
+    """Generate random signed set
+
     Args:
-        dtype (_type_, optional): . Defaults to torch.float32.
-        device (str, optional): . Defaults to 'cpu'.
+        positive_p (float, optional): The probability of a positive. Defaults to 0.5.
+        dtype (optional): The dtype of the data. Defaults to torch.float32.
+        device (str, optional): The device of the data. Defaults to 'cpu'.
 
     Returns:
-        torch.Tensor: Random value
+        torch.Tensor: The random signed set
     """
 
     y = torch.rand(*size, device=device, dtype=dtype)
@@ -57,7 +65,7 @@ def rand(*size: int, positive_p: float=0.5, unknown_p: float=0.0, dtype=torch.fl
         y = torch.sign(y - offset)
     else:
         y = torch.sign(y)
-    if unknown_p != 0.0:
-        return y * (torch.rand(*size, device, dtype=dtype) <= unknown_p).type_as(y)
+    # if unknown_p != 0.0:
+    #     return y * (torch.rand(*size, device, dtype=dtype) <= unknown_p).type_as(y)
     return y
 

@@ -74,21 +74,6 @@ class Sigmoid(Monotonic):
         result = torch.logit(self._truncate_m, 1e-7)
         return result * self._scales.pt(0) + self._biases.pt(0)
 
-    # def scale(self, m: torch.Tensor) -> 'Sigmoid':
-    #     """Reduce the vertical scale of the Sigmoid
-
-    #     Args:
-    #         m (torch.Tensor): The value to scale by
-
-    #     Returns:
-    #         Sigmoid: The scaled sigmoid
-    #     """
-    #     scale_m = intersect(self._scale_m, m)
-        
-    #     return Sigmoid(
-    #         self._biases, self._scales, scale_m, intersect(scale_m, self._truncate_m)
-    #     )
-
     def truncate(self, m: torch.Tensor) -> 'Sigmoid':
         """
         Args:

@@ -22,12 +22,24 @@ WEIGHT_FACTORY[None] = (lambda x: x)
 
 
 class LogicalNeuron(nn.Module):
+    """A Logical neuron implements a logical function such as And or Or
+    """
 
     F = EnumFactory()
 
     def __init__(self, in_features: int, out_features: int, n_terms: int=None, 
         f: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="max_min",
-        wf: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="clamp") -> None:
+        wf: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="clamp"
+    ) -> None:
+        """Create an Logical neuron
+
+        Args:
+            in_features (int): The number of features into the neuron
+            out_features (int): The number of features out of the neuron.
+            n_terms (int, optional): The number of terms for the neuron. Defaults to None.
+            f (typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]], optional): _description_. Defaults to "min_max".
+            wf (typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]], optional): _description_. Defaults to "clamp".
+        """
         super().__init__()
         
         if n_terms is not None:
@@ -63,8 +75,10 @@ class LogicalNeuron(nn.Module):
 
 
 class Or(LogicalNeuron):
+    """An Or neuron implements an or function where the input is intersected with the 
+    weights and the union is used for the aggregation of those outputs.
     """
-    """
+
     F = EnumFactory(
         max_min=functional.maxmin,
         maxmin_ada=functional.ada_maxmin,
@@ -77,11 +91,31 @@ class Or(LogicalNeuron):
 
 
 class And(LogicalNeuron):
+    """An And neuron implements an and function where the input is unioned with the 
+    weights and the intersection is used for the aggregation of those outputs.
+    """
 
     F = EnumFactory(
         min_max = functional.minmax,
         min_max_ada = functional.ada_minmax
     )
+
+    def __init__(self, in_features: int, out_features: int, n_terms: int=None, 
+        f: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="min_max",
+        wf: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="clamp") -> None:
+        """Create an And neuron
+
+        Args:
+            in_features (int): The number of features into the neuron
+            out_features (int): The number of features out of the neuron.
+            n_terms (int, optional): The number of terms for the neuron. Defaults to None.
+            f (typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]], optional): _description_. Defaults to "min_max".
+            wf (typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]], optional): _description_. Defaults to "clamp".
+        """
+        super().__init__(
+            in_features=in_features, out_features=out_features, n_terms=n_terms,
+            f=f, wf=wf
+        )
 
     def init_weight(self):
 

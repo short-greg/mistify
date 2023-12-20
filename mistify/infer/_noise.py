@@ -43,7 +43,8 @@ class GaussianClampNoise(nn.Module):
     """
 
     def __init__(self, std: float, min_=0.0, max_=1.0, dim: int=-1):
-        """Add Gaussian noise to the input
+        """Add Gaussian noise to the input that will be clamped to be
+        between a lower bound and an upper bound
 
         Args:
             std (float): the standard deviation of the noise
@@ -80,7 +81,8 @@ class ExpNoise(nn.Module):
     """
 
     def __init__(self, min_:float =0.8, max_: float=1.2, dim: int=-1):
-        """_summary_
+        """Create Exponential noise which multiplies the input by an exponent. The exponent must
+        be greater than 0 to work properly
 
         Args:
             min_ (float, optional): The minimum value for the exponent. Defaults to 0.8.

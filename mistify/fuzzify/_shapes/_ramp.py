@@ -49,17 +49,25 @@ class Ramp(Monotonic):
         )
 
     def join(self, x: torch.Tensor) -> torch.Tensor:
-        
+        """Join calculates the membership value for each section of Ramp and uses the maximimum value
+        as the value
+
+        Args:
+            x (torch.Tensor): The value to calculate the membership for
+
+        Returns:
+            torch.Tensor: The membership
+        """
         # min_ = torch.tensor(0, dtype=x.dtype, device=x.device)
         m = (unsqueeze(x) * ((self._m / (self._coords.pt(1) - self._coords.pt(0))) - self._coords.pt(0)))
         return torch.clamp(torch.clamp(m, max=self._m), 0.0)
     
     def _calc_min_cores(self):
-
+        """
+        Returns:
+            torch.Tensor: the minimum value of the start of the core of the set
+        """
         return self._resize_to_m(self._coords.pt(1), self._m)
-
-    # def _calc_area(self):
-    #     return 0.5 * (self._coords.pt(1) - self._coords.pt(0)) * self._m
 
     def truncate(self, m: torch.Tensor) -> 'Ramp':
         """Truncate the Ramp function. This results in changing the m value as well
