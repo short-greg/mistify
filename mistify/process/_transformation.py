@@ -14,18 +14,48 @@ class Transform(nn.Module):
 
     @abstractmethod
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward the transform
+
+        Args:
+            x (torch.Tensor): The input
+
+        Returns:
+            torch.Tensor: The transformed input
+        """
         pass
 
     @abstractmethod
     def reverse(self, y: torch.Tensor) -> torch.Tensor:
+        """Reverse the transform
+
+        Args:
+            y (torch.Tensor): The output of the transform
+
+        Returns:
+            torch.Tensor: The transform reversed
+        """
         pass
 
     @abstractmethod
     def fit(self, X: torch.Tensor, t=None, *args, **kwargs):
+        """Fit the transform on data
+
+        Args:
+            X (torch.Tensor): The input to fit on
+            t (optional): The target to fit on if necessary. Defaults to None.
+        """
         pass
 
-    def fit_transform(self, X: torch.Tensor, t=None, *args, **kwargs):
-        
+    def fit_transform(self, X: torch.Tensor, t=None, *args, **kwargs) -> torch.Tensor:
+        """Convenience method to fit the transform then apply the transform
+
+        Args:
+            X (torch.Tensor): The input
+            t (optional): The target if needed. Defaults to None.
+
+        Returns:
+            torch.Tensor: the transformed tensor
+        """
         self.fit(X, t, *args, **kwargs)
         return self(X)
 
