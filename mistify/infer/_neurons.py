@@ -69,7 +69,7 @@ class LogicalNeuron(nn.Module):
         greater = (self.weight > 1.0).float().sum()
         lesser = (self.weight < 0.0).float().sum()
         if greater > 0 or lesser > 0:
-            print(f'Counts {greater} {lesser}')
+            print(f'Neuron: Outside bounds counts {greater} {lesser}')
         weight = self._wf(self.weight)
         return self._f(m, weight)
 
@@ -87,7 +87,8 @@ class Or(LogicalNeuron):
 
     def init_weight(self):
 
-        self.weight.fill_(1.0)
+        self.weight.data = torch.rand(self.weight.shape)
+        # self.weight.fill_(1.0)
 
 
 class And(LogicalNeuron):
@@ -102,7 +103,10 @@ class And(LogicalNeuron):
 
     def __init__(self, in_features: int, out_features: int, n_terms: int=None, 
         f: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="min_max",
-        wf: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="clamp") -> None:
+        wf: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="clamp",
+        sub1: bool=True
+
+    ) -> None:
         """Create an And neuron
 
         Args:
@@ -112,11 +116,19 @@ class And(LogicalNeuron):
             f (typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]], optional): _description_. Defaults to "min_max".
             wf (typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]], optional): _description_. Defaults to "clamp".
         """
+        wf = WEIGHT_FACTORY.factory(wf)
+        if sub1 and wf is not None:
+            wf_ = lambda w: wf(1 - w)
+        elif sub1:
+            wf_ = lambda w: 1 - w
+        else:
+            wf_ = wf
+
         super().__init__(
             in_features=in_features, out_features=out_features, n_terms=n_terms,
-            f=f, wf=wf
+            f=f, wf=wf_
         )
 
     def init_weight(self):
 
-        self.weight.fill_(0.0)
+        self.weight.data = torch.rand(self.weight.shape)

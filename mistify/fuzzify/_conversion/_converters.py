@@ -196,7 +196,7 @@ def polygon_set(left: shape.Shape, middle: shape.Shape, right: shape.Shape) -> t
     """
     if middle is None:
         return [left, right]
-    return [left, right, middle]
+    return [left, middle, right]
 
 
 class IsoscelesFuzzyConverter(CompositeFuzzyConverter):
@@ -219,7 +219,7 @@ class IsoscelesFuzzyConverter(CompositeFuzzyConverter):
             middle (shape.IsoscelesTriangle, optional): The middle shape. Defaults to None.
             hypothesis (typing.Union[ShapeHypothesis, str], optional): The hypothesis fucntion. Defaults to "area".
             conclusion (typing.Union[Conclusion, str], optional): The conclusion function. Defaults to "max".
-            truncate (bool, optional): _description_. Defaults to False.
+            truncate (bool, optional): Whether to truncate or scale. Defaults to False.
         """
         super().__init__(
             polygon_set(left, middle, right), hypothesis, conclusion, truncate

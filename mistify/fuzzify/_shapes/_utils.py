@@ -4,11 +4,14 @@ from ...utils import check_contains
 
 
 def calc_m_linear_increasing(x: torch.Tensor, pt1: torch.Tensor, pt2: torch.Tensor, m: torch.Tensor):
-    return (x - pt1) * (m / (pt2 - pt1)) * check_contains(x, pt1, pt2).float() 
+    m_result = (x - pt1) * (m / (pt2 - pt1)) * check_contains(x, pt1, pt2).float() 
+    return m_result
 
 
 def calc_m_linear_decreasing(x: torch.Tensor, pt1: torch.Tensor, pt2: torch.Tensor, m: torch.Tensor):
-    return ((x - pt1) * (-m / (pt2 - pt1)) + m) * check_contains(x, pt1, pt2).float()
+
+    m_result = ((x - pt1) * (-m / (pt2 - pt1)) + m) * check_contains(x, pt1, pt2).float()
+    return m_result
 
 
 def calc_x_linear_increasing(m0: torch.Tensor, pt1: torch.Tensor, pt2: torch.Tensor, m: torch.Tensor):

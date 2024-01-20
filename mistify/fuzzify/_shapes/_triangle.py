@@ -8,6 +8,7 @@ from ._utils import calc_m_linear_increasing, calc_m_linear_decreasing, calc_x_l
 from ...utils import unsqueeze
 
 intersect = torch.min
+union = torch.max
 
 
 class IncreasingRightTriangle(Polygon):
@@ -195,7 +196,7 @@ class Triangle(Polygon):
         m2 = calc_m_linear_decreasing(
             unsqueeze(x), self._params.pt(1), self._params.pt(2), self._m
         )
-        return intersect(m1, m2)
+        return union(m1, m2)
 
     def _calc_areas(self):
         """
@@ -283,7 +284,7 @@ class IsoscelesTriangle(Polygon):
             self._params.pt(1) + (self._params.pt(1) - self._params.pt(0)), 
             self._m
         )
-        return torch.max(left_m, right_m)
+        return union(left_m, right_m)
 
     def _calc_areas(self):
         """
