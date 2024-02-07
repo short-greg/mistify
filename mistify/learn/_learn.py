@@ -2,7 +2,7 @@ from abc import abstractmethod
 import typing
 
 import torch
-from zenkai.kaku import IO, State
+from zenkai.kaku import IO
 
 from zenkai.kikai import GradLearner
 from zenkai import OptimFactory, ThLoss
@@ -39,24 +39,24 @@ class OrLearner(GradLearner):
         or_ = Or(
             in_features, out_features, n_terms, f, wf
         )
-        # learn_criterion = MaxMinLoss3(
-        #     or_, reduction=reduction, not_chosen_theta_weight=0.01,
-        #     not_chosen_x_weight=0.01
-        # )
-        learn_criterion = NeuronMSELoss(
-            or_, reduction, not_chosen_x_weight, not_chosen_theta_weight
+        learn_criterion = MaxMinLoss3(
+            or_, reduction=reduction, not_chosen_theta_weight=not_chosen_theta_weight,
+            not_chosen_x_weight=not_chosen_x_weight
         )
+        # learn_criterion = NeuronMSELoss(
+        #     or_, reduction, not_chosen_x_weight, not_chosen_theta_weight
+        # )
         self._weight_update_f = WEIGHT_FACTORY.factory(weight_update_f)
         super().__init__(
             or_, criterion, optim_factory, False, reduction, x_lr, learn_criterion
         )
     
-    def step_x(self, x: IO, t: IO, state: State) -> IO:
-        x_prime = super().step_x(x, t, state)
+    def step_x(self, x: IO, t: IO) -> IO:
+        x_prime = super().step_x(x, t)
         return x_prime
 
-    def step(self, x: IO, t: IO, state: State):
-        super().step(x, t, state)
+    def step(self, x: IO, t: IO):
+        super().step(x, t)
         self._net.weight.data = self._weight_update_f(self._net.weight.data).detach()
 
 
@@ -75,22 +75,22 @@ class AndLearner(GradLearner):
         and_ = And(
             in_features, out_features, n_terms, f, wf
         )
-        # learn_criterion = MinMaxLoss3(
-        #     and_, reduction=reduction, not_chosen_theta_weight=0.01,
-        #     not_chosen_x_weight=0.01
-        # )
-        learn_criterion = NeuronMSELoss(
-            and_, reduction, not_chosen_x_weight, not_chosen_theta_weight
+        learn_criterion = MinMaxLoss3(
+            and_, reduction=reduction, not_chosen_theta_weight=not_chosen_theta_weight,
+            not_chosen_x_weight=not_chosen_x_weight
         )
+        # learn_criterion = NeuronMSELoss(
+        #     and_, reduction, not_chosen_x_weight, not_chosen_theta_weight
+        # )
         self._weight_update_f = WEIGHT_FACTORY.factory(weight_update_f)
         super().__init__(
             and_, criterion, optim_factory, False, reduction, x_lr, learn_criterion
         )
 
-    def step_x(self, x: IO, t: IO, state: State) -> IO:
-        x_prime = super().step_x(x, t, state)
+    def step_x(self, x: IO, t: IO) -> IO:
+        x_prime = super().step_x(x, t)
         return x_prime
     
-    def step(self, x: IO, t: IO, state: State):
-        super().step(x, t, state)
+    def step(self, x: IO, t: IO):
+        super().step(x, t)
         self._net.weight.data = self._weight_update_f(self._net.weight.data).detach()

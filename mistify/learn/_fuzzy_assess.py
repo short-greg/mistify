@@ -194,7 +194,6 @@ class MaxMinLoss3(FuzzyLoss):
         inner_values = self.calc_inner_values(x, w)
         chosen = self.set_chosen(inner_values)
         with torch.no_grad():
-            # print(t.size(), inner_values.size())
             d_less = nn_func.relu(t - inner_values).min(dim=-2, keepdim=True)[0]
             d_greater = nn_func.relu(inner_values - t)
 
@@ -205,7 +204,7 @@ class MaxMinLoss3(FuzzyLoss):
                 w_target = w + torch.sign(t - w) * d_less
                 w_target_2 = w - d_greater
 
-            # print('W loss:')
+            # w loss
             loss = (
                 self.calc_loss(w, w_target_2.detach(), reduction_override=reduction_override) +
                 self.calc_loss(w, w_target.detach(), chosen, reduction_override=reduction_override) +
@@ -466,7 +465,7 @@ class MaxMinLoss2(FuzzyLoss):
                 )
                 w_target_2 = w - d_inner
 
-            # print('W loss:')
+            # 'W loss:'
             loss = (
                 self.calc_loss(w, w_target_2.detach(), reduction_override=reduction_override) +
                 # self.calc_loss(w, t.detaåch(), inner_values > t) +
@@ -489,21 +488,15 @@ class MaxMinLoss2(FuzzyLoss):
                     greater_than.float() * torch.max(x - dy, t)
                     + (~greater_than).float() * torch.min(x + dy, t)
                 )
-                # print('Target: ', x[0, 0]) 
-                # print(t[0]) 
-                # print(y[0]) 
-                # print(x_target[0, 0])
                 x_target_2 = x - d_inner
 
-            # print('X loss:')
+            # x loss
             cur_loss = (
                 self.calc_loss(x, x_target_2.detach(), reduction_override=reduction_override) +
                 self.calc_loss(x, x_target.detach(), chosen, reduction_override=reduction_override) +
                 self.calc_loss(x, x_target.detach(), ~chosen, self.not_chosen_x_weight, reduction_override=reduction_override) 
             )
-            # print(cur_loss.sum() / len(cur_loss))
             loss = cur_loss if loss is None else loss + cur_loss
-            # print(loss.sum() / len(loss))
 
         return loss
 
@@ -997,7 +990,7 @@ from enum import Enum
 
 #         x.requires_grad_(True)
 #         ctx.loss = loss
-#         # print('calling forward')
+
 #         with torch.enable_grad():
 #             y = ctx.loss.module(x)
 #         ctx.save_for_backward(x, y)
@@ -1005,7 +998,6 @@ from enum import Enum
 
 #     @staticmethod
 #     def backward(ctx, dx: torch.Tensor):
-#         # print('DX: ', dx[0])
 
 #         with torch.enable_grad():
 #             x, y = ctx.saved_tensors
@@ -1108,7 +1100,6 @@ from enum import Enum
 #         )
 #         values, idx = self.outer(inner_value, dim=1, keepdim=True)
 #         chosen_value = values
-#         # print('Chosen Size: ', chosen_value.size())
 #         return (inner_value == chosen_value), idx
 #         # then get the agg_index?
 
@@ -1204,15 +1195,13 @@ from enum import Enum
 #         # _, w_rel_indices = w_rel.sort(dim=0)
 #         # w_sorted, _ = w.data.sort(dim=0)
 #         # w_sorted_rel = w.data.gather(0, w_rel_indices) # w.data[w_rel_indices]
-#         # print('Sorted: ', w_sorted[1], w_sorted_rel[1])
-#         # print('W: ', w_sorted, w_sorted_rel)
+
 #         # y_w_rel = self.outer(self.inner(x[:,:,None], w_rel))[0]
 
 #         # chosen, idx = self.calc_chosen(x, w_rel)
 #         # chosen, idx2 = self.calc_chosen(x, w.data)
 #         # chosen = self.calc_chosen(x, w.data)
 #         # chosen = self.set_chosen(x, w.data, idx2)
-#         # print(~(y < t))
 #         y = y[:,None]
 #         w = w[None]
 #         x = x[:,:,None].detach()

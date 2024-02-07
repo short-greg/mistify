@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch
 from torch.distributions import Normal
 import typing
+import torch.nn.functional
 
 
 class Transform(nn.Module):
@@ -267,7 +268,6 @@ class CumGaussian(GaussianBase):
         Returns:
             torch.Tensor: The percentile output
         """
-
         z = (x - self._mean) / (self._std * torch.sqrt(torch.tensor(2.0)))
         return 0.5 * (1 + torch.erf(z))
 
@@ -412,15 +412,9 @@ class SigmoidParam(LogisticBase):
 
     def reverse(self, y: torch.Tensor) -> torch.Tensor:
 
-        # loc = self._align(x, self._loc, self._dim)
-        # scale = self._align(x, self._scale, self._dim)
-
         return (torch.logit(y) * self._scale) + self._loc
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-
-        # loc = self._align(x, self._loc, self._dim)
-        # scale = self._align(x, self._scale, self._dim)
 
         return torch.sigmoid(
             (x - self._loc) / self._scale

@@ -288,7 +288,12 @@ class DecreasingRightTrapezoid(Polygon):
         Returns:
             torch.Tensor: The membership value of x
         """
-
+        # want to allow parameters to be trained
+        # params = self._params.sorted(decreasing=False)
+        # change the properties
+        # i can also set them to "frozen"
+        # the parameters must also be "registered" if tunable
+        
         m = calc_m_linear_decreasing(
             unsqueeze(x), self._params.pt(0), self._params.pt(1), self._m
         )

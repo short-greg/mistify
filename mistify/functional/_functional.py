@@ -159,6 +159,7 @@ def adamax(x: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
     Returns:
         torch.Tensor: Tensor containing the maximum of x1 and x2
     """
+    # TODO: Reevaluate the reduction from 690 to 69
     q = torch.clamp(-69 / torch.log(torch.min(x, x2)), max=1000, min=-1000).detach()  
     return ((x ** q + x2 ** q) / 2) ** (1 / q)
 

@@ -5,6 +5,7 @@ import typing
 
 # 3rd party
 import torch
+from torch._tensor import Tensor
 import torch.nn as nn
 import torch.nn.functional
 
@@ -13,37 +14,10 @@ from .._shapes import Shape
 from .. import _shapes as shape
 from ._conclude import Conclusion, HypoWeight
 from ._hypo import ShapeHypothesis, HypothesisEnum
-from ._utils import stride_coordinates
+from ._utils import stride_coordinates, generate_repeat_params, generate_spaced_params
 from .._shapes import Shape, ShapeParams, Composite
 from ._conclude import HypoWeight, Conclusion, ConcEnum
 from ._fuzzifiers import Fuzzifier, Defuzzifier
-
-
-def generate_spaced_params(n_steps: int, lower: float=0, upper: float=1) -> torch.Tensor:
-    """Generate parameters that are equally spaced
-
-    Args:
-        n_steps (int): The number of steps to generate
-        lower (float, optional): The lower bound for the spaced parameters. Defaults to 0.
-        upper (float, optional): The upper bound for the spaced parameters. Defaults to 1.
-
-    Returns:
-        torch.Tensor: 
-    """
-    return torch.linspace(lower, upper, n_steps)[None, None, :]
-
-
-def generate_repeat_params(n_steps: int, value: float) -> torch.Tensor:
-    """Generate several parameters
-
-    Args:
-        n_steps (int): The number of parameters
-        value (float): The value for the parameters
-
-    Returns:
-        torch.Tensor: The set of parameters
-    """
-    return torch.full((1, 1, n_steps), value)
 
 
 class FuzzyConverter(nn.Module):

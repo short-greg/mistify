@@ -52,10 +52,13 @@ class LogicalNeuron(nn.Module):
         self._n_terms = n_terms
         self._in_features = in_features
         self._out_features = out_features
+        self.init_weight()
 
-    def init_weight(self):
+    def init_weight(self, f: typing.Callable[[torch.Tensor], torch.Tensor]=None):
 
-        self.weight.fill_(1.0)
+        if f is None:
+            f = torch.rand_like
+        self.weight.data = f(self.weight.data)
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         """
@@ -81,14 +84,9 @@ class Or(LogicalNeuron):
 
     F = EnumFactory(
         max_min=functional.maxmin,
-        maxmin_ada=functional.ada_maxmin,
+        max_min_ada=functional.ada_maxmin,
         max_prod=functional.maxprod
     )
-
-    def init_weight(self):
-
-        self.weight.data = torch.rand(self.weight.shape)
-        # self.weight.fill_(1.0)
 
 
 class And(LogicalNeuron):
@@ -128,7 +126,3 @@ class And(LogicalNeuron):
             in_features=in_features, out_features=out_features, n_terms=n_terms,
             f=f, wf=wf_
         )
-
-    def init_weight(self):
-
-        self.weight.data = torch.rand(self.weight.shape)

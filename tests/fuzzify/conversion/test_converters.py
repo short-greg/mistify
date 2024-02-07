@@ -328,3 +328,4 @@ class TestStepFuzzyConverter:
         value_weight = converter.hypo(fuzzy_set)
         result = converter.conclude(value_weight)
         assert result.size() == torch.Size([3, 2])
+

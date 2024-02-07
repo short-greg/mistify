@@ -384,9 +384,7 @@ class RightLogisticTrapezoid(Logistic):
         Returns:
             torch.Tensor: The center of mass for the three sections of the trapezoid
         """
-
         # area up to "dx"
-        # print('Centroids: ', self._scales.x.size(), self._dx.x.size())
         p = torch.sigmoid(self._scales.pt(0) * (-self._dx.pt(0)))
         centroid_logistic = self._biases.pt(0) + torch.logit(p / 2) / self._scales.pt(0)
         centroid_square = self._biases.pt(0) - self._dx.pt(0) / 2

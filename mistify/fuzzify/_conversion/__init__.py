@@ -8,7 +8,8 @@ from ._conclude import (
 )
 from ._fuzzifiers import (
     Fuzzifier, 
-    EmbeddingFuzzifier
+    EmbeddingFuzzifier,
+    GaussianFuzzifier
 )
 from ._hypo import (
     HypothesisEnum, 
@@ -35,5 +36,5 @@ from ._converters import (
     IsoscelesTrapezoidFuzzyConverter,
     SigmoidFuzzyConverter,
     RampFuzzyConverter,
-    StepFuzzyConverter
+    StepFuzzyConverter,
 )

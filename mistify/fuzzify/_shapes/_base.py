@@ -5,12 +5,13 @@ import typing
 
 # 3rd party
 import torch
+import torch.nn as nn
 
 # local
 from ...utils._utils import resize_to, unsqueeze
 
 
-class Shape(object):
+class Shape(nn.Module):
     """Convert an input into a membership or vice-versa
     """
 
@@ -25,6 +26,9 @@ class Shape(object):
         self._n_variables = n_variables
         self._n_terms = n_terms
         self._areas = None
+        for k, v in self.__dict__.items():
+            if isinstance(v, ShapeParams) and v.tunable:
+                self.register_parameter(k, v)
 
     def _init_m(self, m: torch.Tensor=None, device='cpu') -> torch.Tensor:
         """Set m to 1 if m is None
@@ -118,7 +122,11 @@ class Shape(object):
         """
         if x.size(0) == 1 and m.size(0) != 1:
             return x.repeat(m.size(0), *[1] * (m.dim() - 1))
-        return x    
+        return x
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+
+        return self.join(x)
 
 
 class Monotonic(Shape):
@@ -218,18 +226,23 @@ class Nonmonotonic(Shape):
         pass
 
 
-class ShapeParams:
+class ShapeParams(object):
     """A convenience class to wrap a tensor for specifying a Shape
     """
     
     # batch, set, index
-    param: torch.Tensor
+    # param: typing.Union[torch.Tensor, nn.parameter.Parameter]
 
-    def __init__(self, x: torch.Tensor):
+    def __init__(self, x: typing.Union[torch.Tensor, nn.parameter.Parameter]):
+
         if x.dim() == 3:
             x = x[None]
         assert x.dim() == 4
         self._x = x
+
+    @property
+    def tunable(self) -> bool:
+        return isinstance(self._x, nn.parameter.Parameter)
 
     def sub(self, index: typing.Union[int, typing.Tuple[int, int]]) -> 'ShapeParams':
         """Extract a subset of the parameters
@@ -312,6 +325,19 @@ class ShapeParams:
     @property
     def n_points(self) -> int:
         return self._x.size(3)
+    
+    def sort(self, descending: bool=False) -> 'ShapeParams':
+        """
+
+        Args:
+            descending (bool, optional): Sort the parameters by the . Defaults to False.
+
+        Returns:
+            ShapeParams: 
+        """
+        return ShapeParams(
+            self._x.sort(descending=descending)[0]
+        )
 
     def contains(self, x: torch.Tensor, index1: int, index2: int) -> torch.BoolTensor:
         return (x >= self.pt(index1)) & (x <= self.pt(index2))

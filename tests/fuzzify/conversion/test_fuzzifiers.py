@@ -1,3 +1,32 @@
+from mistify import fuzzify
+import torch
+
+
+class TestGaussianConverter:
+    
+    def test_fuzzify_converts_to_fuzzy_set(self):
+
+        converter = fuzzify.GaussianFuzzifier(
+            4
+        )
+        fuzzy_set = converter(torch.rand(3, 2))
+        assert fuzzy_set.shape == torch.Size((3, 2, 4))
+    
+    # def test_fuzzify_defuzzifies_fuzzy_set(self):
+
+    #     torch.manual_seed(1)
+    #     converter = fuzzify.GaussianFuzzifier(
+    #         4
+    #     )
+    #     x = torch.rand(3, 2)
+    #     fuzzy_set = converter(x)
+    #     defuzzified = converter.defuzzify(fuzzy_set)
+    #     assert defuzzified.shape == torch.Size((3, 2))
+
+    #     print(defuzzified, x)
+    #     assert False
+
+
 # import torch
 
 # from mistify import membership
@@ -38,5 +67,6 @@
 #         x = torch.rand(3, 2)
 #         t = converter.fuzzify(x)
 #         y = crispifier(x)
-#         print(y, t)
 #         assert (y == t).all()
+
+

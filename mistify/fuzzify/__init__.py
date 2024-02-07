@@ -45,6 +45,7 @@ from ._conversion import (
     ConverterDefuzzifier,
     SigmoidFuzzyConverter,
     RampFuzzyConverter,
-    StepFuzzyConverter
+    StepFuzzyConverter,
+    GaussianFuzzifier
 )
 from ._shapes import shape_utils
