@@ -5,6 +5,7 @@ import torch
 from torch import Tensor
 import torch.nn as nn
 from torch import clamp
+import torch.nn.functional
 
 from ._conclude import HypoWeight
 
@@ -98,8 +99,11 @@ class GaussianFuzzifier(Fuzzifier):
     #     )
 
     def forward(self, x: Tensor) -> Tensor:
+
+        scale = torch.nn.functional.softplus(self._scale)
+
         return torch.exp(
-            -(x.unsqueeze(-1) - self._loc) ** 2 / (2 * self._scale ** 2)
+            -(x.unsqueeze(-1) - self._loc) ** 2 / (2 * scale ** 2)
         )
 
 

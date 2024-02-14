@@ -61,6 +61,42 @@ class Transform(nn.Module):
         return self(X)
 
 
+class NullTransform(Transform):
+    """Preprocess or postprocess the input
+    """
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward the transform
+
+        Args:
+            x (torch.Tensor): The input
+
+        Returns:
+            torch.Tensor: The transformed input
+        """
+        return x
+
+    def reverse(self, y: torch.Tensor) -> torch.Tensor:
+        """Reverse the transform
+
+        Args:
+            y (torch.Tensor): The output of the transform
+
+        Returns:
+            torch.Tensor: The transform reversed
+        """
+        return y
+
+    def fit(self, X: torch.Tensor, t=None, *args, **kwargs):
+        """Fit the transform on data
+
+        Args:
+            X (torch.Tensor): The input to fit on
+            t (optional): The target to fit on if necessary. Defaults to None.
+        """
+        pass
+
+
 class GaussianBase(Transform):
 
     def __init__(self, mean: torch.Tensor=0.0, std: torch.Tensor=1.0):
@@ -153,8 +189,6 @@ class StdDev(GaussianBase):
         Returns:
             torch.Tensor: The original value
         """
-        # std = self._align(x, self._std, self._dim)
-        # mean = self._align(x, self._mean, self._dim)
 
         return (y * (self._std * self._divisor)) + self._mean - self.offset
 
@@ -168,7 +202,7 @@ class StdDev(GaussianBase):
     
     @divisor.setter
     def divisor(self, divisor: float) -> float:
-        """_summary_
+        """
 
         Args:
             divisor (float): The value to divide by after normalizing

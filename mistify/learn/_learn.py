@@ -5,23 +5,23 @@ import torch
 from zenkai.kaku import IO
 
 from zenkai.kikai import GradLearner
-from zenkai import OptimFactory, ThLoss
+from zenkai import OptimFactory, ThLoss, utils
 from ..infer import Or, And, WEIGHT_FACTORY
 from ._fuzzy_assess import MaxMinLoss3, MinMaxLoss3, NeuronMSELoss
 
 
 class PostFit(object):
 
-    @abstractmethod
+    @utils.checkattr('postprocessor')
     def fit_postprocessor(self, X: IO, t: IO=None):
-        pass
+        self.postprocessor.fit(X.f, t.f if t is not None else t)
 
 
 class PreFit(object):
     
-    @abstractmethod
+    @utils.checkattr('preprocessor')
     def fit_preprocessor(self, X: IO, t: IO=None):
-        pass
+        self.preprocessor.fit(X.f, t.f if t is not None else t)
 
 
 class OrLearner(GradLearner):
