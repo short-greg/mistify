@@ -274,6 +274,7 @@ class Triangle(Polygon):
         params= params.replace(
             to_replace, 1, False, equalize_to=updated_m
         )
+        print(params.x)
 
         return Trapezoid(
             params, updated_m
@@ -310,9 +311,10 @@ class IsoscelesTriangle(Polygon):
         Returns:
             torch.Tensor: the area of the triangle
         """
+        params = self._params()
         return self._resize_to_m(
-            0.5 * (self._params.pt(0)
-            - self._params.pt(1)) * self._m, self._m
+            0.5 * (params.pt(0)
+            - params.pt(1)) * self._m, self._m
         )
 
     def _calc_mean_cores(self) -> torch.Tensor:
@@ -320,14 +322,16 @@ class IsoscelesTriangle(Polygon):
         Returns:
             torch.Tensor: the maximum value for the triangle
         """
-        return self._resize_to_m(self._params.pt(1), self._m)
+        params = self._params()
+        return self._resize_to_m(params.pt(1), self._m)
 
     def _calc_centroids(self) -> torch.Tensor:
         """
         Returns:
             torch.Tensor: the center of mass for the triangle
         """
-        return self._resize_to_m(self._params.pt(1), self._m)
+        params = self._params()
+        return self._resize_to_m(params.pt(1), self._m)
 
     def scale(self, m: torch.Tensor) -> 'IsoscelesTriangle':
         """Update the vertical scale of the triangle
@@ -338,9 +342,10 @@ class IsoscelesTriangle(Polygon):
         Returns:
             IsoscelesTriangle: The updated vertical scale if the scale is greater
         """
+        params = self._params()
         updated_m = intersect(self._m, m)
         return IsoscelesTriangle(
-            self._params, updated_m
+            params, updated_m
         )
 
     def truncate(self, m: torch.Tensor) -> 'IsoscelesTrapezoid':
@@ -351,10 +356,11 @@ class IsoscelesTriangle(Polygon):
         Returns:
             IsoscelesTrapezoid: The triangle truncated into an IsoscelesTrapezoid
         """
+        params = self._params()
         updated_m = intersect(self._m, m)
-        pt1 = calc_x_linear_increasing(updated_m, self._params.pt(0), self._params.pt(1), self._m)
+        pt1 = calc_x_linear_increasing(updated_m, params.pt(0), params.pt(1), self._m)
         pt2 = calc_x_linear_decreasing(
-            updated_m, self._params.pt(1), self._params.pt(1) + self._params.pt(1) - self._params.pt(0), self._m)
+            updated_m, params.pt(1), params.pt(1) + params.pt(1) - params.pt(0), self._m)
 
         to_replace = torch.cat(
             [pt1.unsqueeze(3), pt2.unsqueeze(3)], dim=3

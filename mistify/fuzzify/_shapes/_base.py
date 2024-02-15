@@ -170,7 +170,6 @@ class Nonmonotonic(Shape):
             n_terms (int): the number of terms for each variable
         """
         super().__init__(n_variables, n_terms)
-        print('Initialized nonmonotonic')
         self._mean_cores = None
         self._centroids = None
 

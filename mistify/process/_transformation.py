@@ -8,7 +8,6 @@ from torch.distributions import Normal
 import typing
 import torch.nn.functional
 
-
 class Transform(nn.Module):
     """Preprocess or postprocess the input
     """
@@ -582,3 +581,108 @@ class Reverse(Transform):
         """
         self.transform.fit(Y, t, *args, **kwargs)
         return self.transform(Y)
+
+
+class PieceRange(nn.Module):
+
+    def __init__(self, n_pieces: int, n_features: int=None, lower: float=0., upper: float=1.0, tunable: bool=False):
+        """_summary_
+
+        Args:
+            n_pieces (int): _description_
+            n_features (int, optional): _description_. Defaults to None.
+            lower (float, optional): _description_. Defaults to 0..
+            upper (float, optional): _description_. Defaults to 1.0.
+            tunable (bool, optional): _description_. Defaults to False.
+        """
+        super().__init__()
+        pieces = torch.linspace(lower, upper, n_pieces + 1)
+        if n_features is not None:
+            pieces = pieces[None].repeat(n_features, 1)[None]
+        else:
+            pieces = pieces[None, None]
+        if tunable:
+            self._pieces = torch.nn.parameter.Parameter(pieces)
+        else:
+            self._pieces = pieces
+        self._tunable = tunable
+        self._lower = lower
+        self._upper = upper
+        self._n_features = n_features
+        self._diff = self._upper - self._lower
+
+    @property
+    def n_pieces(self) -> int:
+        return self._pieces.size(-1)
+    
+    def pieces(self) -> torch.Tensor:
+
+        if self._tunable:
+            return self._pieces * self._diff + self._lower
+        
+        pieces = torch.cumsum(torch.nn.functional.softplus(self._pieces), dim=-1)
+        max_ = pieces.max(dim=-1, keepdim=True)[0]
+        min_ = pieces.min(dim=-1, keepdim=True)[0]
+        return ((pieces - min_) / (max_ - min_ + 1e-6)) * self._diff + self._lower
+    
+    def diff(self, x: torch.Tensor) -> typing.Tuple[torch.Tensor, torch.Tensor]:
+        
+        x = x.unsqueeze(-1)
+        pieces = self.pieces()
+        lower = pieces[:,:,:-1]
+        upper = pieces[:,:,1:]
+        within = ((x >= lower) & (x <= upper)).type_as(x)
+        result = within * x # ((x - lower) / (upper - lower + 1e-6) + lower)
+        chosen = result.abs().argmax(dim=-1, keepdim=True)
+        return result.gather(-1, chosen), chosen
+
+    def oob(self, x: torch.Tensor):
+        
+        return ((x > self._lower) | (x > self._upper)).type_as(x)
+
+    def range(self, ind: torch.LongTensor):
+        pieces = self.pieces()
+        lower = pieces[:,:,:-1]
+        upper = pieces[:,:,1:]
+        if self._n_features is None:
+            lower = lower.repeat(ind.shape[0], ind.shape[1], 1)
+            upper = upper.repeat(ind.shape[0], ind.shape[1], 1)
+        else:
+            lower = lower.repeat(ind.shape[0], 1, 1)
+            upper = upper.repeat(ind.shape[0], 1, 1)
+
+        return upper.gather(-1, ind).squeeze(dim=-1), lower.gather(-1, ind).squeeze(dim=-1)
+
+
+class Piecewise(Transform):
+
+    def __init__(self, x_range: PieceRange, y_range: PieceRange, eps: float=1e-5):
+
+        super().__init__()
+        self.x_range = x_range
+        self.y_range = y_range
+        if x_range.n_pieces != y_range.n_pieces:
+            raise ValueError(
+                f'The number of pieces for x_range {x_range.n_pieces} '
+                f'is not equal to that for y {y_range.n_pieces}'
+            )
+        self.eps = eps
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+
+        out_of_bounds = self.x_range.oob(x)
+        x_diff, ind = self.x_range.diff(x)
+        upper, lower = self.y_range.range(ind)
+        
+        value = x_diff.squeeze(-1) / (upper - lower + self.eps) + lower
+
+        return (value * (1 - out_of_bounds)) + x * out_of_bounds
+
+    def reverse(self, y: torch.Tensor) -> torch.Tensor:
+
+        out_of_bounds = self.y_range.oob(y)
+        y_diff, ind = self.y_range.diff(y)
+        upper, lower = self.x_range.range(ind)
+        value = y_diff.squeeze(-1) / (upper - lower + self.eps) + lower
+
+        return (value * (1 - out_of_bounds)) + y * out_of_bounds

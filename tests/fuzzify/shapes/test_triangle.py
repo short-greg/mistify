@@ -265,4 +265,3 @@ class TestIsocelesTriangle(object):
         )
         shape = right_trapezoid.truncate(m)
         assert isinstance(shape, _trapezoid.IsoscelesTrapezoid)
-

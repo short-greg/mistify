@@ -183,3 +183,29 @@ class TestMinMaxScaler:
         y_target = min_max.reverse(y_out)
         
         assert torch.isclose(y, y_target, 1e-4).all()
+
+
+class TestPiecewise:
+
+    def test_creates_parameters_of_the_correct_size(self):
+
+        x = torch.rand(8, 4)
+        x_range = processors.PieceRange(4)
+        y_range = processors.PieceRange(4, lower=-0.1, upper=1.1)
+        piecwise = processors.Piecewise(x_range, y_range)
+        
+        y = piecwise(x)
+        assert y.shape == x.shape
+
+    def test_creates_parameters_of_the_correct_size_with_reverse(self):
+
+        x = torch.rand(8, 4)
+        x_range = processors.PieceRange(4)
+        y_range = processors.PieceRange(4, lower=-0.1, upper=1.1)
+        piecwise = processors.Piecewise(x_range, y_range)
+        
+        y = piecwise.reverse(x)
+
+        print(x, y)
+        assert False
+        assert y.shape == x.shape
