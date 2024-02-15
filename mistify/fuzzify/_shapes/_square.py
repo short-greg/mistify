@@ -17,9 +17,10 @@ class Square(Polygon):
         Returns:
             torch.Tensor: The membership value of x
         """
+        params = self._params()
         return (
-            (x[:,:,None] >= self._params.pt(0)) 
-            & (x[:,:,None] <= self._params.pt(1))
+            (x[:,:,None] >= params.pt(0)) 
+            & (x[:,:,None] <= params.pt(1))
         ).type_as(x) * self._m
 
     def _calc_areas(self):
@@ -28,9 +29,10 @@ class Square(Polygon):
         Returns:
             torch.Tensor: The area of the square
         """
+        params = self._params()
         return self._resize_to_m((
-            (self._params.pt(1) 
-            - self._params.pt(0)) * self._m
+            (params.pt(1) 
+            - params.pt(0)) * self._m
         ), self._m)
 
     def _calc_mean_cores(self):
@@ -38,8 +40,9 @@ class Square(Polygon):
         Returns:
             torch.Tensor: the mean value of the top of the square
         """
+        params = self._params()
         return self._resize_to_m(1 / 2 * (
-            self._params.pt(0) + self._params.pt(1)
+            params.pt(0) + params.pt(1)
         ), self._m)
 
     def _calc_centroids(self):
@@ -47,8 +50,9 @@ class Square(Polygon):
         Returns:
             torch.Tensor: The center of mass for the square
         """
+        params = self._params()
         return self._resize_to_m(1 / 2 * (
-            self._params.pt(0) + self._params.pt(1)
+            params.pt(0) + params.pt(1)
         ), self._m)
     
     def scale(self, m: torch.Tensor) -> 'Square':

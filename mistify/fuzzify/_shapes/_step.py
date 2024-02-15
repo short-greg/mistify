@@ -23,14 +23,13 @@ class Step(Monotonic):
             threshold (ShapeParams): The threshold where the step occurs
             m (torch.Tensor, optional): The max value of membership. Defaults to None.
         """
+        super().__init__(
+            threshold.n_variables,
+            threshold.n_terms
+        )
         self._threshold = threshold
-
         self._m = self._init_m(m, threshold.device)
 
-        super().__init__(
-            self._threshold.n_variables,
-            self._threshold.n_terms
-        )
 
     @property
     def thresholds(self) -> ShapeParams:

@@ -280,7 +280,7 @@ class IsoscelesTrapezoidFuzzyConverter(CompositeFuzzyConverter):
             middle (shape.IsoscelesTrapezoid, optional): The middle shape. Defaults to None.
             hypothesis (typing.Union[ShapeHypothesis, str], optional): The hypothesis fucntion. Defaults to "area".
             conclusion (typing.Union[Conclusion, str], optional): The conclusion function. Defaults to "max".
-            truncate (bool, optional): _description_. Defaults to False.
+            truncate (bool, optional): Whether to truncate or scale. Defaults to False.
         """
         super().__init__(
             polygon_set(left, middle, right), hypothesis, conclusion, truncate
@@ -367,7 +367,7 @@ class TrapezoidFuzzyConverter(CompositeFuzzyConverter):
             middle (shape.Trapezoid, optional): The middle shape. Defaults to None.
             hypothesis (typing.Union[ShapeHypothesis, str], optional): The hypothesis fucntion. Defaults to "area".
             conclusion (typing.Union[Conclusion, str], optional): The conclusion function. Defaults to "max".
-            truncate (bool, optional): _description_. Defaults to False.
+            truncate (bool, optional): Whether to truncate or not. Defaults to True.
         """
         super().__init__(
             polygon_set(left, middle, right), hypothesis, conclusion, truncate
@@ -454,7 +454,7 @@ class TriangleFuzzyConverter(CompositeFuzzyConverter):
             middle (shape.Triangle, optional): The middle shape. Defaults to None.
             hypothesis (typing.Union[ShapeHypothesis, str], optional): The hypothesis fucntion. Defaults to "area".
             conclusion (typing.Union[Conclusion, str], optional): The conclusion function. Defaults to "max".
-            truncate (bool, optional): _description_. Defaults to False.
+            truncate (bool, optional): Whether to truncate or not. Defaults to True.
         """
         super().__init__(
             polygon_set(left, middle, right), hypothesis, conclusion, truncate

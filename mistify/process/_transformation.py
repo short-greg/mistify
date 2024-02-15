@@ -140,7 +140,7 @@ class GaussianBase(Transform):
 
         Args:
             X (torch.Tensor): The input to fit on
-            t (_type_, optional): The target to fit on. Defaults to None.
+            t (optional): The target to fit on. Defaults to None.
         """
         self._mean = X.mean(dim=0, keepdim=True)
         self._std = X.std(dim=0, keepdim=True)
@@ -574,8 +574,8 @@ class Reverse(Transform):
         """Run the fit process followed by the transform
 
         Args:
-            Y (torch.Tensor): _description_
-            t (_type_, optional): _description_. Defaults to None.
+            Y (torch.Tensor): The value for the output to train on
+            t (optional): The target to use if necessary. Defaults to None.
 
         Returns:
             torch.Tensor: The output of the transform

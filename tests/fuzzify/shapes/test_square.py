@@ -8,10 +8,11 @@ class TestSquare(object):
 
         p = torch.rand(3, 4, 2).cumsum(2)
         x = torch.rand(2, 3)
-        right_trapezoid = Square(
+
+        square = Square(
             ShapeParams(p)
         )
-        m = right_trapezoid.join(x)
+        m = square.join(x)
         assert m.data.size() == torch.Size([2, 3, 4])
 
     def test_scale_returns_shape_with_correct_size(self):

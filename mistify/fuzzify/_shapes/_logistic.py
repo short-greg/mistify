@@ -22,20 +22,20 @@ class Logistic(Nonmonotonic):
     ):
         """The base class for logistic distribution functions
 
+        Note: Don't need to sort for this because there is only one point per parameter
+
         Args:
             biases (ShapeParams): The bias of the distribution
             scales (ShapeParams): The scale value for the distribution
-            m (torch.Tensor, optional): The . Defaults to None.
+            m (torch.Tensor, optional): The max membership. Defaults to None.
         """
+        super().__init__(
+            biases.n_variables,
+            biases.n_terms
+        )
+        self._m = self._init_m(m, biases.device)
         self._biases = biases
         self._scales = scales
-
-        self._m = self._init_m(m, self._biases.device)
-
-        super().__init__(
-            self._biases.n_variables,
-            self._biases.n_terms
-        )
 
     @property
     def biases(self) -> 'ShapeParams':
@@ -109,7 +109,7 @@ class LogisticBell(Logistic):
             LogisticBell: The updated LogisticBell
         """
         return LogisticTrapezoid(
-            self._biases, self._scales,  m, self._m 
+            self._biases, self._scales, m, self._m 
         )
 
 
@@ -123,6 +123,8 @@ class LogisticTrapezoid(Logistic):
     ):
         """Create a membership function that has a ceiling on the heighest value
 
+        Note: Don't need to sort for this because it is derived
+
         Args:
             biases (ShapeParams): The biases for the logistic part of the funciton
             scales (ShapeParams): The scales for the logistic part of teh function
@@ -131,8 +133,6 @@ class LogisticTrapezoid(Logistic):
         """
         super().__init__(biases, scales, scaled_m)
 
-        # if truncated_m is None:
-        #     truncated_m = torch.ones(*self._m.size(), device=self._m.device)
         truncated_m = self._init_m(truncated_m, biases.device)
         self._truncated_m = intersect(truncated_m, self._m)
         

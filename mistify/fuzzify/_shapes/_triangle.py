@@ -26,8 +26,9 @@ class IncreasingRightTriangle(Polygon):
         Returns:
             torch.Tensor: The membership
         """
+        params = self._params()
         return calc_m_linear_increasing(
-            unsqueeze(x), self._params.pt(0), self._params.pt(1), self._m
+            unsqueeze(x), params.pt(0), params.pt(1), self._m
         )
 
     def _calc_areas(self):
@@ -35,9 +36,10 @@ class IncreasingRightTriangle(Polygon):
         Returns:
             torch.Tensor: The area of the right triangle
         """
+        params = self._params()
         return self._resize_to_m(
-            0.5 * (self._params.pt(1)
-            - self._params.pt(0)) * self._m, self._m
+            0.5 * (params.pt(1)
+            - params.pt(0)) * self._m, self._m
         )
 
     def _calc_mean_cores(self):
@@ -45,7 +47,8 @@ class IncreasingRightTriangle(Polygon):
         Returns:
             torch.Tensor: the value of the height of the triangle
         """
-        return self._resize_to_m(self._params.pt(1), self._m)
+        params = self._params()
+        return self._resize_to_m(params.pt(1), self._m)
 
     def _calc_centroids(self):
         """
@@ -53,9 +56,10 @@ class IncreasingRightTriangle(Polygon):
             torch.Tensor: The center of mass for the right triangle
         """
         p1, p2 = 1 / 3, 2 / 3
+        params = self._params()
 
         return self._resize_to_m(
-            p1 * self._params.pt(0) + p2 * self._params.pt(1), self._m
+            p1 * params.pt(0) + p2 * params.pt(1), self._m
         )
     
     def scale(self, m: torch.Tensor) -> 'IncreasingRightTriangle':
@@ -69,8 +73,10 @@ class IncreasingRightTriangle(Polygon):
         """
         updated_m = intersect(m, self._m)
         
+        params = self._params()
+        
         return IncreasingRightTriangle(
-            self._params, updated_m
+            params, updated_m
         )
 
     def truncate(self, m: torch.Tensor) -> 'IncreasingRightTrapezoid':
@@ -83,11 +89,12 @@ class IncreasingRightTriangle(Polygon):
             IncreasingRightTrapezoid: The triangle truncated into a trapezoid
         """
         updated_m = intersect(self._m, m)
+        params = self._params()
 
         pt = calc_x_linear_increasing(
-            updated_m, self._params.pt(0), self._params.pt(1), self._m
+            updated_m, params.pt(0), params.pt(1), self._m
         )
-        params = self._params.insert(
+        params = params.insert(
             pt, 1, to_unsqueeze=True, equalize_to=updated_m
         )
         return IncreasingRightTrapezoid(
@@ -110,8 +117,9 @@ class DecreasingRightTriangle(Polygon):
         Returns:
             torch.Tensor: The membership
         """
+        params = self._params()
         return calc_m_linear_decreasing(
-            unsqueeze(x), self._params.pt(0), self._params.pt(1), self._m
+            unsqueeze(x), params.pt(0), params.pt(1), self._m
         )
 
     def _calc_areas(self) -> torch.Tensor:
@@ -119,9 +127,10 @@ class DecreasingRightTriangle(Polygon):
         Returns:
             torch.Tensor: The area of the right triangle
         """
+        params = self._params()
         return self._resize_to_m((
-            0.5 * (self._params.pt(1)
-            - self._params.pt(0)) * self._m
+            0.5 * (params.pt(1)
+            - params.pt(0)) * self._m
         ), self._m)
 
     def _calc_mean_cores(self) -> torch.Tensor:
@@ -129,16 +138,18 @@ class DecreasingRightTriangle(Polygon):
         Returns:
             torch.Tensor: the value of the height of the triangle
         """
-        return self._resize_to_m(self._params.pt(0), self._m)
+        params = self._params()
+        return self._resize_to_m(params.pt(0), self._m)
 
     def _calc_centroids(self) -> torch.Tensor:
         """
         Returns:
             torch.Tensor: The center of mass for the right triangle
         """
+        params = self._params()
         return self._resize_to_m(
-            2 / 3 * self._params.pt(0) 
-            + 1 / 3 * self._params.pt(1), self._m
+            2 / 3 * params.pt(0) 
+            + 1 / 3 * params.pt(1), self._m
         )
     
     def scale(self, m: torch.Tensor) -> 'DecreasingRightTriangle':
@@ -151,9 +162,10 @@ class DecreasingRightTriangle(Polygon):
             DecreasingRightTriangle: The updated vertical scale if the scale is greater
         """
         updated_m = intersect(self._m, m)
+        params = self._params()
         
         return DecreasingRightTriangle(
-            self._params, updated_m
+            params, updated_m
         )
 
     def truncate(self, m: torch.Tensor) -> 'DecreasingRightTrapezoid':
@@ -165,12 +177,13 @@ class DecreasingRightTriangle(Polygon):
             DecreasingRightTrapezoid: The triangle truncated into a RightTrapezoid
         """
         updated_m = intersect(self._m, m)
+        params = self._params()
 
         pt = calc_x_linear_decreasing(
-            updated_m, self._params.pt(0), self._params.pt(1), self._m
+            updated_m, params.pt(0), params.pt(1), self._m
         )
 
-        params = self._params.insert(pt, 1, to_unsqueeze=True, equalize_to=updated_m)
+        params = params.insert(pt, 1, to_unsqueeze=True, equalize_to=updated_m)
         return DecreasingRightTrapezoid(
             params, updated_m
         )
@@ -190,11 +203,12 @@ class Triangle(Polygon):
         Returns:
             torch.Tensor: The membership
         """
+        params = self._params()
         m1 = calc_m_linear_increasing(
-            unsqueeze(x), self._params.pt(0), self._params.pt(1), self._m
+            unsqueeze(x), params.pt(0), params.pt(1), self._m
         )
         m2 = calc_m_linear_decreasing(
-            unsqueeze(x), self._params.pt(1), self._params.pt(2), self._m
+            unsqueeze(x), params.pt(1), params.pt(2), self._m
         )
         return union(m1, m2)
 
@@ -203,9 +217,10 @@ class Triangle(Polygon):
         Returns:
             torch.Tensor: The area of triangle
         """
+        params = self._params()
         return self._resize_to_m((
-            0.5 * (self._params.pt(2) 
-            - self._params.pt(0)) * self._m
+            0.5 * (params.pt(2) 
+            - params.pt(0)) * self._m
         ), self._m)
 
     def _calc_mean_cores(self):
@@ -213,15 +228,17 @@ class Triangle(Polygon):
         Returns:
             torch.Tensor: the maximum value of the triangle
         """
-        return self._resize_to_m(self._params.pt(1), self._m)
+        params = self._params()
+        return self._resize_to_m(params.pt(1), self._m)
 
     def _calc_centroids(self):
         """
         Returns:
             torch.Tensor: the center of mass for the triangle
         """
+        params = self._params()
         return self._resize_to_m(1 / 3 * (
-            self._params.pt(0) + self._params.pt(1) + self._params.pt(2)
+            params.pt(0) + params.pt(1) + params.pt(2)
         ), self._m)
     
     def scale(self, m: torch.Tensor) -> 'Triangle':
@@ -248,12 +265,13 @@ class Triangle(Polygon):
         """
         updated_m = intersect(self._m, m)
 
-        pt1 = calc_x_linear_increasing(updated_m, self._params.pt(0), self._params.pt(1), self._m)
-        pt2 = calc_x_linear_decreasing(updated_m, self._params.pt(1), self._params.pt(2), self._m)
+        params = self._params()
+        pt1 = calc_x_linear_increasing(updated_m, params.pt(0), params.pt(1), self._m)
+        pt2 = calc_x_linear_decreasing(updated_m, params.pt(1), params.pt(2), self._m)
         to_replace = torch.cat(
             [pt1.unsqueeze(3), pt2.unsqueeze(3)], dim=3
         )
-        params= self._params.replace(
+        params= params.replace(
             to_replace, 1, False, equalize_to=updated_m
         )
 
@@ -276,12 +294,13 @@ class IsoscelesTriangle(Polygon):
         Returns:
             torch.Tensor: The membership value of x
         """
+        params = self._params()
         left_m = calc_m_linear_increasing(
-            unsqueeze(x), self._params.pt(0), self._params.pt(1), self._m
+            unsqueeze(x), params.pt(0), params.pt(1), self._m
         )
         right_m = calc_m_linear_decreasing(
-            unsqueeze(x), self._params.pt(1), 
-            self._params.pt(1) + (self._params.pt(1) - self._params.pt(0)), 
+            unsqueeze(x), params.pt(1), 
+            params.pt(1) + (params.pt(1) - params.pt(0)), 
             self._m
         )
         return union(left_m, right_m)

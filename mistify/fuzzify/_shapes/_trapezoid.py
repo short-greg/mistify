@@ -26,10 +26,11 @@ class Trapezoid(Polygon):
         Returns:
             torch.Tensor: The membership
         """
+        params = self._params()
         x = unsqueeze(x)
-        m1 = calc_m_linear_increasing(x, self._params.pt(0), self._params.pt(1), self._m)
-        m2 = calc_m_flat(x, self._params.pt(1), self._params.pt(2), self._m)
-        m3 = calc_m_linear_decreasing(x, self._params.pt(2), self._params.pt(3), self._m)
+        m1 = calc_m_linear_increasing(x, params.pt(0), params.pt(1), self._m)
+        m2 = calc_m_flat(x, params.pt(1), params.pt(2), self._m)
+        m3 = calc_m_linear_decreasing(x, params.pt(2), params.pt(3), self._m)
 
         return torch.max(torch.max(m1, m2), m3)
 
@@ -39,10 +40,11 @@ class Trapezoid(Polygon):
         Returns:
             torch.Tensor: The area of the trapezoid
         """
+        params = self._params()
         
         return self._resize_to_m((
-            0.5 * (self._params.pt(2) 
-            - self._params.pt(0)) * self._m
+            0.5 * (params.pt(2) 
+            - params.pt(0)) * self._m
         ), self._m)
 
     def _calc_mean_cores(self) -> torch.Tensor:
@@ -50,8 +52,10 @@ class Trapezoid(Polygon):
         Returns:
             torch.Tensor: the mean value of the top of the Trapezoid
         """
+        params = self._params()
+
         return self._resize_to_m(
-            0.5 * (self._params.pt(1) + self._params.pt(2)), self._m
+            0.5 * (params.pt(1) + params.pt(2)), self._m
         )
 
     def _calc_centroids(self) -> torch.Tensor:
@@ -59,14 +63,15 @@ class Trapezoid(Polygon):
         Returns:
             torch.Tensor: The center of mass for the three sections of the trapezoid
         """
-        d1 = 0.5 * (self._params.pt(1) - self._params.pt(0))
-        d2 = self._params.pt(2) - self._params.pt(1)
-        d3 = 0.5 * (self._params.pt(3) - self._params.pt(2))
+        params = self._params()
+        d1 = 0.5 * (params.pt(1) - params.pt(0))
+        d2 = params.pt(2) - params.pt(1)
+        d3 = 0.5 * (params.pt(3) - params.pt(2))
 
         return self._resize_to_m((
-            d1 * (2 / 3 * self._params.pt(1) + 1 / 3 * self._params.pt(0)) +
-            d2 * (1 / 2 * self._params.pt(2) + 1 / 2 *  self._params.pt(1)) + 
-            d3 * (1 / 3 * self._params.pt(3) + 2 / 3 * self._params.pt(2))
+            d1 * (2 / 3 * params.pt(1) + 1 / 3 * params.pt(0)) +
+            d2 * (1 / 2 * params.pt(2) + 1 / 2 *  params.pt(1)) + 
+            d3 * (1 / 3 * params.pt(3) + 2 / 3 * params.pt(2))
         ) / (d1 + d2 + d3), self._m)
 
     def scale(self, m: torch.Tensor) -> 'Trapezoid':
@@ -92,18 +97,19 @@ class Trapezoid(Polygon):
         Returns:
             Trapezoid: The updated vertical scale if the scale is greater
         """
+        params = self._params()
         updated_m = intersect(self._m, m)
 
         # update the 
         left_x = calc_x_linear_increasing(
-            updated_m, self._params.pt(0), self._params.pt(1), self._m
+            updated_m, params.pt(0), params.pt(1), self._m
         )
 
         right_x = calc_x_linear_decreasing(
-            updated_m, self._params.pt(2), self._params.pt(3), self._m
+            updated_m, params.pt(2), params.pt(3), self._m
         )
 
-        params = self._params.replace(left_x, 1, to_unsqueeze=True, equalize_to=updated_m)
+        params = params.replace(left_x, 1, to_unsqueeze=True, equalize_to=updated_m)
         params = params.replace(right_x, 2, to_unsqueeze=True)
 
         return Trapezoid(
@@ -126,34 +132,33 @@ class IsoscelesTrapezoid(Polygon):
             torch.Tensor: The membership value of x
         """
         x = unsqueeze(x)
+        params = self._params()
         left_m = calc_m_linear_increasing(
-            x, self._params.pt(0), self._params.pt(1), self._m
+            x, params.pt(0), params.pt(1), self._m
         )
-        middle = calc_m_flat(x, self._params.pt(1), self._params.pt(2), self._m)
-        pt3 = self._params.pt(1) - self._params.pt(0) + self._params.pt(2)
+        middle = calc_m_flat(x, params.pt(1), params.pt(2), self._m)
+        pt3 = params.pt(1) - params.pt(0) + params.pt(2)
         right_m = calc_m_linear_decreasing(
-            x, self._params.pt(2), pt3, self._m
+            x, params.pt(2), pt3, self._m
         )
         return torch.max(torch.max(left_m, middle), right_m)
     
-    @property
-    def a(self) -> torch.Tensor:
+    def a(self, params: ShapeParams) -> torch.Tensor:
         """
         Returns:
             torch.Tensor: The distance for the bottom of the trapezoid 
         """
         return (
-            self._params.pt(2) - self._params.pt(0) + 
-            self._params.pt(1) - self._params.pt(0)
+            params.pt(2) - params.pt(0) + 
+            params.pt(1) - params.pt(0)
         )
 
-    @property
-    def b(self) -> torch.Tensor:
+    def b(self, params: ShapeParams) -> torch.Tensor:
         """
         Returns:
             torch.Tensor: The distance for the top of the trapezoid 
         """
-        return self._params.pt(2) - self._params.pt(1)
+        return params.pt(2) - params.pt(1)
 
     def _calc_areas(self) -> torch.Tensor:
         """
@@ -161,8 +166,9 @@ class IsoscelesTrapezoid(Polygon):
             torch.Tensor: The area of the trapezoid
         """
         
+        params = self._params()
         return self._resize_to_m(
-            0.5 * (self.a + self.b) * self._m, self._m
+            0.5 * (self.a(params) + self.b(params)) * self._m, self._m
         )
 
     def _calc_mean_cores(self) -> torch.Tensor:
@@ -170,7 +176,8 @@ class IsoscelesTrapezoid(Polygon):
         Returns:
             torch.Tensor: The mean value of the top of the trapezoid
         """
-        return self._resize_to_m(0.5 * (self._params.pt(2) + self._params.pt(1)), self._m)
+        params = self._params()
+        return self._resize_to_m(0.5 * (params.pt(2) + params.pt(1)), self._m)
 
     def _calc_centroids(self) -> torch.Tensor:
         """
@@ -202,14 +209,15 @@ class IsoscelesTrapezoid(Polygon):
             IsoscelesTrapezoid: The updated trapezoid
         """
         updated_m = intersect(self._m, m)
+        params = self._params()
 
         left_x = calc_x_linear_increasing(
-            updated_m, self._params.pt(0), self._params.pt(1), self._m
+            updated_m, params.pt(0), params.pt(1), self._m
         )
 
-        right_x = self._params.pt(2) + self._params.pt(1) - left_x
+        right_x = params.pt(2) + params.pt(1) - left_x
 
-        params = self._params.replace(
+        params = params.replace(
             left_x, 1, True, updated_m
         )
         params = params.replace(
@@ -223,42 +231,46 @@ class IncreasingRightTrapezoid(Polygon):
     PT = 3
 
     def join(self, x: torch.Tensor) -> 'torch.Tensor':
+
+        params = self._params()
         m = calc_m_linear_increasing(
-            unsqueeze(x), self._params.pt(0), self._params.pt(1), self._m
+            unsqueeze(x), params.pt(0), params.pt(1), self._m
         )
-        m2 = calc_m_flat(unsqueeze(x), self._params.pt(1), self._params.pt(2), self._m)
+        m2 = calc_m_flat(unsqueeze(x), params.pt(1), params.pt(2), self._m)
 
         return torch.max(m, m2)
     
-    @property
-    def a(self):
+    def a(self, params: ShapeParams):
         return (
-            self._params.pt(2) - self._params.pt(0)
+            params.pt(2) - params.pt(0)
         )
 
-    @property
-    def b(self):
-        return self._params.pt(2) - self._params.pt(1)
+    def b(self, params: ShapeParams):
+        return params.pt(2) - params.pt(1)
 
     def _calc_areas(self):
-        
+
+        params = self._params()
+
         return self._resize_to_m(
-            0.5 * (self.a + self.b) * self._m, self._m
+            0.5 * (self.a(params) + self.b(params)) * self._m, self._m
         )
 
     def _calc_mean_cores(self):
+        params = self._params()
         return self._resize_to_m(
-            0.5 * (self._params.pt(2) + self._params.pt(1)), self._m
+            0.5 * (params.pt(2) + params.pt(1)), self._m
         )
 
     def _calc_centroids(self):
         
-        d1 = 0.5 * (self._params.pt(1) - self._params.pt(0))
-        d2 = self._params.pt(2) - self._params.pt(1)
+        params = self._params()
+        d1 = 0.5 * (params.pt(1) - params.pt(0))
+        d2 = params.pt(2) - params.pt(1)
 
         return self._resize_to_m((
-            d1 * (2 / 3 * self._params.pt(1) + 1 / 3 * self._params.pt(0)) +
-            d2 * (1 / 2 * self._params.pt(2) + 1 / 2 * self._params.pt(1))
+            d1 * (2 / 3 * params.pt(1) + 1 / 3 * params.pt(0)) +
+            d2 * (1 / 2 * params.pt(2) + 1 / 2 * params.pt(1))
         ) / (d1 + d2), self._m)
 
     def scale(self, m: torch.Tensor) -> 'IncreasingRightTrapezoid':
@@ -267,10 +279,11 @@ class IncreasingRightTrapezoid(Polygon):
     def truncate(self, m: torch.Tensor) -> 'IncreasingRightTrapezoid':
         updated_m = intersect(m, self._m)
         
+        params = self._params()
         x = calc_x_linear_increasing(
-            updated_m, self._params.pt(0), self._params.pt(1), self._m
+            updated_m, params.pt(0), params.pt(1), self._m
         )
-        params = self._params.replace(x, 1, True, updated_m)
+        params = params.replace(x, 1, True, updated_m)
         return IncreasingRightTrapezoid(params, updated_m)
 
 
@@ -294,49 +307,51 @@ class DecreasingRightTrapezoid(Polygon):
         # i can also set them to "frozen"
         # the parameters must also be "registered" if tunable
         
+        params = self._params()
         m = calc_m_linear_decreasing(
-            unsqueeze(x), self._params.pt(0), self._params.pt(1), self._m
+            unsqueeze(x), params.pt(0), params.pt(1), self._m
         )
-        m2 = calc_m_flat(unsqueeze(x), self._params.pt(1), self._params.pt(2), self._m)
+        m2 = calc_m_flat(unsqueeze(x), params.pt(1), params.pt(2), self._m)
 
         return torch.max(m, m2)
     
-    @property
-    def a(self) -> torch.Tensor:
+    def a(self, params: ShapeParams) -> torch.Tensor:
         """
         Returns:
             torch.Tensor: The width of the bottom of the trapezoid
         """
         return (
-            self._params.pt(2) - self._params.pt(0)
+            params.pt(2) - params.pt(0)
         )
 
-    @property
-    def b(self) -> torch.Tensor:
+    def b(self, params: ShapeParams) -> torch.Tensor:
         """
         Returns:
             torch.Tensor: The width of the top of the trapezoid
         """
-        return self._params.pt(1) - self._params.pt(0)
+        return params.pt(1) - params.pt(0)
 
     def _calc_areas(self):
         
+        params = self._params()
         return self._resize_to_m((
-            0.5 * (self.a + self.b) * self._m
+            0.5 * (self.a(params) + self.b(params)) * self._m
         ), self._m)
 
     def _calc_mean_cores(self):
+        params = self._params()
         return self._resize_to_m(
-            0.5 * (self._params.pt(0) + self._params.pt(1)), self._m
+            0.5 * (params.pt(0) + params.pt(1)), self._m
         )
 
     def _calc_centroids(self):
-        d1 = self._params.pt(1) - self._params.pt(0)
-        d2 = 0.5 * (self._params.pt(2) - self._params.pt(1))
+        params = self._params()
+        d1 = params.pt(1) - params.pt(0)
+        d2 = 0.5 * (params.pt(2) - params.pt(1))
         
         return self._resize_to_m((
-            d1 * (1 / 2 * self._params.pt(1) + 1 / 2 * self._params.pt(0)) +
-            d2 * (1 / 3 * self._params.pt(2) + 2 / 3 * self._params.pt(1))
+            d1 * (1 / 2 * params.pt(1) + 1 / 2 * params.pt(0)) +
+            d2 * (1 / 3 * params.pt(2) + 2 / 3 * params.pt(1))
         ) / (d1 + d2), self._m)
 
     def scale(self, m: torch.Tensor) -> 'DecreasingRightTrapezoid':
@@ -360,9 +375,9 @@ class DecreasingRightTrapezoid(Polygon):
             DecreasingRightTrapezoid: The updated trapezoid
         """
         updated_m = intersect(m, self._m)
-        
+        params = self._params()
         x = calc_x_linear_decreasing(
-            updated_m, self._params.pt(0), self._params.pt(1), self._m
+            updated_m, params.pt(0), params.pt(1), self._m
         )
-        params = self._params.replace(x, 1, True, updated_m)
+        params = params.replace(x, 1, True, updated_m)
         return DecreasingRightTrapezoid(params, updated_m)
