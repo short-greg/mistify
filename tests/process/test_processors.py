@@ -189,6 +189,7 @@ class TestPiecewise:
 
     def test_creates_parameters_of_the_correct_size(self):
 
+        torch.manual_seed(1)
         x = torch.rand(8, 4)
         x_range = processors.PieceRange(4)
         y_range = processors.PieceRange(4, lower=-0.1, upper=1.1)
@@ -199,13 +200,25 @@ class TestPiecewise:
 
     def test_creates_parameters_of_the_correct_size_with_reverse(self):
 
+        torch.manual_seed(1)
         x = torch.rand(8, 4)
         x_range = processors.PieceRange(4)
         y_range = processors.PieceRange(4, lower=-0.1, upper=1.1)
         piecwise = processors.Piecewise(x_range, y_range)
         
         y = piecwise.reverse(x)
-
-        print(x, y)
-        assert False
+        
         assert y.shape == x.shape
+        assert (y != x).any()
+    
+    def test_reverse_reconstructs_x(self):
+
+        torch.manual_seed(1)
+        x = torch.rand(8, 4)
+        x_range = processors.PieceRange(4)
+        y_range = processors.PieceRange(4, lower=-0.1, upper=1.1)
+        piecwise = processors.Piecewise(x_range, y_range)
+        
+        y = piecwise(x)
+        x_prime = piecwise.reverse(y)
+        assert (torch.isclose(x_prime, x, 1e-4)).all()

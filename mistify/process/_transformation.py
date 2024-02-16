@@ -586,14 +586,14 @@ class Reverse(Transform):
 class PieceRange(nn.Module):
 
     def __init__(self, n_pieces: int, n_features: int=None, lower: float=0., upper: float=1.0, tunable: bool=False):
-        """_summary_
+        """Use to create a range of values for the piecewise computation
 
         Args:
-            n_pieces (int): _description_
-            n_features (int, optional): _description_. Defaults to None.
-            lower (float, optional): _description_. Defaults to 0..
-            upper (float, optional): _description_. Defaults to 1.0.
-            tunable (bool, optional): _description_. Defaults to False.
+            n_pieces (int): The number of pieces in the range
+            n_features (int, optional): Number of features - If none, use the same value for all featurse. Defaults to None.
+            lower (float, optional): The lower bound on the range. Defaults to 0..
+            upper (float, optional): The upper bound on the rane. Defaults to 1.0.
+            tunable (bool, optional): Whether the parameters can be tuned. Defaults to False.
         """
         super().__init__()
         pieces = torch.linspace(lower, upper, n_pieces + 1)
@@ -617,28 +617,28 @@ class PieceRange(nn.Module):
     
     def pieces(self) -> torch.Tensor:
 
-        if self._tunable:
-            return self._pieces * self._diff + self._lower
+        if not self._tunable:
+            return self._pieces # * self._diff + self._lower
         
         pieces = torch.cumsum(torch.nn.functional.softplus(self._pieces), dim=-1)
         max_ = pieces.max(dim=-1, keepdim=True)[0]
         min_ = pieces.min(dim=-1, keepdim=True)[0]
         return ((pieces - min_) / (max_ - min_ + 1e-6)) * self._diff + self._lower
     
-    def diff(self, x: torch.Tensor) -> typing.Tuple[torch.Tensor, torch.Tensor]:
+    def diff(self, x: torch.Tensor) -> typing.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         
         x = x.unsqueeze(-1)
         pieces = self.pieces()
         lower = pieces[:,:,:-1]
         upper = pieces[:,:,1:]
         within = ((x >= lower) & (x <= upper)).type_as(x)
-        result = within * x # ((x - lower) / (upper - lower + 1e-6) + lower)
-        chosen = result.abs().argmax(dim=-1, keepdim=True)
+        chosen = within.argmax(dim=-1, keepdim=True)
+        result = within * x
         return result.gather(-1, chosen), chosen
 
     def oob(self, x: torch.Tensor):
         
-        return ((x > self._lower) | (x > self._upper)).type_as(x)
+        return ((x < self._lower) | (x > self._upper)).type_as(x)
 
     def range(self, ind: torch.LongTensor):
         pieces = self.pieces()
@@ -656,8 +656,17 @@ class PieceRange(nn.Module):
 
 class Piecewise(Transform):
 
-    def __init__(self, x_range: PieceRange, y_range: PieceRange, eps: float=1e-5):
+    def __init__(self, x_range: PieceRange, y_range: PieceRange, eps: float=1e-6):
+        """Linear piecewise transform. Use to do flexible non-linear transformations 
 
+        Args:
+            x_range (PieceRange): The range of x values
+            y_range (PieceRange): The range of y values
+            eps (float, optional): An error threshold to prevent numerical issues. Defaults to 1e-6.
+
+        Raises:
+            ValueError: If the number of pieces don't match for x and y
+        """
         super().__init__()
         self.x_range = x_range
         self.y_range = y_range
@@ -672,9 +681,13 @@ class Piecewise(Transform):
 
         out_of_bounds = self.x_range.oob(x)
         x_diff, ind = self.x_range.diff(x)
+        upper_x, lower_x = self.x_range.range(ind)
         upper, lower = self.y_range.range(ind)
         
-        value = x_diff.squeeze(-1) / (upper - lower + self.eps) + lower
+        #  value = x_diff.squeeze(-1) / (upper - lower + self.eps) + lower
+
+        m = (upper - lower) / (upper_x - lower_x + self.eps)
+        value = (x_diff.squeeze(-1) - lower_x) * m + lower
 
         return (value * (1 - out_of_bounds)) + x * out_of_bounds
 
@@ -682,7 +695,9 @@ class Piecewise(Transform):
 
         out_of_bounds = self.y_range.oob(y)
         y_diff, ind = self.y_range.diff(y)
+        upper_y, lower_y = self.y_range.range(ind)
         upper, lower = self.x_range.range(ind)
-        value = y_diff.squeeze(-1) / (upper - lower + self.eps) + lower
-
+        # value = y_diff.squeeze(-1) / (upper - lower + self.eps) + lower
+        m = (upper - lower) / (upper_y - lower_y + self.eps)
+        value = (y_diff.squeeze(-1) - lower_y) * m + lower
         return (value * (1 - out_of_bounds)) + y * out_of_bounds
