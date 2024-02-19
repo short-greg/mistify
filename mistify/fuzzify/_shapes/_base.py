@@ -456,3 +456,7 @@ class Polygon(Nonmonotonic):
         super().__init__(params.set_size, params.n_terms)
         self._m = self._init_m(m, params.device)
         self._params = params
+
+    @property
+    def params(self) -> ShapeParams:
+        return self._params

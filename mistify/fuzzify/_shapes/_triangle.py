@@ -274,7 +274,6 @@ class Triangle(Polygon):
         params= params.replace(
             to_replace, 1, False, equalize_to=updated_m
         )
-        print(params.x)
 
         return Trapezoid(
             params, updated_m
