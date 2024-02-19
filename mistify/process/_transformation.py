@@ -585,7 +585,7 @@ class Reverse(Transform):
 
 class PieceRange(nn.Module):
 
-    def __init__(self, n_pieces: int, n_features: int=None, lower: float=0., upper: float=1.0, tunable: bool=False):
+    def __init__(self, pieces: torch.Tensor, lower: float=0., upper: float=1.0, tunable: bool=False):
         """Use to create a range of values for the piecewise computation
 
         Args:
@@ -596,11 +596,13 @@ class PieceRange(nn.Module):
             tunable (bool, optional): Whether the parameters can be tuned. Defaults to False.
         """
         super().__init__()
-        pieces = torch.linspace(lower, upper, n_pieces + 1)
-        if n_features is not None:
-            pieces = pieces[None].repeat(n_features, 1)[None]
-        else:
+        if pieces.dim() == 1:
             pieces = pieces[None, None]
+            self._n_features = None
+        else:
+            pieces = pieces[None]
+            self._n_features = pieces.size(1)
+
         if tunable:
             self._pieces = torch.nn.parameter.Parameter(pieces)
         else:
@@ -608,8 +610,20 @@ class PieceRange(nn.Module):
         self._tunable = tunable
         self._lower = lower
         self._upper = upper
-        self._n_features = n_features
         self._diff = self._upper - self._lower
+
+    @classmethod
+    def linspace(self, n_pieces: int, n_features: int=None, lower: float=0., upper: float=1.0, tunable: bool=False):
+        pieces = torch.linspace(lower, upper, n_pieces + 1)
+        if n_features is not None:
+            pieces = pieces[None].repeat(n_features, 1)
+
+        return PieceRange(pieces, lower, upper, tunable)
+
+    @classmethod
+    def expand(self, pieces: torch.Tensor, n_features: int, lower: float=0., upper: float=1., tunable: bool=False):
+        pieces = pieces[None].repeat(n_features, 1)[None]
+        return PieceRange(pieces, lower, upper, tunable)
 
     @property
     def n_pieces(self) -> int:
@@ -645,9 +659,11 @@ class PieceRange(nn.Module):
         lower = pieces[:,:,:-1]
         upper = pieces[:,:,1:]
         if self._n_features is None:
+            print('REPEATING')
             lower = lower.repeat(ind.shape[0], ind.shape[1], 1)
             upper = upper.repeat(ind.shape[0], ind.shape[1], 1)
         else:
+            print('REPEATING 2')
             lower = lower.repeat(ind.shape[0], 1, 1)
             upper = upper.repeat(ind.shape[0], 1, 1)
 
@@ -684,8 +700,6 @@ class Piecewise(Transform):
         upper_x, lower_x = self.x_range.range(ind)
         upper, lower = self.y_range.range(ind)
         
-        #  value = x_diff.squeeze(-1) / (upper - lower + self.eps) + lower
-
         m = (upper - lower) / (upper_x - lower_x + self.eps)
         value = (x_diff.squeeze(-1) - lower_x) * m + lower
 
@@ -697,7 +711,6 @@ class Piecewise(Transform):
         y_diff, ind = self.y_range.diff(y)
         upper_y, lower_y = self.y_range.range(ind)
         upper, lower = self.x_range.range(ind)
-        # value = y_diff.squeeze(-1) / (upper - lower + self.eps) + lower
         m = (upper - lower) / (upper_y - lower_y + self.eps)
         value = (y_diff.squeeze(-1) - lower_y) * m + lower
         return (value * (1 - out_of_bounds)) + y * out_of_bounds
