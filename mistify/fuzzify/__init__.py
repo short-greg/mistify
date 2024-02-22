@@ -23,7 +23,7 @@ from ._shapes import (
 from ._conversion import (
     ConverterFuzzifier, 
     FuzzyConverter, 
-    HypoWeight,
+    HypoM,
     Fuzzifier, 
     LogisticFuzzyConverter, 
     IsoscelesFuzzyConverter,

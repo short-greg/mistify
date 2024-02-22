@@ -13,24 +13,24 @@ import torch.nn as nn
 
 
 @dataclass
-class HypoWeight:
+class HypoM:
     """Structure that defines a hypothesis and its weight
     """
 
     hypo: torch.Tensor
-    weight: torch.Tensor
+    m: torch.Tensor
 
     def __iter__(self) -> typing.Iterator[torch.Tensor]:
 
         yield self.hypo
-        yield self.weight
+        yield self.m
 
 
 class Conclusion(nn.Module):
     """Class that defines several hypotheses 
     """
     @abstractmethod
-    def forward(self, value_weight: HypoWeight) -> torch.Tensor:
+    def forward(self, value_weight: HypoM) -> torch.Tensor:
         pass
 
 
@@ -38,7 +38,7 @@ class MaxValueConc(Conclusion):
     """Choose the hypothesis with the maximum value
     """
 
-    def forward(self, hypo_weight: HypoWeight) -> torch.Tensor:
+    def forward(self, hypo_weight: HypoM) -> torch.Tensor:
         """
         Args:
             hypo_weight (HypoWeight): The hypotheses and their weights
@@ -53,7 +53,7 @@ class MaxConc(Conclusion):
     """Choose the hypothesis with the maximum weight
     """
 
-    def forward(self, hypo_weight: HypoWeight) -> torch.Tensor:
+    def forward(self, hypo_weight: HypoM) -> torch.Tensor:
         """
         Args:
             hypo_weight (HypoWeight): The hypotheses and weights
@@ -61,7 +61,7 @@ class MaxConc(Conclusion):
         Returns:
             torch.Tensor: the hypothesis with the maximum weight
         """
-        indices = torch.max(hypo_weight.weight, dim=-1, keepdim=True)[1]
+        indices = torch.max(hypo_weight.m, dim=-1, keepdim=True)[1]
         return torch.gather(hypo_weight.hypo, -1, indices).squeeze(dim=-1)
 
 
@@ -69,7 +69,7 @@ class WeightedAverageConc(Conclusion):
     """Take the weighted average of all the hypotheses
     """
 
-    def forward(self, hypo_weight: HypoWeight) -> torch.Tensor:
+    def forward(self, hypo_weight: HypoM) -> torch.Tensor:
         """
         Args:
             hypo_weight (HypoWeight): The hypotheses and weights
@@ -78,8 +78,8 @@ class WeightedAverageConc(Conclusion):
             torch.Tensor: the weighted average of the hypotheses
         """
         return (
-            torch.sum(hypo_weight.hypo * hypo_weight.weight, dim=-1) 
-            / torch.sum(hypo_weight.weight, dim=-1)
+            torch.sum(hypo_weight.hypo * hypo_weight.m, dim=-1) 
+            / torch.sum(hypo_weight.m, dim=-1)
         )
 
 
@@ -87,7 +87,7 @@ class AverageConc(Conclusion):
     """Take the weighted average of all the hypotheses
     """
 
-    def forward(self, hypo_weight: HypoWeight) -> torch.Tensor:
+    def forward(self, hypo_weight: HypoM) -> torch.Tensor:
         """
         Args:
             hypo_weight (HypoWeight): The hypotheses and weights

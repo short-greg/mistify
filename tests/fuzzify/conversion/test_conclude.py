@@ -7,7 +7,7 @@ class TestConclusion(object):
 
     def test_max_value_acc(self):
 
-        value_weight = _conversion.HypoWeight(
+        value_weight = _conversion.HypoM(
             torch.rand(2, 3, 4),
             torch.rand(2, 3, 4)
         )
@@ -17,7 +17,7 @@ class TestConclusion(object):
 
     def test_max_acc(self):
 
-        value_weight = _conversion.HypoWeight(
+        value_weight = _conversion.HypoM(
             torch.rand(2, 3, 4),
             torch.rand(2, 3, 4)
         )
@@ -27,7 +27,7 @@ class TestConclusion(object):
 
     def test_max_acc(self):
 
-        value_weight = _conversion.HypoWeight(
+        value_weight = _conversion.HypoM(
             torch.rand(2, 3, 4),
             torch.rand(2, 3, 4)
         )
@@ -35,6 +35,6 @@ class TestConclusion(object):
         max_value_acc = _conversion.WeightedAverageConc()
         assert (
             max_value_acc(value_weight) == 
-            (torch.sum(value_weight.hypo * value_weight.weight, dim=-1) 
-             / torch.sum(value_weight.weight, dim=-1))
+            (torch.sum(value_weight.hypo * value_weight.m, dim=-1) 
+             / torch.sum(value_weight.m, dim=-1))
         ).all()
