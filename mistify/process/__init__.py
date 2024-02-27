@@ -6,3 +6,6 @@ from ._transformation import (
 from ._table import (
     ColProcessor, PandasColProcessor, TableProcessor
 )
+from ._reverse import (
+    Reversible, Softplus, Exp
+)

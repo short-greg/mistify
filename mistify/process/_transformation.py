@@ -7,8 +7,10 @@ import torch
 from torch.distributions import Normal
 import typing
 import torch.nn.functional
+from ._reverse import Reversible
 
-class Transform(nn.Module):
+
+class Transform(nn.Module, Reversible):
     """Preprocess or postprocess the input
     """
 
@@ -520,8 +522,8 @@ class MinMaxScaler(Transform):
             MinMaxScaler: The scaler based on the X
         """
 
-        self._lower = X.min(dim=0, keepdim=True)[0]
-        self._upper = X.max(dim=0, keepdim=True)[0]
+        self._lower = X.min(dim=0, keepdim=False)[0][None]
+        self._upper = X.max(dim=0, keepdim=False)[0][None]
 
 
 class Reverse(Transform):
