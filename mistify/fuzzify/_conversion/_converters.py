@@ -5,7 +5,6 @@ import typing
 
 # 3rd party
 import torch
-from torch._tensor import Tensor
 import torch.nn as nn
 import torch.nn.functional
 
