@@ -1,1 +1,1 @@
-from ._anfis import ANFIS
+from ._anfis import Sugeno

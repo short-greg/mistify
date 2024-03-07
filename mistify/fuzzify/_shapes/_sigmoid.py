@@ -25,15 +25,14 @@ class Sigmoid(Monotonic):
             scales (ShapeParams): The scales for the sigmoid function
             truncate_m (torch.Tensor, optional): The value the sigmoid is truncated by. Defaults to None.
         """
+        super().__init__(
+            biases.n_variables,
+            biases.n_terms
+        )
         self._biases = biases
         self._scales = scales
 
         self._truncate_m = self._init_m(truncate_m, biases.device)
-
-        super().__init__(
-            self._biases.n_variables,
-            self._biases.n_terms
-        )
 
     @property
     def biases(self):
@@ -52,13 +51,13 @@ class Sigmoid(Monotonic):
         )
 
     def join(self, x: torch.Tensor) -> torch.Tensor:
-        """_summary_
+        """Join the set with the sigmoid fuzzifier
 
         Args:
-            x (torch.Tensor): _description_
+            x (torch.Tensor): The Tensor to join with
 
         Returns:
-            torch.Tensor: _description_
+            torch.Tensor: The membership value
         """
         z = (unsqueeze(x) - self._biases.pt(0)) / self._scales.pt(0)
         

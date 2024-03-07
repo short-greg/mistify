@@ -11,17 +11,24 @@ import torch.nn.functional
 # local
 from .._shapes import Shape
 from .. import _shapes as shape
-from ._conclude import Conclusion, HypoWeight
+from ._conclude import Conclusion, HypoM
 from ._hypo import ShapeHypothesis, HypothesisEnum
 from ._utils import stride_coordinates, generate_repeat_params, generate_spaced_params
 from .._shapes import Shape, ShapeParams, Composite
-from ._conclude import HypoWeight, Conclusion, ConcEnum
+from ._conclude import HypoM, Conclusion, ConcEnum
 from ._fuzzifiers import Fuzzifier, Defuzzifier
 
 
 class FuzzyConverter(nn.Module):
     """Convert tensor to fuzzy set and vice versa
     """
+    def __init__(self, n_terms: int):
+        super().__init__()
+        self._n_terms = n_terms
+
+    @property
+    def n_terms(self) -> int:
+        return self._n_terms
 
     @abstractmethod
     def fuzzify(self, x: torch.Tensor) -> torch.Tensor:
@@ -36,7 +43,7 @@ class FuzzyConverter(nn.Module):
         pass
 
     @abstractmethod
-    def hypo(self, m: torch.Tensor) -> HypoWeight:
+    def hypo(self, m: torch.Tensor) -> HypoM:
         """Convert the fuzzy set to a 'hypothesis' about how to defuzzify
 
         Args:
@@ -48,7 +55,7 @@ class FuzzyConverter(nn.Module):
         pass
 
     @abstractmethod
-    def conclude(self, hypo_weight: HypoWeight) -> torch.Tensor:
+    def conclude(self, hypo_weight: HypoM) -> torch.Tensor:
         """Make a conclusion about how to defuzzify from the hypotheses
 
         Args:
@@ -127,7 +134,7 @@ class CompositeFuzzyConverter(FuzzyConverter):
             conclusion (typing.Union[Conclusion, str], optional): The function to draw the conclusion from. Defaults to "max".
             truncate (bool, optional): Whether to truncate (True) or scale (False). Defaults to False.
         """
-        super().__init__()
+        super().__init__(sum([shape.n_terms for shape in shapes]))
 
         self._composite = Composite(shapes)
         self._hypothesis = HypothesisEnum.get(hypothesis)
@@ -137,7 +144,7 @@ class CompositeFuzzyConverter(FuzzyConverter):
     def fuzzify(self, x: torch.Tensor) -> torch.Tensor:
         return self._composite.join(x)
 
-    def conclude(self, hypo_weight: HypoWeight) -> torch.Tensor:
+    def conclude(self, hypo_weight: HypoM) -> torch.Tensor:
         """Draw a conclusion from the input
 
         Args:
@@ -148,12 +155,12 @@ class CompositeFuzzyConverter(FuzzyConverter):
         """
         return self._conclusion.forward(hypo_weight)
 
-    def hypo(self, m: torch.Tensor) -> HypoWeight:
+    def hypo(self, m: torch.Tensor) -> HypoM:
         if self._truncate:
             shapes = self._composite.truncate(m).shapes
         else:
             shapes = self._composite.scale(m).shapes
-        return HypoWeight(self._hypothesis(*shapes), m)
+        return HypoM(self._hypothesis(*shapes), m)
 
 
 def polygon_set(left: shape.Shape, middle: shape.Shape, right: shape.Shape) -> typing.List[Shape]:
@@ -279,7 +286,7 @@ class IsoscelesTrapezoidFuzzyConverter(CompositeFuzzyConverter):
             middle (shape.IsoscelesTrapezoid, optional): The middle shape. Defaults to None.
             hypothesis (typing.Union[ShapeHypothesis, str], optional): The hypothesis fucntion. Defaults to "area".
             conclusion (typing.Union[Conclusion, str], optional): The conclusion function. Defaults to "max".
-            truncate (bool, optional): _description_. Defaults to False.
+            truncate (bool, optional): Whether to truncate or scale. Defaults to False.
         """
         super().__init__(
             polygon_set(left, middle, right), hypothesis, conclusion, truncate
@@ -366,7 +373,7 @@ class TrapezoidFuzzyConverter(CompositeFuzzyConverter):
             middle (shape.Trapezoid, optional): The middle shape. Defaults to None.
             hypothesis (typing.Union[ShapeHypothesis, str], optional): The hypothesis fucntion. Defaults to "area".
             conclusion (typing.Union[Conclusion, str], optional): The conclusion function. Defaults to "max".
-            truncate (bool, optional): _description_. Defaults to False.
+            truncate (bool, optional): Whether to truncate or not. Defaults to True.
         """
         super().__init__(
             polygon_set(left, middle, right), hypothesis, conclusion, truncate
@@ -453,7 +460,7 @@ class TriangleFuzzyConverter(CompositeFuzzyConverter):
             middle (shape.Triangle, optional): The middle shape. Defaults to None.
             hypothesis (typing.Union[ShapeHypothesis, str], optional): The hypothesis fucntion. Defaults to "area".
             conclusion (typing.Union[Conclusion, str], optional): The conclusion function. Defaults to "max".
-            truncate (bool, optional): _description_. Defaults to False.
+            truncate (bool, optional): Whether to truncate or not. Defaults to True.
         """
         super().__init__(
             polygon_set(left, middle, right), hypothesis, conclusion, truncate
@@ -801,7 +808,7 @@ class ConverterDecorator(ABC, FuzzyConverter):
         Args:
             converter (FuzzyConverter): 
         """
-        super().__init__()
+        super().__init__(converter.n_terms)
         self._converter = converter
 
     @abstractmethod
@@ -839,7 +846,7 @@ class ConverterDecorator(ABC, FuzzyConverter):
         """
         return self._converter.fuzzify(self.decorate_fuzzify(x))
 
-    def conclude(self, hypo_weight: HypoWeight) -> torch.Tensor:
+    def conclude(self, hypo_weight: HypoM) -> torch.Tensor:
         """Use the hyptoheses to determine the result
 
         Args:
@@ -850,7 +857,7 @@ class ConverterDecorator(ABC, FuzzyConverter):
         """
         return self._converter.conclude(hypo_weight)
     
-    def hypo(self, m: torch.Tensor) -> HypoWeight:
+    def hypo(self, m: torch.Tensor) -> HypoM:
         """
 
         Args:
@@ -908,10 +915,10 @@ class ConverterDefuzzifier(Defuzzifier):
         Args:
             converter (FuzzyConverter): The fuzzy converter to wrap
         """
-        super().__init__()
+        super().__init__(converter.n_terms)
         self.converter = converter
 
-    def hypo(self, m: torch.Tensor) -> HypoWeight:
+    def hypo(self, m: torch.Tensor) -> HypoM:
         """Calculate the hypothesis
 
         Args:
@@ -922,7 +929,7 @@ class ConverterDefuzzifier(Defuzzifier):
         """
         return self.converter.hypo(m)
 
-    def conclude(self, hypo_weight: HypoWeight) -> torch.Tensor:
+    def conclude(self, hypo_weight: HypoM) -> torch.Tensor:
         """Use the hyptoheses to determine the result
 
         Args:
@@ -945,7 +952,7 @@ class ConverterFuzzifier(Fuzzifier):
         Args:
             converter (FuzzyConverter): The fuzzy converter to wrap
         """
-        super().__init__()
+        super().__init__(converter.n_terms)
         self.converter = converter
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

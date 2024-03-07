@@ -58,7 +58,7 @@ class Sigmoidal(MembershipActivation):
             n_terms (int): The number of terms
             positive_scale (bool, optional): Whether it should be scaled positively or not. Defaults to False.
             n_vars (int, optional): The number of vars. Use None if not defined, Use False if no var dimension. Defaults to False.
-            device (str, optional): _description_. Defaults to 'cpu'.
+            device (str, optional): Device for the parameter. Defaults to 'cpu'.
         """
         super().__init__(n_terms)
         self._positive_scale = positive_scale

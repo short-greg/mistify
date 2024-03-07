@@ -136,22 +136,40 @@ class TestTriangle(object):
 
         p = torch.rand(3, 4, 3).cumsum(2)
         x = torch.rand(2, 3)
-        right_triangle = _triangle.Triangle(
+        triangle = _triangle.Triangle(
             ShapeParams(p)
         )
-        m = right_triangle.join(x)
+        m = triangle.join(x)
         assert m.data.size() == torch.Size([2, 3, 4])
-
 
     def test_join_returns_fuzzy_set_with_correct_size_and_5_inputs(self):
 
         p = torch.rand(5, 4, 3).cumsum(2)
         x = torch.rand(2, 5)
-        right_triangle = _triangle.Triangle(
+        triangle = _triangle.Triangle(
             ShapeParams(p)
         )
-        m = right_triangle.join(x)
+        m = triangle.join(x)
         assert m.data.size() == torch.Size([2, 5, 4])
+
+    def test_order_presevered_after_updating(self):
+
+        torch.manual_seed(1)
+        p = torch.rand(5, 4, 3).cumsum(2)
+        x = torch.rand(2, 5)
+        triangle = _triangle.Triangle(
+            ShapeParams(p, True)
+        )
+        optim = torch.optim.Adam(triangle.parameters(), lr=1e0)
+        m = triangle.join(x)
+        t = torch.rand_like(m)
+        optim.zero_grad()
+        (m - t).pow(2).sum().backward()
+        optim.step()
+
+        p = triangle.params()
+        assert (triangle.params.x[:,:,:,:-1] >= triangle.params.x[:,:,:,1:]).any()
+        assert (p.x[:,:,:,:-1] < p.x[:,:,:,1:]).all()
 
     def test_scale_returns_shape_with_correct_size(self):
 
@@ -265,4 +283,3 @@ class TestIsocelesTriangle(object):
         )
         shape = right_trapezoid.truncate(m)
         assert isinstance(shape, _trapezoid.IsoscelesTrapezoid)
-

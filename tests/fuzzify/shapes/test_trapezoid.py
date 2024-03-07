@@ -128,6 +128,24 @@ class TestTrapezoid(object):
         shape = trapezoid.truncate(m)
         assert isinstance(shape, _trapezoid.Trapezoid)
 
+    def test_order_presevered_after_updating(self):
+
+        torch.manual_seed(1)
+        p = torch.rand(3, 4, 4).cumsum(2)
+        x = torch.rand(2, 3)
+        trapezoid = _trapezoid.Trapezoid(
+            ShapeParams(p, True)
+        )
+        optim = torch.optim.Adam(trapezoid.parameters(), lr=1e0)
+        m = trapezoid.join(x)
+        t = torch.rand_like(m)
+        optim.zero_grad()
+        (m - t).pow(2).sum().backward()
+        optim.step()
+
+        p = trapezoid.params()
+        assert (trapezoid.params.x[:,:,:,:-1] >= trapezoid.params.x[:,:,:,1:]).any()
+        assert (p.x[:,:,:,:-1] < p.x[:,:,:,1:]).all()
 
 class TestIsoscelesTrapezoid(object):
 

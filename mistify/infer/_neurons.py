@@ -37,8 +37,8 @@ class LogicalNeuron(nn.Module):
             in_features (int): The number of features into the neuron
             out_features (int): The number of features out of the neuron.
             n_terms (int, optional): The number of terms for the neuron. Defaults to None.
-            f (typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]], optional): _description_. Defaults to "min_max".
-            wf (typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]], optional): _description_. Defaults to "clamp".
+            f (typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]], optional): The function to use for the neuron. Defaults to "min_max".
+            wf (typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]], optional): The weight function to use for the neuron. Defaults to "clamp".
         """
         super().__init__()
         
@@ -111,8 +111,8 @@ class And(LogicalNeuron):
             in_features (int): The number of features into the neuron
             out_features (int): The number of features out of the neuron.
             n_terms (int, optional): The number of terms for the neuron. Defaults to None.
-            f (typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]], optional): _description_. Defaults to "min_max".
-            wf (typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]], optional): _description_. Defaults to "clamp".
+            f (typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]], optional): The function to use for the neuron. Defaults to "min_max".
+            wf (typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]], optional): The function to preprocess the weights with. Defaults to "clamp".
         """
         wf = WEIGHT_FACTORY.factory(wf)
         if sub1 and wf is not None:

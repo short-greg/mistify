@@ -26,9 +26,6 @@ class Shape(nn.Module):
         self._n_variables = n_variables
         self._n_terms = n_terms
         self._areas = None
-        for k, v in self.__dict__.items():
-            if isinstance(v, ShapeParams) and v.tunable:
-                self.register_parameter(k, v)
 
     def _init_m(self, m: torch.Tensor=None, device='cpu') -> torch.Tensor:
         """Set m to 1 if m is None
@@ -96,7 +93,6 @@ class Shape(nn.Module):
         """
         pass
     
-
     @abstractmethod
     def truncate(self, m: torch.Tensor) -> 'Shape':
         """Truncate the shape by a membership tensor
@@ -226,19 +222,22 @@ class Nonmonotonic(Shape):
         pass
 
 
-class ShapeParams(object):
+class ShapeParams(nn.Module):
     """A convenience class to wrap a tensor for specifying a Shape
     """
-    
-    # batch, set, index
-    # param: typing.Union[torch.Tensor, nn.parameter.Parameter]
 
-    def __init__(self, x: typing.Union[torch.Tensor, nn.parameter.Parameter]):
+    def __init__(self, x: torch.Tensor, tunable: bool=False, descending: typing.Union[None, bool]=False):
 
+        super().__init__()
         if x.dim() == 3:
             x = x[None]
         assert x.dim() == 4
-        self._x = x
+        if tunable:
+            self._x = nn.parameter.Parameter(x.detach())
+        else:
+            self._x = x
+        self._tunable = tunable
+        self._descending = descending
 
     @property
     def tunable(self) -> bool:
@@ -257,7 +256,7 @@ class ShapeParams(object):
             index = slice(index, index + 1)
         else:
             index = slice(*index)
-        return ShapeParams(self._x[:, :, :, index])
+        return ShapeParams(self._x[:, :, :, index], False, self._descending)
 
     @property
     def device(self) -> torch.device:
@@ -271,7 +270,7 @@ class ShapeParams(object):
             index (int): The point to retrieve
 
         Returns:
-            torch.Tensor: _description_
+            torch.Tensor: 
         """
         assert isinstance(index, int)
         return self._x[:,:,:,index]
@@ -326,7 +325,7 @@ class ShapeParams(object):
     def n_points(self) -> int:
         return self._x.size(3)
     
-    def sort(self, descending: bool=False) -> 'ShapeParams':
+    def sort(self) -> 'ShapeParams':
         """
 
         Args:
@@ -335,9 +334,11 @@ class ShapeParams(object):
         Returns:
             ShapeParams: 
         """
-        return ShapeParams(
-            self._x.sort(descending=descending)[0]
-        )
+        if self._descending is not None:
+            return ShapeParams(
+                self._x.sort(descending=self._descending)[0], tunable=False, descending=self._descending
+            )
+        return self
 
     def contains(self, x: torch.Tensor, index1: int, index2: int) -> torch.BoolTensor:
         return (x >= self.pt(index1)) & (x <= self.pt(index2))
@@ -363,7 +364,7 @@ class ShapeParams(object):
             raise ValueError(f'Argument idx must be in range of [0, {mine.size(3)}] not {idx}')
         
         return ShapeParams(
-            torch.concat([mine[:,:,:,:idx], x, mine[:,:,:,idx:]], dim=3)
+            torch.concat([mine[:,:,:,:idx], x, mine[:,:,:,idx:]], dim=3), False, self._descending
         )
 
     def replace(
@@ -389,7 +390,7 @@ class ShapeParams(object):
             raise ValueError(f'Argument idx must be in range of [0, {mine.size(3)}) not {idx}')
         
         return ShapeParams(
-            torch.concat([mine[:,:,:,:idx], x, mine[:,:,:,idx+1:]], dim=3)
+            torch.concat([mine[:,:,:,:idx], x, mine[:,:,:,idx+1:]], dim=3), False, self._descending
         )
 
     def replace_slice(
@@ -413,19 +414,25 @@ class ShapeParams(object):
         if equalize_to is not None:
             mine = resize_to(mine, equalize_to, 1)
         return ShapeParams(
-            torch.concat([mine[:,:,:,:pt_range[0]], x, mine[:,:,:,pt_range[1]+1:]], dim=3)
+            torch.concat([mine[:,:,:,:pt_range[0]], x, mine[:,:,:,pt_range[1]+1:]], dim=3), False, self._descending
         )
 
     @classmethod
-    def from_sub(cls, *sub: 'ShapeParams'):
+    def from_sub(cls, *sub: 'ShapeParams', tunable: bool=False, descending: bool=False):
         
         return ShapeParams(
-            torch.cat([sub_i._x for sub_i in sub], dim=3)
+            torch.cat([sub_i._x for sub_i in sub], dim=3), tunable, descending
         )
     
     @property
     def shape(self) -> torch.Size:
         return self.x.shape
+    
+    def forward(self) -> 'ShapeParams':
+        return self.sort()
+    
+    def __call__(self) -> 'ShapeParams':
+        return super().__call__()
 
 
 class Polygon(Nonmonotonic):
@@ -445,7 +452,11 @@ class Polygon(Nonmonotonic):
         """
         if params.x.size(3) != self.PT:
             raise ValueError(f'Number of points must be {self.PT} not {params.x.size(3)}')
-        self._params = params
+        
+        super().__init__(params.set_size, params.n_terms)
         self._m = self._init_m(m, params.device)
+        self._params = params
 
-        super().__init__(self._params.set_size, self._params.n_terms)
+    @property
+    def params(self) -> ShapeParams:
+        return self._params

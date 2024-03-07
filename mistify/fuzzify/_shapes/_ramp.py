@@ -24,14 +24,13 @@ class Ramp(Monotonic):
             m (torch.Tensor, optional): The membership value for the ramp. Defaults to None.
             scale_m (torch.Tensor, optional): The degree the ramp is scaled by. Defaults to None.
         """
-        self._coords = coords
-        self._m = self._init_m(m, coords.device)
-        # self._scale_m = self._init_m(scale_m, coords.device)
 
         super().__init__(
-            self._coords.n_variables,
-            self._coords.n_terms
+            coords.n_variables,
+            coords.n_terms
         )
+        self._coords = coords
+        self._m = self._init_m(m, coords.device)
 
     @property
     def coords(self) -> 'ShapeParams':
