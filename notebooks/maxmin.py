@@ -38,13 +38,16 @@ class MaxMinLoss(nn.Module):
         shape[0] = x.shape[0]
         inner = torch.min(x, w)
         
-        less_than_x = ((t < x) & (x < w)).type_as(w)
+        less_than_x = ((t < x.detach()) & (x.detach() < w)).type_as(w)
         less_than_x_loss = (less_than_x * (w - t)).pow(2).mean()
+
+        less_than_theta = ((t > w.detach()) & (w.detach() > x)).type_as(w)
+        less_than_theta_loss = (less_than_theta * (x - t)).pow(2).mean()
+
         greater_than = (torch.relu(inner - t)).pow(2).mean()
         less_than = torch.relu(t - y).pow(2).mean()
-        loss = less_than + greater_than + less_than_x_loss
+        loss = less_than + greater_than + less_than_x_loss + less_than_theta_loss
         return loss
-
 
     
 class MaxMinPredictorLoss(nn.Module):
@@ -120,49 +123,6 @@ class MaxMinSortedPredictorLoss(nn.Module):
         return (sorted_w_vals - target_w_vals).pow(2).mean()
 
 
-class MaxMinSortedPredictorLoss2(nn.Module):
-
-    def __init__(self, maxmin: MaxMin, base_maxmin: MaxMin):
-
-        super().__init__()
-        self.maxmin = maxmin
-        self.w_local = maxmin.w.clone().detach()
-        self.base_maxmin = base_maxmin
-    
-    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
-
-        x = x.unsqueeze(-1)
-        y = y.unsqueeze(-2)
-        t = t.unsqueeze(-2)
-        w = self.maxmin.w.unsqueeze(0)
-        shape = list(w.shape)
-        shape[0] = x.shape[0]
-        positives = torch.min(x, t)
-        negatives = torch.relu(x - t)
-        score = positives.sum(dim=0, keepdim=True) / x.sum(dim=0, keepdim=True)
-
-        score[score.isnan()] = 1.0
-
-        inner2 = torch.min(x, score)
-        chosen_val = torch.max(inner2, dim=-2, keepdim=True)[0]
-
-        maximum = (inner2 == chosen_val).type_as(positives) * inner2
-        cur_w = maximum.sum(dim=0, keepdim=True) / (
-            maximum.sum(dim=0, keepdim=True) + negatives.sum(dim=0, keepdim=True)
-        )
-
-        _, sorted_score_indices = cur_w.sort(-2, True)
-
-        base_w2 = self.base_maxmin.w[None].gather(-2, sorted_score_indices)
-        y_base = torch.max(torch.min(base_w2, x), dim=-2, keepdim=True)[0]
-        print((y_base - t).pow(2).mean().item())
-
-        sorted_w_vals, _ = w.sort(-2, True)
-        target_w_vals = w.gather(-2, sorted_score_indices).detach()
-
-        return (sorted_w_vals - target_w_vals).pow(2).mean()
-
-
 # %%
 
 
@@ -176,7 +136,7 @@ T = maxmin_t(X).detach()
 maxmin = MaxMin(10, 20)
 
 maxmin_loss = MaxMinLoss(maxmin)
-predictor_loss = MaxMinSortedPredictorLoss2(maxmin, maxmin_t)
+predictor_loss = MaxMinSortedPredictorLoss(maxmin, maxmin_t)
 
 # %%
 
@@ -214,6 +174,51 @@ for i in range(1):
 
 
 # %%
+
+
+
+# class MaxMinSortedPredictorLoss2(nn.Module):
+
+#     def __init__(self, maxmin: MaxMin, base_maxmin: MaxMin):
+
+#         super().__init__()
+#         self.maxmin = maxmin
+#         self.w_local = maxmin.w.clone().detach()
+#         self.base_maxmin = base_maxmin
+    
+#     def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+
+#         x = x.unsqueeze(-1)
+#         y = y.unsqueeze(-2)
+#         t = t.unsqueeze(-2)
+#         w = self.maxmin.w.unsqueeze(0)
+#         shape = list(w.shape)
+#         shape[0] = x.shape[0]
+#         positives = torch.min(x, t)
+#         negatives = torch.relu(x - t)
+#         score = positives.sum(dim=0, keepdim=True) / x.sum(dim=0, keepdim=True)
+
+#         score[score.isnan()] = 1.0
+
+#         inner2 = torch.min(x, score)
+#         chosen_val = torch.max(inner2, dim=-2, keepdim=True)[0]
+
+#         maximum = (inner2 == chosen_val).type_as(positives) * inner2
+#         cur_w = maximum.sum(dim=0, keepdim=True) / (
+#             maximum.sum(dim=0, keepdim=True) + negatives.sum(dim=0, keepdim=True)
+#         )
+
+#         _, sorted_score_indices = cur_w.sort(-2, True)
+
+#         base_w2 = self.base_maxmin.w[None].gather(-2, sorted_score_indices)
+#         y_base = torch.max(torch.min(base_w2, x), dim=-2, keepdim=True)[0]
+#         print((y_base - t).pow(2).mean().item())
+
+#         sorted_w_vals, _ = w.sort(-2, True)
+#         target_w_vals = w.gather(-2, sorted_score_indices).detach()
+
+#         return (sorted_w_vals - target_w_vals).pow(2).mean()
+
 
 
 
