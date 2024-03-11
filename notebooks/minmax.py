@@ -69,22 +69,46 @@ class MinMaxPredictorLoss(nn.Module):
         w = self.minmax.w.unsqueeze(0)
         shape = list(w.shape)
         shape[0] = x.shape[0]
-        inner = torch.min(x, w)
+        x_comp = 1 - x
+        inner = torch.min(x_comp, 1 - w)
         negatives = torch.relu(x - t)
         positives = torch.min(x, t)
-        temp_w = negatives.sum(
+
+        # find out which of the xs
+        # correspond to 
+        score = (1 - positives.sum(
             dim=0, keepdim=True
-        ) / x.sum(dim=0, keepdim=True)
+        ) / x_comp.sum(dim=0, keepdim=True))
 
-        temp_w[temp_w.isnan()] = 0.0
+        score[score.isnan()] = 0.0
 
-        inner2 = torch.max(x, temp_w)
+        inner2 = torch.max(x, score)
         chosen_val = torch.min(inner2, dim=-2, keepdim=True)[0]
 
         minimum = (inner2 == chosen_val).type_as(positives) * inner2
         cur_w = minimum.sum(dim=0, keepdim=True) / (
             minimum.sum(dim=0, keepdim=True) + positives.sum(dim=0, keepdim=True)
         )
+
+        # # Looks like this
+        # # 
+        # output = 0.0... Need to find out the cases
+        # x = 0.0, t=0.0
+        # x = 1.0, 
+        #  # 
+        # # # check which ones are in bounds and out of bounds
+        # # # average based on the the targets that are "out of bounds"
+        # # # continue this
+        # (1 - x) and (1 - t) / sum(1 - x)
+        #
+        # sum(1 - t) / sum((1 - x) or (1 - t) ) 
+        # t is 0 / (t is 0 or x is 0)
+
+
+        # # Negative prediction
+        #  sum(t) / union(x, t) <- don't do this
+        # x = 1.0 t = 0.0
+        # x = 1.0 t = 1.0
 
         # Best to compare by val.. This will be faster though
         inner_validx = torch.min(torch.max(x, cur_w), dim=-2, keepdim=True)
@@ -128,7 +152,7 @@ class MinMaxSortedPredictorLoss(nn.Module):
 
 
 
-# %%
+## %%
 
 
 # %%
