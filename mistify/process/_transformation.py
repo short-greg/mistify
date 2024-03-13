@@ -661,11 +661,9 @@ class PieceRange(nn.Module):
         lower = pieces[:,:,:-1]
         upper = pieces[:,:,1:]
         if self._n_features is None:
-            print('REPEATING')
             lower = lower.repeat(ind.shape[0], ind.shape[1], 1)
             upper = upper.repeat(ind.shape[0], ind.shape[1], 1)
         else:
-            print('REPEATING 2')
             lower = lower.repeat(ind.shape[0], 1, 1)
             upper = upper.repeat(ind.shape[0], 1, 1)
 

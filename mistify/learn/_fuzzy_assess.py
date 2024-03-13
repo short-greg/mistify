@@ -115,7 +115,7 @@ class MaxMinLoss(FuzzyLoss):
 
     def forward_w(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         
-        w = self.module.weight[None]
+        w = self.module.weight_base[None]
         x = x.unsqueeze(-1)
         t = t.unsqueeze(-2)
         y = y.unsqueeze(-2)
@@ -132,7 +132,7 @@ class MaxMinLoss(FuzzyLoss):
 
     def forward_x(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         
-        w = self.module.weight[None]
+        w = self.module.weight_base[None]
         x = x.unsqueeze(-1)
         t = t.unsqueeze(-2)
         y = y.unsqueeze(-2)
@@ -190,7 +190,7 @@ class MaxMinLoss3(FuzzyLoss):
         x = x.unsqueeze(x.dim())
         y = y.unsqueeze(x.dim() - 2)
         t = t.unsqueeze(x.dim() - 2)
-        w = self._maxmin.weight[None]
+        w = self._maxmin.weight_base[None]
         inner_values = self.calc_inner_values(x, w)
         chosen = self.set_chosen(inner_values)
         with torch.no_grad():
@@ -273,7 +273,7 @@ class NeuronMSELoss(FuzzyLoss):
         x = x.unsqueeze(x.dim())
         y = y.unsqueeze(x.dim() - 2)
         t = t.unsqueeze(x.dim() - 2)
-        w = self._neuron.weight[None]
+        w = self._neuron.weight_base[None]
         base_loss = self._loss(y, t, reduction_override)
 
         dy = torch.abs(y - t)
@@ -357,7 +357,7 @@ class MinMaxLoss3(FuzzyLoss):
         x = x.unsqueeze(x.dim())
         y = y.unsqueeze(x.dim() - 2)
         t = t.unsqueeze(x.dim() - 2)
-        w = self._minmax.weight[None]
+        w = self._minmax.weight_base[None]
         inner_values = self.calc_inner_values(x, w)
         chosen = self.set_chosen(inner_values)
         with torch.no_grad():
@@ -433,7 +433,7 @@ class MaxMinLoss2(FuzzyLoss):
         x = x.unsqueeze(x.dim())
         y = y.unsqueeze(x.dim() - 2)
         t = t.unsqueeze(x.dim() - 2)
-        w = self._maxmin.weight[None]
+        w = self._maxmin.weight_base[None]
         inner_values = self.calc_inner_values(x, w)
         chosen = self.set_chosen(inner_values)
         with torch.no_grad():
@@ -544,7 +544,7 @@ class MinMaxLoss2(FuzzyLoss):
         x = x.unsqueeze(x.dim())
         y = y.unsqueeze(x.dim() - 2)
         t = t.unsqueeze(x.dim() - 2)
-        w = self._minmax.weight[None]
+        w = self._minmax.weight_base[None]
         inner_values = self.calc_inner_values(x, w)
         chosen = self.set_chosen(inner_values)
         with torch.no_grad():
@@ -623,7 +623,7 @@ class MaxProdLoss(FuzzyLoss):
     
     def clamp(self):
 
-        self._maxprod.weight.data = torch.clamp(self._maxprod.weight.data, 0, 1).detach()
+        self._maxprod.weight_base.data = torch.clamp(self._maxprod.weight_base.data, 0, 1).detach()
     
     def forward(self, x: IO, y: IO, t: IO, reduction_override: float=None) -> torch.Tensor:
         
@@ -633,7 +633,7 @@ class MaxProdLoss(FuzzyLoss):
         x = x.unsqueeze(x.dim())
         y = y.unsqueeze(x.dim() - 2)
         t = t.unsqueeze(x.dim() - 2)
-        w = self._maxprod.weight[None]
+        w = self._maxprod.weight_base[None]
 
         if not self._default_optim.theta():
             w = w.detach()
@@ -776,7 +776,7 @@ class MinMaxLoss(FuzzyLoss):
         x = x.unsqueeze(x.dim())
         y = y.unsqueeze(x.dim() - 2)
         t = t.unsqueeze(x.dim() - 2)
-        w = self._minmax.weight[None]
+        w = self._minmax.weight_base[None]
         inner_values = self.calc_inner_values(x, w)
         chosen = self.set_chosen(inner_values)
         with torch.no_grad():

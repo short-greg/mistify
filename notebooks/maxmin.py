@@ -1,126 +1,18 @@
 # %%
+
+import initialize
 import torch.nn as nn
 import torch
 import zenkai
+from mistify.learn._infer import (
+    MaxMin, MaxMinLoss, MaxMinSortedPredictorLoss, MaxMinPredictorLoss,
+    MinMaxLoss, MinMax, MinMaxPredictorLoss, MinMaxSortedPredictorLoss
+)
+from torch.utils import data as torch_data
+from zenkai import ThLoss, IO
 
 
 # %%
-
-class MaxMin(nn.Module):
-
-    def __init__(self, in_features: int, out_features: int):
-        super().__init__()
-        self.w = nn.parameter.Parameter(
-            torch.rand(in_features, out_features)
-        )
-    
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-
-        return torch.max(torch.min(x.unsqueeze(-1), self.w[None]), dim=-2)[0]
-
-# %%
-
-
-class MaxMinLoss(nn.Module):
-
-    def __init__(self, maxmin: MaxMin):
-
-        super().__init__()
-        self.maxmin = maxmin
-    
-    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
-
-        x = x.unsqueeze(-1)
-        y = y.unsqueeze(-2)
-        t = t.unsqueeze(-2)
-        w = self.maxmin.w.unsqueeze(0)
-        shape = list(w.shape)
-        shape[0] = x.shape[0]
-        inner = torch.min(x, w)
-        
-        less_than_x = ((t < x.detach()) & (x.detach() < w)).type_as(w)
-        less_than_x_loss = (less_than_x * (w - t)).pow(2).mean()
-
-        less_than_theta = ((t > w.detach()) & (w.detach() > x)).type_as(w)
-        less_than_theta_loss = (less_than_theta * (x - t)).pow(2).mean()
-
-        greater_than = (torch.relu(inner - t)).pow(2).mean()
-        less_than = torch.relu(t - y).pow(2).mean()
-        loss = less_than + greater_than + less_than_x_loss + less_than_theta_loss
-        return loss
-
-    
-class MaxMinPredictorLoss(nn.Module):
-
-    def __init__(self, maxmin: MaxMin, base_maxmin: MaxMin):
-
-        super().__init__()
-        self.maxmin = maxmin
-        self.w_local = maxmin.w.clone().detach()
-        self.base_maxmin = base_maxmin
-    
-    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
-
-        x = x.unsqueeze(-1)
-        y = y.unsqueeze(-2)
-        t = t.unsqueeze(-2)
-        w = self.maxmin.w.unsqueeze(0)
-        shape = list(w.shape)
-        shape[0] = x.shape[0]
-        inner = torch.min(x, w)
-        negatives = torch.relu(x - t)
-        positives = torch.min(x, t)
-        temp_w = positives.sum(dim=0, keepdim=True) / x.sum(dim=0, keepdim=True)
-
-        temp_w[temp_w.isnan()] = 1.0
-
-        inner2 = torch.min(x, temp_w)
-        chosen_val = torch.max(inner2, dim=-2, keepdim=True)[0]
-
-        maximum = (inner2 == chosen_val).type_as(positives) * inner2
-        cur_w = maximum.sum(dim=0, keepdim=True) / (
-            maximum.sum(dim=0, keepdim=True) + negatives.sum(dim=0, keepdim=True)
-        )
-
-        # Best to compare by val.. This will be faster though
-        inner_validx = torch.max(torch.min(x, cur_w), dim=-2, keepdim=True)
-
-        local_y = inner.gather(-2, inner_validx[1])
-        return (local_y - t).pow(2).mean()
-
-
-class MaxMinSortedPredictorLoss(nn.Module):
-
-    def __init__(self, maxmin: MaxMin, base_maxmin: MaxMin):
-
-        super().__init__()
-        self.maxmin = maxmin
-        self.w_local = maxmin.w.clone().detach()
-        self.base_maxmin = base_maxmin
-    
-    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
-
-        x = x.unsqueeze(-1)
-        y = y.unsqueeze(-2)
-        t = t.unsqueeze(-2)
-        w = self.maxmin.w.unsqueeze(0)
-        shape = list(w.shape)
-        shape[0] = x.shape[0]
-        positives = torch.min(x, t)
-        score = positives.sum(dim=0, keepdim=True) / x.sum(dim=0, keepdim=True)
-
-        score[score.isnan()] = 1.0
-
-        _, sorted_score_indices = score.sort(-2, True)
-
-        base_w2 = self.base_maxmin.w[None].gather(-2, sorted_score_indices)
-        y_base = torch.max(torch.min(base_w2, x), dim=-2, keepdim=True)[0]
-        print((y_base - t).pow(2).mean())
-
-        sorted_w_vals, _ = w.sort(-2, True)
-        target_w_vals = w.gather(-2, sorted_score_indices).detach()
-
-        return (sorted_w_vals - target_w_vals).pow(2).mean()
 
 
 # %%
@@ -151,7 +43,7 @@ for i in range(1):
 
         optim.zero_grad()
         y_i = maxmin(x_i)
-        loss = maxmin_loss(x_i, y_i, t_i) + 0.01 * predictor_loss(x_i, y_i, t_i)
+        loss = maxmin_loss(x_i, y_i, t_i) + 0.001 * predictor_loss(x_i, y_i, t_i)
         loss.backward()
         optim.step()
         mse = (y_i - t_i).pow(2).mean()
@@ -170,7 +62,100 @@ for i in range(1):
 
 # loss = maxmin_loss(x, y, t)
 # print(loss)
+
+# %%
+
+class MaxMinLearner(zenkai.kikai.CriterionNNAdapt):
+
+    def __init__(self, in_features: int, out_features: int):
         
+        maxmin = MaxMin(in_features, out_features)
+        super().__init__(
+            maxmin
+        )
+        self.maxmin_loss = MaxMinLoss(maxmin, 'sum')
+        self.predictor_loss = MaxMinSortedPredictorLoss(maxmin, 'sum')
+        self.to_use_predictor = True
+
+    
+    def assess(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor, reduction_override: str = None) -> torch.Tensor:
+
+        loss1 = self.maxmin_loss(IO(x), IO(y), IO(t), reduction_override)
+        if self.to_use_predictor:
+            loss1 = loss1 + 0.001 * self.predictor_loss(IO(x), IO(y), IO(t), reduction_override)
+        return 0.5 * loss1
+
+
+class MinMaxLearner(zenkai.kikai.CriterionNNAdapt):
+
+    def __init__(self, in_features: int, out_features: int):
+        
+        minmax = MinMax(in_features, out_features)
+        super().__init__(
+            minmax
+        )
+        self.minmax_loss = MinMaxLoss(minmax, 'sum')
+        self.predictor_loss = MinMaxSortedPredictorLoss(minmax, 'sum')
+        self.to_use_predictor = True
+    
+    def assess(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor, reduction_override: str = None) -> torch.Tensor:
+
+        # loss1 = 0.5 * (y - t).pow(2).sum()
+        loss1 = self.minmax_loss(IO(x), IO(y), IO(t), reduction_override)
+        if self.to_use_predictor:
+            # pass
+            loss1 = loss1 + 0.001 * self.predictor_loss(IO(x), IO(y), IO(t), reduction_override)
+        return 0.5 * loss1
+
+
+class FuzzyNet(nn.Module):
+
+    def __init__(self, in_features: int, mid_features: int, out_features: int):
+
+        super().__init__()
+        # maxmin1 = MaxMin(in_features, mid_features)
+        # maxmin2 = MaxMin(mid_features, out_features)
+        # self.layer1 = zenkai.kikai.CriterionNNAdapt(
+        #     maxmin1, ThLoss('MSELoss', reduction='sum') # MaxMinLoss(maxmin1, reduction='sum')
+        # )
+        # self.layer2 = zenkai.kikai.CriterionNNAdapt(
+        #     maxmin2, ThLoss('MSELoss', reduction='sum') # MaxMinLoss(maxmin2, reduction='sum')
+        # )
+        self.layer1 = MinMaxLearner(in_features, mid_features)
+        self.layer2 = MinMaxLearner(mid_features, out_features)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+
+        y = self.layer1(x)
+        return self.layer2(y)
+
+
+x = torch.randn(20000, 8)
+base = FuzzyNet(8, 16, 4)
+t = base(x).detach()
+trainable = FuzzyNet(8, 16, 4)
+
+optim = torch.optim.Adam(trainable.parameters(), lr=1e-3)
+
+dataset = torch_data.TensorDataset(x, t)
+
+for i in range(50):
+    for x_i, t_i in torch_data.DataLoader(dataset, batch_size=128, shuffle=True):
+
+        y_i = trainable(x_i)
+        optim.zero_grad()
+        loss = (y_i - t_i).pow(2).mean()
+        loss.backward()
+        
+        print(i, loss.item())
+        optim.step()
+
+        zenkai.utils.apply_to_parameters(
+            trainable.parameters(), lambda x: torch.clamp(x, 0, 1)
+        )
+    if i == 25:
+        trainable.layer1.to_use_predictor = False
+        # trainable.layer2.to_use_predictor = False
 
 
 # %%
