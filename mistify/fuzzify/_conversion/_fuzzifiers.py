@@ -4,6 +4,7 @@ from torch import Tensor
 import torch.nn as nn
 from torch import clamp
 import torch.nn.functional
+import typing
 
 from ._conclude import HypoM
 
@@ -80,14 +81,15 @@ class GaussianFuzzifier(Fuzzifier):
         
         width = width if width is not None else 1.0 / (2 * (n_terms + 1))
 
-        self._z = None
+        self._loc = torch.nn.parameter.Parameter(
+            generate_spaced_params(n_terms + 2, in_features=in_features)[:,:,1:-1]
+        )
+        self._scale = torch.nn.parameter.Parameter(
+            torch.exp(generate_repeat_params(n_terms, width, in_features=in_features)) - 1
+        )
 
-        self._loc = generate_spaced_params(n_terms + 2, in_features=in_features)[:,:,1:-1]
-        self._scale = torch.log(
-                torch.exp(generate_repeat_params(n_terms, width, in_features=in_features)) - 1)
-        if tunable:
-            self._loc = torch.nn.parameter.Parameter(self._loc)
-            self._scale = torch.nn.parameter.Parameter(self._scale)
+        self.tunable(tunable)
+        self._fit_loss = nn.MSELoss()
 
     def forward(self, x: Tensor) -> Tensor:
 
@@ -138,42 +140,25 @@ class GaussianFuzzifier(Fuzzifier):
         else:
             cos_value = torch.tensor(0.0)  # Fallback in case of zero division
         return cos_value
+    
+    def tunable(self, tunable: bool=True):
 
-    def partial_fit(self, x: torch.Tensor, t: torch.Tensor=None, accumulate: bool=True):
+        for p in self.parameters():
+            p.requires_grad_(tunable)
+
+    def resp_loss(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         
-        # TODO: Test this code
-        # Train it as a GMM
-        # Can set targets here
-
-        if t is None:
-            t = self(x)
-        else:
-            t = t.clamp(0, 1)
-        if self._z is None:
-            self._z = 1 / self._n_terms
-        t = self._z * t
+        # assume that each of the components has some degree of
+        # responsibility
+        t = t.clamp(min=0.0) + torch.rand_like(t) * 1e-6
         r = t / t.sum(dim=-1, keepdim=True)
         Nk = r.sum(dim=0, keepdim=True)
+        target_loc = (r * x[:,:,None]).sum(dim=0, keepdim=True) / Nk
 
-        new_loc = (t * x[:,:,None]).sum(dim=0, keepdim=True) / Nk
-        new_scale = (t * (self.x[:,:,None] - self._loc) ** 2).sum(dim=0, keepdim=True) / Nk
+        target_scale = (r * (x[:,:,None] - target_loc) ** 2).sum(dim=0, keepdim=True) / Nk
+
         cur_scale = torch.nn.functional.softplus(self._scale)
-
-        target_scale = torch.exp(0.98 * cur_scale + 0.02 * new_scale -1)
-        target_loc = 0.98 * self._loc + 0.02 * new_loc
-        self._z = 0.98 * self._z + 0.02 * Nk / Nk.sum(dim=-1, keepdim=True)
         
-        # update using an "optimizer" or simply update
-        # probably add a utility for this
-        if accumulate:
-            dscale = self._scale - target_scale
-            dloc = self._loc - target_loc
-            if self._scale.grad is None:
-                self._scale.grad = dscale
-                self._loc.grad = dloc
-            else:
-                self._scale.grad.data = self._scale.grad.data + dscale
-                self._loc.grad.data = self._loc.grad.data + dscale
-        else:
-            self._scale.data = target_scale
-            self._loc.data = target_loc
+        scale_loss = self._fit_loss(cur_scale, target_scale.detach())
+        loc_loss = self._fit_loss(self._loc, target_loc.detach())
+        return scale_loss + loc_loss
