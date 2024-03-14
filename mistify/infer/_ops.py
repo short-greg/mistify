@@ -20,7 +20,7 @@ class JunctionOn(nn.Module):
 
     F = EnumFactory()
 
-    def __init__(self, f: str='min', dim: int=-1, keepdim: bool=False):
+    def __init__(self, f: typing.Union[typing.Callable, str]='min', dim: int=-1, keepdim: bool=False):
         """Join sets that comprise a fuzzy set on a specified dimension
 
         Args:
@@ -47,7 +47,9 @@ class IntersectionOn(JunctionOn):
     F = EnumFactory(
         min=functional.min_on,
         min_ada=functional.smooth_min_on,
-        prod=functional.prod_on
+        prod=functional.prod_on,
+        bounded_min=functional.bounded_min_on,
+        prob_prod=functional.prod_on
     )
 
 
@@ -56,10 +58,11 @@ class UnionOn(JunctionOn):
     """
     F = EnumFactory(
         max = functional.max_on,
-        max_ada = functional.smooth_max_on
+        max_ada = functional.smooth_max_on,
+        bounded_max=functional.bounded_max_on
     )
 
-    def __init__(self, f: str='max', dim: int=-1, keepdim: bool=False):
+    def __init__(self, f: typing.Union[typing.Callable, str]='max', dim: int=-1, keepdim: bool=False):
         """Union sets that comprise a fuzzy set on a specified dimension
 
         Args:
