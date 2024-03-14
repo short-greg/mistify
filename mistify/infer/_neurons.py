@@ -46,7 +46,7 @@ class LogicalNeuron(nn.Module):
             shape = (n_terms, in_features, out_features)
         else:
             shape = (in_features,  out_features)
-        self.weight = nn.parameter.Parameter(torch.ones(*shape))
+        self.weight_base = nn.parameter.Parameter(torch.ones(*shape))
         self._f = self.F.factory(f)
         self._wf = WEIGHT_FACTORY.factory(wf)
         self._n_terms = n_terms
@@ -54,11 +54,14 @@ class LogicalNeuron(nn.Module):
         self._out_features = out_features
         self.init_weight()
 
+    def w(self) -> torch.Tensor:
+        return self._wf(self.weight_base)
+
     def init_weight(self, f: typing.Callable[[torch.Tensor], torch.Tensor]=None):
 
         if f is None:
             f = torch.rand_like
-        self.weight.data = f(self.weight.data)
+        self.weight_base.data = f(self.weight_base.data)
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         """
@@ -69,12 +72,12 @@ class LogicalNeuron(nn.Module):
         Returns:
             torch.Tensor: 
         """
-        greater = (self.weight > 1.0).float().sum()
-        lesser = (self.weight < 0.0).float().sum()
+        w = self.w()
+        greater = (w > 1.0).float().sum()
+        lesser = (w < 0.0).float().sum()
         if greater > 0 or lesser > 0:
             print(f'Neuron: Outside bounds counts {greater} {lesser}')
-        weight = self._wf(self.weight)
-        return self._f(m, weight)
+        return self._f(m, w)
 
 
 class Or(LogicalNeuron):
@@ -101,7 +104,7 @@ class And(LogicalNeuron):
 
     def __init__(self, in_features: int, out_features: int, n_terms: int=None, 
         f: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="min_max",
-        wf: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]="clamp",
+        wf: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]=None,
         sub1: bool=True
 
     ) -> None:
