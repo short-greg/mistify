@@ -32,7 +32,7 @@ class JunctionOn(nn.Module):
             ValueError: If the junction function is invalid
         """
         super().__init__()
-        self._f = self.F.factory(f)
+        self._f = self.F.f(f)
         self.dim = dim
         self.keepdim = keepdim
 
@@ -95,7 +95,7 @@ class Else(nn.Module):
         super().__init__()
         self.dim = dim
         self.keepdim = keepdim
-        self._f = self.F.factory(f)
+        self._f = self.F.f(f)
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         """Calculate the else for the fuzzy set
@@ -144,7 +144,7 @@ class Complement(nn.Module):
             f (typing.Callable, optional): The complement function. Defaults to 'boolean'.
         """
         super().__init__()
-        self._f = self.F.factory(f)
+        self._f = self.F.f(f)
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         """Calculate the complement for the set

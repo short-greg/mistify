@@ -2,5 +2,6 @@ from ._utils import (
     check_contains, 
     resize_to, 
     unsqueeze,
-    EnumFactory
+    EnumFactory,
+    reduce_as
 )

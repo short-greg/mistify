@@ -61,8 +61,17 @@ def unsqueeze(x: torch.Tensor) -> torch.Tensor:
 
 class EnumFactory(dict):
 
-    def factory(self, f: typing.Union[str, typing.Callable]) -> typing.Callable[[typing.Any], torch.Tensor]:
+    def f(self, f: typing.Union[str, typing.Callable]) -> typing.Callable[[typing.Any], torch.Tensor]:
     
         if isinstance(f, typing.Callable):
             return f
         return self[f]
+
+
+def reduce_as(x: torch.Tensor, target: torch.Tensor):
+
+    for i, (sz1, sz2) in enumerate(zip(x.size(), target.size())):
+        if sz1 != 1 and sz2 == 1:
+            x = x.sum(dim=i, keepdim=True)
+    return x
+

@@ -47,8 +47,8 @@ class LogicalNeuron(nn.Module):
         else:
             shape = (in_features,  out_features)
         self.weight_base = nn.parameter.Parameter(torch.ones(*shape))
-        self._f = self.F.factory(f)
-        self._wf = WEIGHT_FACTORY.factory(wf)
+        self._f = self.F.f(f)
+        self._wf = WEIGHT_FACTORY.f(wf)
         self._n_terms = n_terms
         self._in_features = in_features
         self._out_features = out_features
@@ -117,7 +117,7 @@ class And(LogicalNeuron):
             f (typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]], optional): The function to use for the neuron. Defaults to "min_max".
             wf (typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]], optional): The function to preprocess the weights with. Defaults to "clamp".
         """
-        wf = WEIGHT_FACTORY.factory(wf)
+        wf = WEIGHT_FACTORY.f(wf)
         if sub1 and wf is not None:
             wf_ = lambda w: wf(1 - w)
         elif sub1:

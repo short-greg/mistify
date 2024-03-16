@@ -1,6 +1,8 @@
+# 1st party
 import typing
+
+# 3rd party
 import torch
-from abc import ABC, abstractmethod
 
 
 def maxmin(x: torch.Tensor, w: torch.Tensor, dim=-2) -> torch.Tensor:
@@ -261,7 +263,7 @@ def prod_on(x: torch.Tensor, dim: int=-1, keepdim: bool=False) -> torch.Tensor:
     return torch.prod(x, dim=dim, keepdim=keepdim)
 
 
-def prod(m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+def prod(x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
     """Take the prod of two tensors 
 
     Args:
@@ -270,10 +272,10 @@ def prod(m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
     Returns:
         torch.Tensor: The prod
     """
-    return m1 * m2
+    return x1 * x2
 
 
-def prob_sum(m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+def prob_sum(x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
     """Take the prob sum on a given dimension
 
     Args:
@@ -282,23 +284,23 @@ def prob_sum(m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
     Returns:
         torch.Tensor: The prob sum
     """
-    return m1 + m2 - m1 * m2
+    return x1 + x2 - x1 * x2
 
 
-def bounded_max(m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+def bounded_max(x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
     """Sum up two tensors and output with a max of 1
 
     Args:
-        m1 (torch.Tensor): Tensor 1 to take the bounded max of
-        m2 (torch.Tensor): Tensor 2 to take the bounded max of
+        x1 (torch.Tensor): Tensor 1 to take the bounded max of
+        x2 (torch.Tensor): Tensor 2 to take the bounded max of
 
     Returns:
         torch.Tensor: The bounded max
     """
-    return torch.min(m1 + m2, torch.tensor(1.0, dtype=m1.dtype, device=m1.device))
+    return torch.min(x1 + x2, torch.tensor(1.0, dtype=x1.dtype, device=x1.device))
 
 
-def bounded_min(m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+def bounded_min(x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
     """Sum up two tensors and subtract number of tensors with a min of 0
 
     Args:
@@ -308,7 +310,7 @@ def bounded_min(m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
     Returns:
         torch.Tensor: The bounded min
     """
-    return torch.max(m1 + m2 - 1, torch.tensor(0.0, dtype=m1.dtype, device=m1.device))
+    return torch.max(x1 + x2 - 1, torch.tensor(0.0, dtype=x1.dtype, device=x1.device))
 
 
 def bounded_max_on(m: torch.Tensor, dim=-1, keepdim: bool=False) -> torch.Tensor:
@@ -328,7 +330,7 @@ def bounded_max_on(m: torch.Tensor, dim=-1, keepdim: bool=False) -> torch.Tensor
     )
 
 
-def bounded_min_on(m: torch.Tensor, dim=-1, keepdim: bool=False) -> torch.Tensor:
+def bounded_min_on(x: torch.Tensor, dim=-1, keepdim: bool=False) -> torch.Tensor:
     """Take the bounded min on a given dimension
 
     Args:
@@ -340,9 +342,9 @@ def bounded_min_on(m: torch.Tensor, dim=-1, keepdim: bool=False) -> torch.Tensor
         torch.Tensor: The bounded min
     """
     return torch.max(
-        m.sum(dim=dim, keepdim=keepdim) 
-        - m.size(dim) + 1, 
-        torch.tensor(0.0, device=m.device, dtype=m.dtype)
+        x.sum(dim=dim, keepdim=keepdim) 
+        - x.size(dim) + 1, 
+        torch.tensor(0.0, device=x.device, dtype=x.dtype)
     )
 
 
@@ -370,54 +372,44 @@ def to_binary(signed: torch.Tensor) -> torch.Tensor:
     return (signed + 1) / 2
 
 
-ON_F = typing.Callable[[torch.Tensor, int, bool], torch.Tensor]
-BETWEEN_F = typing.Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
+TENSOR_FLOAT = typing.Union[torch.Tensor, float]
+
+# TODO: Test these functions
 
 
-class LogicalF(ABC):
-    """A function for executing 
-    """
+def triangle(x: torch.Tensor, left: TENSOR_FLOAT, mid: TENSOR_FLOAT, right: TENSOR_FLOAT, height: TENSOR_FLOAT=1.) -> torch.Tensor:
 
-    @abstractmethod
-    def __call__(self, x: torch.Tensor, w: torch.Tensor, dim=-2) -> torch.Tensor:
-        pass
-
-
-class AndF(LogicalF):
-
-    def __init__(self, union_between: BETWEEN_F, inter_on: ON_F):
-        """Create a Functor for performing an And operation between
-        a tensor and a weight
-
-        Args:
-            union_between (BETWEEN_F): The inner operation
-            inter_on (ON_F): The aggregate operation
-        """
-        self.union_between = union_between
-        self.inter_on = inter_on
-
-    def __call__(self, x: torch.Tensor, w: torch.Tensor, dim=-2) -> torch.Tensor:
-
-        return self.inter_on(
-            self.union_between(x.unsqueeze(-1), w[None]), dim=dim
-        )
+    left_val = height / (mid - left) * (x - left)
+    right_val = -height / (right - mid) * (x - mid) + height
+    
+    right_side = x >= mid
+    left_val[right_side] = right_val[right_side]
+    return left_val
 
 
-class OrF(LogicalF):
+ramp = torch.clamp
 
-    def __init__(self, inter_between: BETWEEN_F, union_on: ON_F):
-        """Create a Functor for performing an Or operation between
-        a tensor and a weight
 
-        Args:
-            inter_between (BETWEEN_F): The inner operation
-            union_on (ON_F): The aggregate operation
-        """
-        self.union_on = union_on
-        self.inter_between = inter_between
+def isosceles(x: torch.Tensor, left: TENSOR_FLOAT, mid: TENSOR_FLOAT, height: TENSOR_FLOAT=1.) -> torch.Tensor:
 
-    def __call__(self, x: torch.Tensor, w: torch.Tensor, dim=-2) -> torch.Tensor:
+    dx = mid - left
+    return triangle(x, left, mid, mid + dx, height)
 
-        return self.union_on(
-            self.inter_between(x.unsqueeze(-1), w[None]), dim=dim
-        )
+
+def trapezoid(x: torch.Tensor, left: TENSOR_FLOAT, mid1: TENSOR_FLOAT, mid2: TENSOR_FLOAT, right: TENSOR_FLOAT, height: TENSOR_FLOAT=1.) -> torch.Tensor:
+
+    left_val = height / (mid1 - left) * (x - left)
+    right_val = -height / (right - mid2) * (x - mid2) + height
+    
+    right_side = x >= mid2
+    mid_val = (x >= mid1) & (x <= mid2)
+    left_val[right_side] = right_val[right_side]
+    left_val[mid_val] = height
+    return left_val
+
+
+def isosceles_trapezoid(x: torch.Tensor, left: TENSOR_FLOAT, mid1: TENSOR_FLOAT, mid2: TENSOR_FLOAT, height: TENSOR_FLOAT=1.) -> torch.Tensor:
+
+    dx = mid2 - left
+    
+    return trapezoid(x, left, mid1, mid2, mid2 + dx, height)

@@ -46,7 +46,7 @@ class OrLearner(GradLearner):
         # learn_criterion = NeuronMSELoss(
         #     or_, reduction, not_chosen_x_weight, not_chosen_theta_weight
         # )
-        self._weight_update_f = WEIGHT_FACTORY.factory(weight_update_f)
+        self._weight_update_f = WEIGHT_FACTORY.f(weight_update_f)
         super().__init__(
             or_, criterion, optim_factory, False, reduction, x_lr, learn_criterion
         )
@@ -82,7 +82,7 @@ class AndLearner(GradLearner):
         # learn_criterion = NeuronMSELoss(
         #     and_, reduction, not_chosen_x_weight, not_chosen_theta_weight
         # )
-        self._weight_update_f = WEIGHT_FACTORY.factory(weight_update_f)
+        self._weight_update_f = WEIGHT_FACTORY.f(weight_update_f)
         super().__init__(
             and_, criterion, optim_factory, False, reduction, x_lr, learn_criterion
         )
