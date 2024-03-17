@@ -94,7 +94,6 @@ class TestTrapezoid:
         assert (x.grad != 0.0).any()
 
 
-
 class TestIsoscelesTrapezoid:
 
     def test_isosceles_trapezoid_outputs_correct_value(self):
@@ -123,4 +122,3 @@ class TestIsoscelesTrapezoid:
         y = F.isosceles_trapezoid(x, left, mid, mid2, g=True, clip=0.1)
         y.sum().backward()
         assert (x.grad != 0.0).any()
-
