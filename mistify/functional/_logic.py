@@ -1,7 +1,3 @@
-
-# 1st party
-import typing
-
 # 3rd party
 import torch
 
@@ -10,6 +6,7 @@ from ._join import (
     union_on, inter, ada_inter, ada_inter_on,
     ada_union, ada_union_on, union, inter_on
 )
+
 
 def or_(x: torch.Tensor, w: torch.Tensor, dim=-2, g: bool=False) -> torch.Tensor:
     """Take max min between two tensors to compute the relation
@@ -22,7 +19,7 @@ def or_(x: torch.Tensor, w: torch.Tensor, dim=-2, g: bool=False) -> torch.Tensor
     Returns:
         torch.Tensor: The relation between two tensors
     """
-    return union_on(inter(x.unsqueeze(-1), w[None], g), dim=dim, g=g)[0]
+    return union_on(inter(x.unsqueeze(-1), w[None], g), dim=dim, g=g)
 
 
 def ada_or(x: torch.Tensor, w: torch.Tensor, dim=-2) -> torch.Tensor:
@@ -64,7 +61,7 @@ def and_(x: torch.Tensor, w: torch.Tensor, dim=-2, g: bool=False) -> torch.Tenso
     Returns:
         torch.Tensor: The relation between two tensors
     """
-    return inter_on(union(x.unsqueeze(-1), w[None], g), dim=dim, g=g)[0]
+    return inter_on(union(x.unsqueeze(-1), w[None], g), dim=dim, g=g)
 
 
 def or_prod(x: torch.Tensor, w: torch.Tensor, dim=-2, g: bool=False) -> torch.Tensor:
@@ -78,4 +75,4 @@ def or_prod(x: torch.Tensor, w: torch.Tensor, dim=-2, g: bool=False) -> torch.Te
     Returns:
         torch.Tensor: The relation between two tensors
     """
-    return union(x.unsqueeze(-1) * w[None], dim=dim, g=g)[0]
+    return union_on(x.unsqueeze(-1) * w[None], dim=dim, g=g)

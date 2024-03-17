@@ -61,11 +61,11 @@ def unsqueeze(x: torch.Tensor) -> torch.Tensor:
 
 class EnumFactory(dict):
 
-    def f(self, f: typing.Union[str, typing.Callable]) -> typing.Callable[[typing.Any], torch.Tensor]:
+    def f(self, f: typing.Union[str, typing.Callable], *args, **kwargs) -> typing.Callable[[typing.Any], torch.Tensor]:
     
         if isinstance(f, typing.Callable):
-            return f
-        return self[f]
+            return partial(f, *args, **kwargs)
+        return partial(self[f], *args, **kwargs)
 
 
 def reduce_as(x: torch.Tensor, target: torch.Tensor):

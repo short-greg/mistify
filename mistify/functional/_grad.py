@@ -204,11 +204,11 @@ class MaxOnG(torch.autograd.Function):
         if not ctx.keepdim:
             grad_output = grad_output.unsqueeze(ctx.dim)
             y = y.unsqueeze(ctx.dim)
+            t = t.unsqueeze(ctx.dim)
         condition = (x < t) & (x < y)
         r = [1] * x.dim()
         r[ctx.dim] = x.size(ctx.dim)
         grad_input = grad_output.repeat(r)
-        print(condition.shape, grad_input.shape)
         grad_input[condition] = 0.0
         return grad_input, None, None
 
@@ -240,6 +240,7 @@ class MinOnG(torch.autograd.Function):
         if not ctx.keepdim:
             grad_output = grad_output.unsqueeze(ctx.dim)
             y = y.unsqueeze(ctx.dim)
+            t = t.unsqueeze(ctx.dim)
         condition = (x > t) & (x > y)
         r = [1] * x.dim()
         r[ctx.dim] = x.size(ctx.dim)
