@@ -184,7 +184,7 @@ def ada_inter_on(x: torch.Tensor, dim: int, keepdim: bool=False) -> torch.Tensor
     return (torch.sum(x ** q.unsqueeze(dim), dim=dim, keepdim=keepdim) / x.size(dim)) ** (1 / q)
 
 
-def inter_on(x: torch.Tensor, dim: int=-1, keepdim: bool=False, g: bool=False) -> torch.Tensor:
+def inter_on(x: torch.Tensor, dim: int=-1, keepdim: bool=False, g: bool=False, idx: bool=False) -> torch.Tensor:
     """Convenience function to use the straight through estimator for min
 
     Args:
@@ -196,11 +196,14 @@ def inter_on(x: torch.Tensor, dim: int=-1, keepdim: bool=False, g: bool=False) -
         torch.Tensor: The min
     """
     if g is False:
-        return torch.min(x, dim, keepdim)[0]
-    return MinOnG.apply(x, dim, keepdim)
+        y = torch.min(x, dim, keepdim)
+    else: y = MinOnG.apply(x, dim, keepdim)
+    if idx:
+        return y
+    return y[0]
 
 
-def union_on(x: torch.Tensor, dim: int=-1, keepdim: bool=False, g: bool=False) -> torch.Tensor:
+def union_on(x: torch.Tensor, dim: int=-1, keepdim: bool=False, g: bool=False, idx: bool=False) -> torch.Tensor:
     """Convenience function to use the straight through estimator for max
 
     Args:
@@ -212,8 +215,11 @@ def union_on(x: torch.Tensor, dim: int=-1, keepdim: bool=False, g: bool=False) -
         torch.Tensor: The max
     """
     if g is False:
-        return torch.max(x, dim, keepdim)
-    return MaxOnG.apply(x, dim, keepdim)
+        y = torch.max(x, dim, keepdim)
+    else: y = MaxOnG.apply(x, dim, keepdim)
+    if idx:
+        return y
+    return y[0]
 
 def prob_inter_on(x: torch.Tensor, dim: int=-1, keepdim: bool=False) -> torch.Tensor:
     """Take the product on a given dimension
@@ -278,12 +284,12 @@ def bounded_inter(x1: torch.Tensor, x2: torch.Tensor, g: bool=False, clip: float
         torch.Tensor: The max tensor
     """
     y = x1 + x2 - 1
-    max_val = torch.tensor(0.0, dtype=x1.dtype, device=x1.device)
+    # max_val = torch.tensor(0.0, dtype=x1.dtype, device=x1.device)
     if g is False:
-        return torch.max(y, max_val)
+        return torch.relu(y)
     return ClampG.apply(
-        y, min=max_val,
-        clip=clip
+        y, 0.0, 1.0,
+        clip
     )
 
 
@@ -298,12 +304,11 @@ def bounded_union(x1: torch.Tensor, x2: torch.Tensor, g: bool=False, clip: float
         torch.Tensor: The max tensor
     """
     y = x1 + x2
-    max_val = torch.tensor(1.0, dtype=x1.dtype, device=x1.device)
+    # max_val = torch.tensor(1.0, dtype=x1.dtype, device=x1.device)
     if g is False:
-        return torch.min(y, max_val)
+        return torch.clamp(y, max=1.0)
     return ClampG.apply(
-        y, max=max_val,
-        clip=clip
+        y, 0.0, 1.0, clip
     )
 
 
@@ -319,12 +324,11 @@ def bounded_union_on(m: torch.Tensor, dim=-1, keepdim: bool=False, g: bool=False
         torch.Tensor: The bounded max
     """
     y = m.sum(dim=dim, keepdim=keepdim)
-    max_val = torch.tensor(1.0, device=m.device, dtype=m.dtype)
+    # max_val = torch.tensor(1.0, device=m.device, dtype=m.dtype)
     if g is None:
-        return torch.min(y, max_val)
+        return torch.clamp(y, max=1.0)
     return ClampG.apply(
-        y, max=max_val,
-        clip=clip
+        y, 0.0, 1.0, clip
     )
 
 
@@ -340,10 +344,9 @@ def bounded_inter_on(x: torch.Tensor, dim=-1, keepdim: bool=False, g: bool=False
         torch.Tensor: The bounded min
     """
     y = x.sum(dim=dim, keepdim=keepdim) - x.size(dim) + 1
-    min_val = torch.tensor(0.0, device=x.device, dtype=x.dtype)
+    # min_val = torch.tensor(0.0, device=x.device, dtype=x.dtype)
     if g is False:
-        return torch.max(y, min_val)
+        return torch.relu(y)
     return ClampG.apply(
-        y, min=min_val,
-        clip=clip
+        y, 0.0, 1.0, clip
     )
