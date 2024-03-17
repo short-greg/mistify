@@ -4,11 +4,10 @@ from torch import Tensor
 import torch.nn as nn
 from torch import clamp
 import torch.nn.functional
-import typing
 
 from ._conclude import HypoM
-
 from ._utils import generate_repeat_params, generate_spaced_params
+
 
 class Fuzzifier(nn.Module):
 

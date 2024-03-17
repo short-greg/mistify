@@ -45,11 +45,11 @@ class IntersectionOn(JunctionOn):
     """
 
     F = EnumFactory(
-        min=functional.min_on,
-        min_ada=functional.smooth_min_on,
-        prod=functional.prod_on,
-        bounded_min=functional.bounded_min_on,
-        prob_prod=functional.prod_on
+        min=functional.inter_on,
+        min_ada=functional.smooth_inter_on,
+        prod=functional.prob_inter_on,
+        bounded_min=functional.bounded_inter_on,
+        prob_prod=functional.prob_inter_on
     )
 
 
@@ -57,9 +57,9 @@ class UnionOn(JunctionOn):
     """Union on a specific dimension
     """
     F = EnumFactory(
-        max = functional.max_on,
-        max_ada = functional.smooth_max_on,
-        bounded_max=functional.bounded_max_on
+        max = functional.union_on,
+        max_ada = functional.smooth_union_on,
+        bounded_max=functional.bounded_union_on
     )
 
     def __init__(self, f: typing.Union[typing.Callable, str]='max', dim: int=-1, keepdim: bool=False):

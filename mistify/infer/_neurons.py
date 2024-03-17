@@ -86,9 +86,9 @@ class Or(LogicalNeuron):
     """
 
     F = EnumFactory(
-        max_min=functional.maxmin,
-        max_min_ada=functional.ada_maxmin,
-        max_prod=functional.maxprod
+        max_min=functional.or_,
+        max_min_ada=functional.ada_or,
+        max_prod=functional.or_prod
     )
 
 
@@ -98,8 +98,8 @@ class And(LogicalNeuron):
     """
 
     F = EnumFactory(
-        min_max = functional.minmax,
-        min_max_ada = functional.ada_minmax
+        min_max = functional.and_,
+        min_max_ada = functional.ada_and
     )
 
     def __init__(self, in_features: int, out_features: int, n_terms: int=None, 

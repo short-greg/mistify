@@ -1,20 +1,33 @@
 #noqa
-from ._functional import (
-    max_on, maxmin, maxprod, ada_maxmin, ada_minmax,
-    min_on, minmax, smooth_max, smooth_max_on, to_binary,
-    to_signed, smooth_min, smooth_min_on, adamax,adamax_on,
-    adamin, adamin_on, prod_on, bounded_max, bounded_max_on, 
-    bounded_min, bounded_min_on, prob_sum
+
+from ._m import (
+    binary, to_binary, sign, 
+    to_signed, ramp
 )
-from ._ste import (
-    SignSTE, sign_ste, BinarySTE, binary_ste,
-    MaxSTE, MinSTE, max_ste, min_ste, RampSTE, MaxOnSTE, MinOnSTE,
-    ramp_ste, max_on_ste, min_on_ste, triangle_ste, isosceles_ste,
-    trapezoid_ste, isosceles_trapezoid_ste
+from ._grad import (
+    SignG, BinaryG,
+    MaxG, MinG, ClampG, MaxOnG, MinOnG
 )
-from ._factory import (
-    AndF, OrF,
-    Union, UnionOn, Inter, InterOn
+from ._join import (
+    inter, inter_on, ada_inter,
+    ada_inter_on, prob_inter, prob_inter_on,
+    smooth_inter, smooth_inter_on, bounded_inter,
+    bounded_inter_on,
+    union, union_on, ada_union, ada_union_on,
+    prob_union, prob_union_on, smooth_union, smooth_union_on,
+    bounded_union, bounded_union_on
 )
 
-from torch import max, clamp as ramp
+from ._logic import (
+    or_, and_, 
+    ada_or, ada_and,
+    or_prod
+
+)
+# from ._factory import (
+#     AndF, OrF,
+#     Union, UnionOn, Inter, InterOn
+# )
+from ._shape import (
+    triangle, trapezoid, isosceles, isosceles_trapezoid
+)
