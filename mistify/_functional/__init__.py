@@ -31,7 +31,4 @@ from ._factory import (
     AndF, OrF,
     Union, UnionOn, Inter, InterOn
 )
-# from ._shape import (
-#     triangle, trapezoid, isosceles, isosceles_trapezoid
-# )
 from . import _shape as shape

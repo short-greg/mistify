@@ -1,51 +1,7 @@
-from ._shapes import (
-    Polygon, 
-    Shape, 
-    ShapeParams, 
-    Square, 
-    Triangle, 
-    Trapezoid, 
-    LogisticTrapezoid, 
-    IsoscelesTrapezoid,
-    RightLogisticTrapezoid, 
-    DecreasingRightTrapezoid, 
-    IncreasingRightTrapezoid,
-    IsoscelesTriangle, 
-    DecreasingRightTriangle, 
-    IncreasingRightTriangle,
-    Logistic, 
-    LogisticBell, 
-    RightLogistic,
-    Ramp,
-    Sigmoid,
-    Step
-)
-from ._conversion import (
-    ConverterFuzzifier, 
-    FuzzyConverter, 
-    HypoM,
-    Fuzzifier, 
-    LogisticFuzzyConverter, 
-    IsoscelesFuzzyConverter,
-    EmbeddingFuzzifier, 
-    IsoscelesTrapezoidFuzzyConverter,
-    TriangleFuzzyConverter,
-    TrapezoidFuzzyConverter,
-    HypothesisEnum, 
-    MaxConc,
-    MaxValueConc, 
-    Conclusion, 
-    WeightedAverageConc,
-    AreaHypothesis, 
-    MeanCoreHypothesis, 
-    ShapeHypothesis, 
-    MinCoreHypothesis,
-    CentroidHypothesis, 
-    stride_coordinates, 
-    ConverterDefuzzifier,
-    SigmoidFuzzyConverter,
-    RampFuzzyConverter,
-    StepFuzzyConverter,
-    GaussianFuzzifier
-)
+from ._shapes import *
+from ._conversion import *
 from ._shapes import shape_utils
+
+from ._resp import (
+    resp, resp_average
+)

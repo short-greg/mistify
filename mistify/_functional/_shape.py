@@ -9,13 +9,9 @@ def _triangle_post_hook(grad, state):
     return grad
 
 
-def _triangle_pre_hook(grad, x, left, right, clip, state):
+def _triangle_pre_hook(grad, oob, clip, state):
     
     out_grad = state['grad']
-    if right is not None:
-        oob = (x < left) | (x > right)
-    else:
-        oob = (x < left)
     grad = grad.clone()
     if clip is not None:
         grad[oob] = out_grad[oob].clamp(-clip, clip)
@@ -47,14 +43,17 @@ def triangle(
     state = {}
     x_base = x
     x = x_base.clone()
+    oob = (x < left) | (x > right)
     if clip != 0.0 and g is True:
-        x.register_hook(partial(_triangle_pre_hook, x=x_base, left=left, right=right, state=state, clip=clip))
+        x.register_hook(partial(_triangle_pre_hook, oob=oob, state=state, clip=clip))
 
     left_val = height / (mid - left) * (x - left)
     right_val = -height / (right - mid) * (x - mid) + height
     
     right_side = x >= mid
     left_val[right_side] = right_val[right_side]
+
+    left_val[oob] = 0.0
     if clip != 0.0 and g is True:
         left_val.register_hook(partial(_triangle_post_hook, state=state))
     return left_val
@@ -83,18 +82,20 @@ def right_triangle(
     state = {}
     x_base = x
     x = x_base.clone()
+    oob = (x < left) | (x > mid)
     if clip != 0.0 and g is True:
-        x.register_hook(partial(_triangle_pre_hook, x=x_base, left=left, right=None, state=state, clip=clip))
+        x.register_hook(partial(_triangle_pre_hook, oob=oob, state=state, clip=clip))
 
     if increasing:
         val = height / (mid - left) * (x - left)
     else:
-        val = -height / (mid - left) * (x - left) + height
+        val = -(height / (mid - left)) * (x - left) + height
     
+    val[oob] = 0.0
+
     if clip != 0.0 and g is True:
         val.register_hook(partial(_triangle_post_hook, state=state))
     return val
-
 
 
 def triangle_area(
@@ -161,14 +162,9 @@ def _trap_post_hook(grad, state):
     return grad
 
 
-def _trap_pre_hook(grad, x, left, mid1, mid2, right, clip, state):
+def _trap_pre_hook(grad, oob, clip, state):
     
     out_grad = state['grad']
-
-    if right is not None:
-        oob = (x < left) | (x > right) | ( (x > mid1) & (x < mid2))
-    else:
-        oob = (x < left) | ( (x > mid1) & (x < mid2))
 
     grad = grad.clone()
 
@@ -203,12 +199,12 @@ def trapezoid(
     state = {}
     x_base = x
     x = x_base.clone()
+
+    oob = (x < left) | (x > right)
     if clip != 0.0 and g is True:
         x.register_hook(
             partial(_trap_pre_hook, 
-                    x=x_base, left=left,
-                    mid1=mid1, mid2=mid2, 
-                    right=right, state=state, 
+                    oob=oob, state=state, 
                     clip=clip))
     left_val = height / (mid1 - left) * (x - left)
     right_val = -height / (right - mid2) * (x - mid2) + height
@@ -218,6 +214,7 @@ def trapezoid(
     left_val[right_side] = right_val[right_side]
     left_val[mid_val] = height
     y = left_val
+    y[oob] = 0.0
 
     if clip != 0.0 and g is True:
         y.register_hook(partial(_trap_post_hook, state=state))
@@ -275,12 +272,11 @@ def right_trapezoid(
     state = {}
     x_base = x
     x = x_base.clone()
+    oob = (x < left) | (x > right)
     if clip != 0.0 and g is True:
         x.register_hook(
             partial(_trap_pre_hook, 
-                    x=x_base, left=left,
-                    mid1=mid, mid2=right, 
-                    right=None, state=state, 
+                    oob=oob, state=state, 
                     clip=clip))
     if increasing:
         val = height / (mid - left) * (x - left)
@@ -290,6 +286,7 @@ def right_trapezoid(
         mid_val = (x >= left) & (x <= mid)
     
     val[mid_val] = height
+    val[oob] = 0.0
 
     if clip != 0.0 and g is True:
         val.register_hook(partial(_trap_post_hook, state=state))
