@@ -204,6 +204,11 @@ class TestTrapezoidArea:
         area = F.trapezoid_area(T([0.0]), T([1.0]), T([2.0]), T([3.0]))
         assert (area == torch.tensor([2.0])).all()
 
+    def test_isosceles_trapezoid_area_outputs_correct_value(self):
+
+        area = F.isosceles_trapezoid_area(T([0.0]), T([1.0]), T([2.0]))
+        assert (area == torch.tensor([2.0])).all()
+
 
 class TestTriangleArea:
     
@@ -212,3 +217,7 @@ class TestTriangleArea:
         area = F.triangle_area(T([0.0]), T([1.0]), T([2.0]))
         assert (area == torch.tensor([1.0])).all()
 
+    def test_triangle_area_outputs_correct_value(self):
+
+        area = F.isosceles_area(T([0.0]), T([1.0]))
+        assert (area == torch.tensor([1.0])).all()

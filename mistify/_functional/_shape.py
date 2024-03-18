@@ -325,7 +325,7 @@ def isosceles_trapezoid_area(
         height (TENSOR_FLOAT, optional): _description_. Defaults to 1..
 
     Returns:
-        torch.Tensor: _description_
+        torch.Tensor: Calculate the area of an isosceles trapezoid
     """
 
     return (2 * mid2 - left) * height / 2
