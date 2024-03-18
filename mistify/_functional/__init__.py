@@ -34,4 +34,4 @@ from ._factory import (
 # from ._shape import (
 #     triangle, trapezoid, isosceles, isosceles_trapezoid
 # )
-import _shape as shape
+from . import _shape as shape
