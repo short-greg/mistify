@@ -9,9 +9,9 @@ import torch.nn as nn
 # local
 from .. import functional
 from ..utils import EnumFactory
-from . import signed
-from . import fuzzy
-from . import boolean
+from ..functional import signed
+from ..functional import fuzzy
+from ..functional import boolean
 
 
 class JunctionOn(nn.Module):

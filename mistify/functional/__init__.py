@@ -1,5 +1,9 @@
 #noqa
 
+from . import boolean
+from . import signed
+from . import fuzzy
+
 from ._m import (
     binary, to_binary, sign, 
     to_signed, ramp
@@ -24,10 +28,10 @@ from ._logic import (
     or_prod
 
 )
-# from ._factory import (
-#     AndF, OrF,
-#     Union, UnionOn, Inter, InterOn
-# )
+from ._factory import (
+    AndF, OrF,
+    Union, UnionOn, Inter, InterOn
+)
 from ._shape import (
     triangle, trapezoid, isosceles, isosceles_trapezoid
 )

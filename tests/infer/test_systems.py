@@ -5,6 +5,12 @@ from mistify import fuzzify
 from mistify.infer import _neurons as neurons
 
 
+from mistify import fuzzify
+import torch
+from torch import nn
+import typing
+
+
 class TestBasicSigmoidFuzzySytem:
 
     class BasicSigmoidFuzzySystem(nn.Module):
@@ -148,12 +154,6 @@ class TestBasicTriangularFuzzySytem:
     #     system = self.BasicTriangularFuzzySystem(in_features, in_terms, hidden_variables, out_features)
     #     assert system.forward(x).size() == torch.Size([batch_size, out_features])
 
-
-from mistify import fuzzify
-import torch
-from torch import nn
-from mistify.infer import fuzzy
-import typing
 
 
 class TestBasicCrispSystem2:

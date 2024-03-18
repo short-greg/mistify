@@ -4,7 +4,7 @@
 import torch
 
 # local
-from ...functional import to_signed, to_binary
+from .._m import to_signed, to_binary
 
 
 def differ(m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:

@@ -1,5 +1,5 @@
 import torch
-from mistify.infer import signed
+from mistify.functional import signed
 
 
 class TestFuzzySet(object):

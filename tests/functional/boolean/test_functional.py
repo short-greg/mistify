@@ -1,5 +1,5 @@
 import torch
-from mistify.infer import boolean
+from mistify.functional import boolean
 
 
 class TestBoolean(object):
