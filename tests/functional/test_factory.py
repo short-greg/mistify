@@ -1,4 +1,4 @@
-from mistify.functional._factory import (
+from mistify._functional._factory import (
     InterOn, UnionOn, 
     Inter, Union,
     LogicalF, AndF,

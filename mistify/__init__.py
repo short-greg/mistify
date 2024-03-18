@@ -1,5 +1,5 @@
 from . import infer
-from . import functional
+from ._functional import *
 from . import utils
 from . import systems
 from . import fuzzify

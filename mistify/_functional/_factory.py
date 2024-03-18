@@ -18,8 +18,6 @@ ON_F = typing.Callable[[torch.Tensor, int, bool], torch.Tensor]
 BETWEEN_F = typing.Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
 
 
-
-
 class InterOn(Enum):
 
     prob_inter_on = (prob_inter_on,)

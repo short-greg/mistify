@@ -1,4 +1,4 @@
-from mistify.functional import _shape as F
+from mistify._functional import _shape as F
 import torch
 
 T = torch.tensor

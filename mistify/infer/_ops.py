@@ -7,11 +7,11 @@ import torch
 import torch.nn as nn
 
 # local
-from .. import functional
+from .. import _functional
 from ..utils import EnumFactory
-from ..functional import signed
-from ..functional import fuzzy
-from ..functional import boolean
+from .._functional import signed
+from .._functional import fuzzy
+from .._functional import boolean
 
 
 class JunctionOn(nn.Module):
@@ -45,11 +45,11 @@ class IntersectionOn(JunctionOn):
     """
 
     F = EnumFactory(
-        min=functional.inter_on,
-        min_ada=functional.smooth_inter_on,
-        prod=functional.prob_inter_on,
-        bounded_min=functional.bounded_inter_on,
-        prob_prod=functional.prob_inter_on
+        min=_functional.inter_on,
+        min_ada=_functional.smooth_inter_on,
+        prod=_functional.prob_inter_on,
+        bounded_min=_functional.bounded_inter_on,
+        prob_prod=_functional.prob_inter_on
     )
 
 
@@ -57,9 +57,9 @@ class UnionOn(JunctionOn):
     """Union on a specific dimension
     """
     F = EnumFactory(
-        max = functional.union_on,
-        max_ada = functional.smooth_union_on,
-        bounded_max=functional.bounded_union_on
+        max = _functional.union_on,
+        max_ada = _functional.smooth_union_on,
+        bounded_max=_functional.bounded_union_on
     )
 
     def __init__(self, f: typing.Union[typing.Callable, str]='max', dim: int=-1, keepdim: bool=False):

@@ -11,7 +11,7 @@ from ._grad import (
     SignG
 )
 
-def binary(x: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
+def binarize(x: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
     """Convenience function to use the straight through estimator for binary
 
     Args:
@@ -26,7 +26,7 @@ def binary(x: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
     return BinaryG.apply(x, clip=clip)
 
 
-def sign(x: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
+def signify(x: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
     """Convenience function to use the straight through estimator for sign
 
     Args:
@@ -54,25 +54,25 @@ def ramp(x: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
     return ClampG.apply(x, clip=clip)
 
 
-def to_binary(signed: torch.Tensor) -> torch.Tensor:
+def to_boolean(signed: torch.Tensor) -> torch.Tensor:
     """Convert a signed (neg ones/ones) tensor to a binary one (zeros/ones)
 
     Args:
         signed (torch.Tensor): The signed tensor
 
     Returns:
-        torch.Tensor: The binary tensor
+        torch.Tensor: The boolean tensor
     """
     return (signed + 1) / 2
 
 
-def to_signed(binary: torch.Tensor) -> torch.Tensor:
+def to_signed(boolean: torch.Tensor) -> torch.Tensor:
     """Convert a binary (zeros/ones) tensor to a signed one
 
     Args:
-        binary (torch.Tensor): The binary tensor
+        boolean (torch.Tensor): The binary tensor
 
     Returns:
         torch.Tensor: The signed tensor
     """
-    return (binary * 2) - 1
+    return (boolean * 2) - 1

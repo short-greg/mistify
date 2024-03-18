@@ -1,5 +1,5 @@
 from mistify.infer import _neurons as neurons
-from mistify.functional import fuzzy, boolean
+from mistify._functional import fuzzy, boolean
 
 import torch
 

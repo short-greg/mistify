@@ -1,5 +1,5 @@
 import torch
-from mistify.functional import _join as F
+from mistify._functional import _join as F
 
 
 class TestBoundedMinOn:

@@ -5,7 +5,7 @@ from . import signed
 from . import fuzzy
 
 from ._m import (
-    binary, to_binary, sign, 
+    binarize, to_boolean, signify, 
     to_signed, ramp
 )
 from ._grad import (
@@ -26,7 +26,6 @@ from ._logic import (
     or_, and_, 
     ada_or, ada_and,
     or_prod
-
 )
 from ._factory import (
     AndF, OrF,

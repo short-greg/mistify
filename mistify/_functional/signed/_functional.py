@@ -4,7 +4,7 @@
 import torch
 
 # local
-from .._m import to_signed, to_binary
+from .._m import to_signed, to_boolean
 
 
 def differ(m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
@@ -23,8 +23,8 @@ def differ(m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
     # 1, 0 = 0
     # -torch.sign(m1)torch.min(m1, m2)
 
-    m1 = to_binary(m1)
-    m2 = to_binary(m2)
+    m1 = to_boolean(m1)
+    m2 = to_boolean(m2)
     return to_signed(m1 - m2).clamp(-1, 1)
 
 

@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 
 # local
-from .. import functional
+from .. import _functional
 from ..utils import EnumFactory
 
 
@@ -86,9 +86,9 @@ class Or(LogicalNeuron):
     """
 
     F = EnumFactory(
-        max_min=functional.or_,
-        max_min_ada=functional.ada_or,
-        max_prod=functional.or_prod
+        max_min=_functional.or_,
+        max_min_ada=_functional.ada_or,
+        max_prod=_functional.or_prod
     )
 
 
@@ -98,8 +98,8 @@ class And(LogicalNeuron):
     """
 
     F = EnumFactory(
-        min_max = functional.and_,
-        min_max_ada = functional.ada_and
+        min_max = _functional.and_,
+        min_max_ada = _functional.ada_and
     )
 
     def __init__(self, in_features: int, out_features: int, n_terms: int=None, 

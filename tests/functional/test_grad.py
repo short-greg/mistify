@@ -1,5 +1,5 @@
 import torch
-from mistify.functional import _grad as F
+from mistify._functional import _grad as F
 
 
 class TestSignG:
