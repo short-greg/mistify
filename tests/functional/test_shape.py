@@ -1,4 +1,4 @@
-from mistify._functional import _shape as F
+from mistify._functional import _shape as F, ClipG
 import torch
 
 T = torch.tensor
@@ -29,7 +29,7 @@ class TestTriangle:
         left = torch.rand(1, 2)
         mid = left + torch.rand(1, 2)
         right = mid + torch.rand(1, 2)
-        y = F.triangle(x, left, mid, right, g=True, clip=0.1)
+        y = F.triangle(x, left, mid, right, g=ClipG(0.1))
         y.sum().backward()
         assert (x.grad != 0.0).any()
 
@@ -69,7 +69,7 @@ class TestRightTriangle:
         x.retain_grad()
         left = torch.rand(1, 2)
         mid = left + torch.rand(1, 2)
-        y = F.right_triangle(x, left, mid, g=True, clip=0.1)
+        y = F.right_triangle(x, left, mid, g=ClipG(0.1))
         y.sum().backward()
         assert (x.grad != 0.0).any()
 
@@ -97,7 +97,7 @@ class TestIsosceles:
         x.retain_grad()
         left = torch.rand(1, 2)
         mid = left + torch.rand(1, 2)
-        y = F.isosceles(x, left, mid, g=True, clip=0.1)
+        y = F.isosceles(x, left, mid, g=ClipG(0.1))
         y.sum().backward()
         assert (x.grad != 0.0).any()
 
@@ -129,7 +129,7 @@ class TestTrapezoid:
         mid = left + torch.rand(1, 2)
         mid2 = mid + torch.rand(1, 2)
         right = mid2 + torch.rand(1, 2)
-        y = F.trapezoid(x, left, mid, mid2, right, g=True, clip=0.1)
+        y = F.trapezoid(x, left, mid, mid2, right, g=ClipG(0.1))
         y.sum().backward()
         assert (x.grad != 0.0).any()
 
@@ -162,7 +162,7 @@ class TestRightTrapezoid:
         left = torch.rand(1, 2)
         mid = left + torch.rand(1, 2)
         mid2 = mid + torch.rand(1, 2)
-        y = F.right_trapezoid(x, left, mid, mid2, g=True, clip=0.1)
+        y = F.right_trapezoid(x, left, mid, mid2, g=ClipG(0.1))
         y.sum().backward()
         assert (x.grad != 0.0).any()
 
@@ -192,7 +192,7 @@ class TestIsoscelesTrapezoid:
         left = torch.rand(1, 2)
         mid = left + torch.rand(1, 2)
         mid2 = mid + torch.rand(1, 2)
-        y = F.isosceles_trapezoid(x, left, mid, mid2, g=True, clip=0.1)
+        y = F.isosceles_trapezoid(x, left, mid, mid2, g=ClipG(0.1))
         y.sum().backward()
         assert (x.grad != 0.0).any()
 

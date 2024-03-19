@@ -1,6 +1,7 @@
 from ._m import TENSOR_FLOAT
 from functools import partial
 import torch
+from ._m import G, ClipG
 
 
 def _triangle_post_hook(grad, state):
@@ -9,21 +10,26 @@ def _triangle_post_hook(grad, state):
     return grad
 
 
-def _triangle_pre_hook(grad, oob, clip, state):
+def _triangle_pre_hook(grad, x: torch.Tensor, oob, g: G, state):
     
     out_grad = state['grad']
     grad = grad.clone()
-    if clip is not None:
-        grad[oob] = out_grad[oob].clamp(-clip, clip)
-    else:
-        grad[oob] = out_grad[oob]
+    grad[oob] = out_grad[oob]
+
+    if g is not None:
+        grad = g(x, grad, oob)
     return grad
+
+    # if clip is not None:
+    #     grad[oob] = out_grad[oob].clamp(-clip, clip)
+    # else:
+    #     grad[oob] = out_grad[oob]
+    # return grad
 
 
 def triangle(
     x: torch.Tensor, left: TENSOR_FLOAT, mid: TENSOR_FLOAT, 
-    right: TENSOR_FLOAT, height: TENSOR_FLOAT=1., g: bool=False,
-    clip: float=None
+    right: TENSOR_FLOAT, height: TENSOR_FLOAT=1., g: G=None,
 ) -> torch.Tensor:
     """The right triangle function
 
@@ -44,8 +50,8 @@ def triangle(
     x_base = x
     x = x_base.clone()
     oob = (x < left) | (x > right)
-    if clip != 0.0 and g is True:
-        x.register_hook(partial(_triangle_pre_hook, oob=oob, state=state, clip=clip))
+    if g is not None:
+        x.register_hook(partial(_triangle_pre_hook, x=x, oob=oob, state=state, g=g))
 
     left_val = height / (mid - left) * (x - left)
     right_val = -height / (right - mid) * (x - mid) + height
@@ -54,15 +60,14 @@ def triangle(
     left_val[right_side] = right_val[right_side]
 
     left_val[oob] = 0.0
-    if clip != 0.0 and g is True:
+    if g is not None:
         left_val.register_hook(partial(_triangle_post_hook, state=state))
     return left_val
 
 
 def right_triangle(
     x: torch.Tensor, left: TENSOR_FLOAT, mid: TENSOR_FLOAT, 
-    increasing: bool=False, height: TENSOR_FLOAT=1., g: bool=False,
-    clip: float=None
+    increasing: bool=False, height: TENSOR_FLOAT=1., g: G=None
 ) -> torch.Tensor:
     """The right triangle function
 
@@ -83,8 +88,8 @@ def right_triangle(
     x_base = x
     x = x_base.clone()
     oob = (x < left) | (x > mid)
-    if clip != 0.0 and g is True:
-        x.register_hook(partial(_triangle_pre_hook, oob=oob, state=state, clip=clip))
+    if g is not None:
+        x.register_hook(partial(_triangle_pre_hook, x=x, oob=oob, state=state, g=g))
 
     if increasing:
         val = height / (mid - left) * (x - left)
@@ -93,7 +98,7 @@ def right_triangle(
     
     val[oob] = 0.0
 
-    if clip != 0.0 and g is True:
+    if g is not None:
         val.register_hook(partial(_triangle_post_hook, state=state))
     return val
 
@@ -135,7 +140,7 @@ def isosceles_area(
 
 def isosceles(
     x: torch.Tensor, left: TENSOR_FLOAT, mid: TENSOR_FLOAT, height: TENSOR_FLOAT=1.,
-    g: bool=False, clip: float=None
+    g: G=None
 ) -> torch.Tensor:
 
     """The isosceles triangle function
@@ -153,7 +158,7 @@ def isosceles(
         torch.Tensor: The output
     """
     dx = mid - left
-    return triangle(x, left, mid, mid + dx, height, g, clip)
+    return triangle(x, left, mid, mid + dx, height, g)
 
 
 def _trap_post_hook(grad, state):
@@ -162,23 +167,25 @@ def _trap_post_hook(grad, state):
     return grad
 
 
-def _trap_pre_hook(grad, oob, clip, state):
+def _trap_pre_hook(grad, x: torch.Tensor, oob, g: G, state):
     
     out_grad = state['grad']
 
     grad = grad.clone()
-
-    if clip is not None:
-        grad[oob] = out_grad[oob].clamp(-clip, clip)
-    else:
-        grad[oob] = out_grad[oob]
+    grad[oob] = out_grad[oob]
+    if g is not None:
+        grad = g(x, grad, oob)
+    # if clip is not None:
+    #     grad[oob] = out_grad[oob].clamp(-clip, clip)
+    # else:
+    #     grad[oob] = out_grad[oob]
     return grad
 
 
 def trapezoid(
     x: torch.Tensor, left: TENSOR_FLOAT, mid1: TENSOR_FLOAT, 
     mid2: TENSOR_FLOAT, right: TENSOR_FLOAT, height: TENSOR_FLOAT=1., 
-    g: bool=False, clip: float=None
+    g: G=None
 ) -> torch.Tensor:
     """The trapezoid function
 
@@ -201,11 +208,11 @@ def trapezoid(
     x = x_base.clone()
 
     oob = (x < left) | (x > right)
-    if clip != 0.0 and g is True:
+    if g is not None:
         x.register_hook(
-            partial(_trap_pre_hook, 
+            partial(_trap_pre_hook, x=x,
                     oob=oob, state=state, 
-                    clip=clip))
+                    g=g))
     left_val = height / (mid1 - left) * (x - left)
     right_val = -height / (right - mid2) * (x - mid2) + height
     
@@ -216,7 +223,7 @@ def trapezoid(
     y = left_val
     y[oob] = 0.0
 
-    if clip != 0.0 and g is True:
+    if g is not None:
         y.register_hook(partial(_trap_post_hook, state=state))
     return y
 
@@ -224,8 +231,7 @@ def trapezoid(
 def isosceles_trapezoid(
     x: torch.Tensor, left: TENSOR_FLOAT, mid1: TENSOR_FLOAT, 
     mid2: TENSOR_FLOAT, height: TENSOR_FLOAT=1., 
-    g: bool=False,
-    clip: float=0.0
+    g: G=None
 ) -> torch.Tensor:
     """An isosceles trapezoid
 
@@ -235,8 +241,7 @@ def isosceles_trapezoid(
         mid1 (TENSOR_FLOAT): The first mid point
         mid2 (TENSOR_FLOAT): The second mid point
         height (TENSOR_FLOAT, optional): The height. Defaults to 1..
-        g (bool, optional): Whether to have a ste gradient. Defaults to False.
-        clip (float, optional): . Defaults to 0.0.
+        g (G, optional): Whether to have a ste gradient. Defaults to False.
 
     Returns:
         torch.Tensor: The output
@@ -244,14 +249,13 @@ def isosceles_trapezoid(
     dl = mid1 - left
     right = mid2 + dl
     return trapezoid(
-        x, left, mid1, mid2, right, height, g, clip
+        x, left, mid1, mid2, right, height, g
     )
 
 
 def right_trapezoid(
     x: torch.Tensor, left: TENSOR_FLOAT, mid: TENSOR_FLOAT, right: TENSOR_FLOAT, 
-    increasing: bool=False, height: TENSOR_FLOAT=1., g: bool=False,
-    clip: float=None
+    increasing: bool=False, height: TENSOR_FLOAT=1., g: G=None
 ) -> torch.Tensor:
     """A right trapezoid
 
@@ -263,7 +267,6 @@ def right_trapezoid(
         increasing (bool, optional): whether it is increasing or decreasing. Defaults to False.
         height (TENSOR_FLOAT, optional): The height of the trapezoid. Defaults to 1..
         g (bool, optional): Whether to use straight-through grads. Defaults to False.
-        clip (float, optional): Amount to clip if using grads. Defaults to None.
 
     Returns:
         torch.Tensor: The point on the trapezoid
@@ -273,11 +276,11 @@ def right_trapezoid(
     x_base = x
     x = x_base.clone()
     oob = (x < left) | (x > right)
-    if clip != 0.0 and g is True:
+    if g is not None:
         x.register_hook(
-            partial(_trap_pre_hook, 
+            partial(_trap_pre_hook, x=x,
                     oob=oob, state=state, 
-                    clip=clip))
+                    g=g))
     if increasing:
         val = height / (mid - left) * (x - left)
         mid_val = (x >= mid) & (x <= right)
@@ -288,7 +291,7 @@ def right_trapezoid(
     val[mid_val] = height
     val[oob] = 0.0
 
-    if clip != 0.0 and g is True:
+    if g is not None:
         val.register_hook(partial(_trap_post_hook, state=state))
     return val
 

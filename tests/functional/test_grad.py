@@ -1,5 +1,5 @@
 import torch
-from mistify._functional import _grad as F
+from mistify._functional import _grad as F, ClipG, ZeroG
 
 
 class TestSignG:
@@ -16,7 +16,7 @@ class TestSignG:
 
         x = torch.randn(3, 3, requires_grad=True)
         x.retain_grad()
-        y = F.SignG.apply(x, 0.0)
+        y = F.SignG.apply(x, ZeroG())
         y.sum().backward()
         assert (x.grad == 0.0).all()
 
@@ -24,7 +24,7 @@ class TestSignG:
 
         x = torch.randn(3, 3, requires_grad=True)
         x.retain_grad()
-        y = F.SignG.apply(x, None)
+        y = F.SignG.apply(x, ClipG(0.1))
         y.sum().backward()
         assert (x.grad != 0.0).all()
 
@@ -43,7 +43,7 @@ class TestBinaryG:
 
         x = torch.randn(3, 3, requires_grad=True)
         x.retain_grad()
-        y = F.BinaryG.apply(x, 0.0)
+        y = F.BinaryG.apply(x, ZeroG())
         y.sum().backward()
         assert (x.grad == 0.0).all()
 
@@ -51,7 +51,7 @@ class TestBinaryG:
 
         x = torch.randn(3, 3, requires_grad=True)
         x.retain_grad()
-        y = F.BinaryG.apply(x, None)
+        y = F.BinaryG.apply(x, ClipG(0.1))
         y.sum().backward()
         assert (x.grad != 0.0).all()
 
@@ -88,7 +88,7 @@ class TestClampG:
         torch.manual_seed(1)
         x = torch.randn(3, 3, requires_grad=True)
         x.retain_grad()
-        y = F.ClampG.apply(x, 0.0, 1.0, 0.01)
+        y = F.ClampG.apply(x, 0.0, 1.0, ClipG(0.01))
         y.sum().backward()
         oob = (x < 0.0) | (x > 1.0)
         assert ((x.grad[oob] <= 0.01) & (x.grad[oob] >= -0.01)).all()
@@ -98,7 +98,7 @@ class TestClampG:
         torch.manual_seed(1)
         x = torch.randn(3, 3, requires_grad=True)
         x.retain_grad()
-        y = F.ClampG.apply(x, 0.0, None, 0.01)
+        y = F.ClampG.apply(x, 0.0, None, ClipG(0.01))
         y.sum().backward()
         oob = (x < 0.0)
         assert ((x.grad[oob] <= 0.01) & (x.grad[oob] >= -0.01)).all()
@@ -136,7 +136,7 @@ class TestMaxOnG:
 
         x = torch.randn(3, 3, requires_grad=True)
         x.retain_grad()
-        y = F.MaxOnG.apply(x, -1, True)
+        y = F.MaxOnG.apply(x, -1, False, ClipG(0.1))
         y[0].sum().backward()
         assert (x.grad != 0.0).any()
 
@@ -144,7 +144,7 @@ class TestMaxOnG:
 
         x = torch.randn(3, 3, requires_grad=True)
         x.retain_grad()
-        y = F.MaxOnG.apply(x, -1, False)
+        y = F.MaxOnG.apply(x, -1, False, ClipG(0.1))
         y[0].sum().backward()
         assert (x.grad != 0.0).any()
 
@@ -152,7 +152,7 @@ class TestMaxOnG:
 
         x = torch.randn(3, 3, requires_grad=True)
         x.retain_grad()
-        y = F.MaxOnG.apply(x, 0)
+        y = F.MaxOnG.apply(x, -1, False, ClipG(0.1))
         y[0].sum().backward()
         assert (x.grad != 0.0).any()
 
@@ -163,7 +163,7 @@ class TestMinOnG:
 
         x = torch.randn(3, 3, requires_grad=True)
         x.retain_grad()
-        y = F.MinOnG.apply(x, -1, True)
+        y = F.MinOnG.apply(x, -1, False, ClipG(0.1))
         y[0].sum().backward()
         assert (x.grad != 0.0).any()
 

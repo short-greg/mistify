@@ -1,5 +1,5 @@
 import torch
-from mistify._functional import _join as F
+from mistify._functional import _join as F, ClipG
 
 
 class TestBoundedMinOn:
@@ -21,7 +21,7 @@ class TestBoundedMinOn:
         x1 = torch.rand(3, 3, requires_grad=True)
         x1.retain_grad()
 
-        y = F.bounded_inter_on(x1, g=True, clip=0.1)
+        y = F.bounded_inter_on(x1, g=ClipG(0.1))
         y.sum().backward()
 
         assert ((x1.grad > 0.0) | (x1.grad < 0.0)).all()
@@ -46,7 +46,7 @@ class TestBoundedMaxOn:
         x1 = torch.rand(3, 3, requires_grad=True)
         x1.retain_grad()
 
-        y = F.bounded_union_on(x1, g=True, clip=0.1)
+        y = F.bounded_union_on(x1, g=ClipG(0.1))
         y.sum().backward()
 
         assert ((x1.grad > 0.0) | (x1.grad < 0.0)).all()
@@ -218,7 +218,7 @@ class TestUnion:
         x1 = torch.rand(3, 3, requires_grad=True)
         x1.retain_grad()
 
-        y = F.union_on(x1, g=True)[0]
+        y = F.union_on(x1, g=ClipG(0.1))[0]
         y.sum().backward()
 
         assert ((x1.grad != 0.0)).any()
@@ -228,7 +228,7 @@ class TestUnion:
         x1 = torch.rand(3, 3, requires_grad=True)
         x1.retain_grad()
 
-        y = F.union_on(x1, g=True, idx=True)
+        y = F.union_on(x1, g=ClipG(0.1), idx=True)
         assert y[1].dtype == torch.int64
 
     def test_to_union_on_outputs_one_if_max_is_one(self):
@@ -271,7 +271,7 @@ class TestInter:
         x1 = torch.rand(3, 3, requires_grad=True)
         x1.retain_grad()
 
-        y = F.inter_on(x1, g=True)
+        y = F.inter_on(x1, g=ClipG(0.1))
         y.sum().backward()
 
         assert ((x1.grad != 0.0)).any()
@@ -281,7 +281,7 @@ class TestInter:
         x1 = torch.rand(3, 3, requires_grad=True)
         x1.retain_grad()
 
-        y = F.inter_on(x1, g=True, idx=True)
+        y = F.inter_on(x1, g=ClipG(0.1), idx=True)
         assert y[1].dtype == torch.int64
 
     def test_to_inter_on_outputs_point_four_if_min_is_one(self):

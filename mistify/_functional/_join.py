@@ -5,7 +5,7 @@ import torch
 
 from ._grad import (
     MaxG, MaxOnG, MinG, ClampG,
-    MinOnG, Clip, G, All, Mul
+    MinOnG, ClipG, G, All, MulG
 )
 
 
@@ -21,7 +21,7 @@ def union(x1: torch.Tensor, x2: torch.Tensor, g: bool=False) -> torch.Tensor:
     """
     if g is False:
         return torch.max(x1, x2)
-    return MaxG.apply(x1, x2, Clip(0.1))
+    return MaxG.apply(x1, x2, ClipG(0.1))
 
 
 def inter(x1: torch.Tensor, x2: torch.Tensor, g: bool=False) -> torch.Tensor:
@@ -36,7 +36,7 @@ def inter(x1: torch.Tensor, x2: torch.Tensor, g: bool=False) -> torch.Tensor:
     """
     if g is False:
         return torch.min(x1, x2)
-    return MinG.apply(x1, x2, Clip(0.1))
+    return MinG.apply(x1, x2, ClipG(0.1))
 
 def smooth_union(x: torch.Tensor, x2: torch.Tensor, a: float=None) -> torch.Tensor:
     """Smooth approximation to the max function of two tensors
@@ -197,7 +197,7 @@ def inter_on(x: torch.Tensor, dim: int=-1, keepdim: bool=False, g: bool=False, i
     """
     if g is False:
         y = torch.min(x, dim, keepdim)
-    else: y = MinOnG.apply(x, dim, keepdim, Clip(0.1))
+    else: y = MinOnG.apply(x, dim, keepdim, ClipG(0.1))
     if idx:
         return y
     return y[0]
@@ -216,7 +216,7 @@ def union_on(x: torch.Tensor, dim: int=-1, keepdim: bool=False, g: bool=False, i
     """
     if g is False:
         y = torch.max(x, dim, keepdim)
-    else: y = MaxOnG.apply(x, dim, keepdim, Clip(0.1))
+    else: y = MaxOnG.apply(x, dim, keepdim, ClipG(0.1))
     if idx:
         return y
     return y[0]
@@ -289,7 +289,7 @@ def bounded_inter(x1: torch.Tensor, x2: torch.Tensor, g: bool=False, clip: float
     if g is False:
         return torch.relu(y)
     return ClampG.apply(
-        y, 0.0, 1.0, Clip(0.1)
+        y, 0.0, 1.0, ClipG(0.1)
     )
 
 
@@ -308,7 +308,7 @@ def bounded_union(x1: torch.Tensor, x2: torch.Tensor, g: bool=False, clip: float
     if g is False:
         return torch.clamp(y, max=1.0)
     return ClampG.apply(
-        y, 0.0, 1.0, Clip(0.1)
+        y, 0.0, 1.0, ClipG(0.1)
     )
 
 
@@ -327,7 +327,7 @@ def bounded_union_on(m: torch.Tensor, dim=-1, keepdim: bool=False, g: bool=False
     if g is None:
         return torch.clamp(y, max=1.0)
     return ClampG.apply(
-        y, 0.0, 1.0, Clip(0.1)
+        y, 0.0, 1.0, ClipG(0.1)
     )
 
 
@@ -346,5 +346,5 @@ def bounded_inter_on(x: torch.Tensor, dim=-1, keepdim: bool=False, g: bool=False
     if g is False:
         return torch.relu(y)
     return ClampG.apply(
-        y, 0.0, 1.0, Clip(0.1)
+        y, 0.0, 1.0, ClipG(0.1)
     )

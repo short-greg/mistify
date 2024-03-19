@@ -8,7 +8,7 @@ TENSOR_FLOAT = typing.Union[torch.Tensor, float]
 
 from ._grad import (
     BinaryG, ClampG,
-    SignG, G, Clip
+    SignG, G, ClipG
 )
 
 def binarize(x: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
@@ -23,7 +23,7 @@ def binarize(x: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
     """
     if g is False:
         clip = None
-    return BinaryG.apply(x, Clip(clip))
+    return BinaryG.apply(x, ClipG(clip))
 
 
 def signify(x: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
@@ -37,7 +37,7 @@ def signify(x: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
     """
     if g is False:
         clip = None
-    return SignG.apply(x, Clip(clip))
+    return SignG.apply(x, ClipG(clip))
 
 
 def clamp(x: torch.Tensor, min_val: float=0.0, max_val: float=1.0, g: bool=False, clip: float=None) -> torch.Tensor:
@@ -51,7 +51,7 @@ def clamp(x: torch.Tensor, min_val: float=0.0, max_val: float=1.0, g: bool=False
     """
     if g is False:
         clip = None
-    return ClampG.apply(x, min_val, max_val, Clip(clip))
+    return ClampG.apply(x, min_val, max_val, ClipG(clip))
 
 
 def to_boolean(signed: torch.Tensor) -> torch.Tensor:

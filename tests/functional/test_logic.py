@@ -1,5 +1,5 @@
 import torch
-from mistify._functional import _logic as F
+from mistify._functional import _logic as F, ClipG
 
 
 class TestOr:
@@ -26,7 +26,7 @@ class TestOr:
         x = torch.rand(6, 4, requires_grad=True)
         x.retain_grad()
         w = torch.rand(4, 8)
-        y = F.or_(x, w, g=True)
+        y = F.or_(x, w, g=ClipG(0.1))
         y.sum().backward()
         assert (x.grad != 0).any()
 
@@ -55,7 +55,7 @@ class TestAnd:
         x = torch.rand(6, 4, requires_grad=True)
         x.retain_grad()
         w = torch.rand(4, 8)
-        y = F.and_(x, w, g=True)
+        y = F.and_(x, w, g=ClipG(0.1))
         y.sum().backward()
         assert (x.grad != 0).any()
 
@@ -142,6 +142,6 @@ class TestOrProd:
         x = torch.rand(6, 4, requires_grad=True)
         x.retain_grad()
         w = torch.rand(4, 8)
-        y = F.or_prod(x, w, g=True)
+        y = F.or_prod(x, w, g=ClipG(0.1))
         y.sum().backward()
         assert (x.grad != 0).any()

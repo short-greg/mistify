@@ -16,7 +16,7 @@ class G(object):
         pass
 
 
-class Clip(G):
+class ClipG(G):
 
     def __init__(self, val: float):
 
@@ -33,7 +33,7 @@ class Clip(G):
         return grad
 
 
-class Mul(G):
+class MulG(G):
 
     def __init__(self, val: float):
 
@@ -50,7 +50,7 @@ class Mul(G):
         return grad
 
 
-class Bind(G):
+class BindG(G):
 
     def __init__(self, val: float):
 
@@ -63,7 +63,7 @@ class Bind(G):
         return grad
 
 
-class Null(G):
+class ZeroG(G):
 
     def __call__(self, x: torch.Tensor, grad: torch.Tensor, oob: torch.Tensor=None):
         
@@ -287,8 +287,8 @@ class MinG(torch.autograd.Function):
 
         if ctx.g is not None:
             condition2 = (x2 > x1) & (x2 > t)
-            x1_grad[condition2] = torch.min(abs_grad, torch.relu(x2 - t))[condition2]
-            x1_grad = ctx.g(x2, x2_grad, condition2 )
+            x2_grad[condition2] = torch.min(abs_grad, torch.relu(x2 - t))[condition2]
+            x2_grad = ctx.g(x2, x2_grad, condition2 )
         x2_grad = reduce_as(x2_grad, x2)
 
         return x1_grad, x2_grad, None
@@ -371,7 +371,7 @@ class MinOnG(torch.autograd.Function):
         r = [1] * x.dim()
         r[ctx.dim] = x.size(ctx.dim)
         grad_input = grad_output.repeat(r)
-        grad_input[condition] = 0.0
+        # grad_input[condition] = 0.0
 
         condition = (x <= t) & (x <= y)
         grad_input[condition] = -torch.relu(t - x)[condition]
@@ -382,4 +382,4 @@ class MinOnG(torch.autograd.Function):
             grad_input[condition2] = torch.min(abs_grad, torch.relu(x - t))[condition2]
             grad_input = ctx.g(x, grad_input, condition2)
 
-        return grad_input, None, None
+        return grad_input, None, None, None
