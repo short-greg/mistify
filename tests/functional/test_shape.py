@@ -3,6 +3,7 @@ import torch
 
 T = torch.tensor
 
+
 class TestTriangle:
     
     def test_triangle_outputs_correct_value(self):
@@ -99,7 +100,6 @@ class TestIsosceles:
         y = F.isosceles(x, left, mid, g=True, clip=0.1)
         y.sum().backward()
         assert (x.grad != 0.0).any()
-
 
 
 class TestTrapezoid:

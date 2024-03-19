@@ -8,7 +8,7 @@ TENSOR_FLOAT = typing.Union[torch.Tensor, float]
 
 from ._grad import (
     BinaryG, ClampG,
-    SignG
+    SignG, G, Clip
 )
 
 def binarize(x: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
@@ -23,7 +23,7 @@ def binarize(x: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
     """
     if g is False:
         clip = None
-    return BinaryG.apply(x, clip=clip)
+    return BinaryG.apply(x, Clip(clip))
 
 
 def signify(x: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
@@ -37,10 +37,10 @@ def signify(x: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
     """
     if g is False:
         clip = None
-    return SignG.apply(x, clip=clip)
+    return SignG.apply(x, Clip(clip))
 
 
-def ramp(x: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
+def clamp(x: torch.Tensor, min_val: float=0.0, max_val: float=1.0, g: bool=False, clip: float=None) -> torch.Tensor:
     """Convenience function to use the straight through estimator for ramp
 
     Args:
@@ -51,7 +51,7 @@ def ramp(x: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
     """
     if g is False:
         clip = None
-    return ClampG.apply(x, clip=clip)
+    return ClampG.apply(x, min_val, max_val, Clip(clip))
 
 
 def to_boolean(signed: torch.Tensor) -> torch.Tensor:
