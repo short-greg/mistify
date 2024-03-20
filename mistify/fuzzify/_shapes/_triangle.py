@@ -7,8 +7,10 @@ from ._trapezoid import IsoscelesTrapezoid, IncreasingRightTrapezoid, Decreasing
 from ._utils import calc_m_linear_increasing, calc_m_linear_decreasing, calc_x_linear_decreasing, calc_x_linear_increasing
 from ...utils import unsqueeze
 
-intersect = torch.min
-union = torch.max
+from ... import _functional as functional
+
+# intersect = torch.min
+# union = torch.max
 
 
 class IncreasingRightTriangle(Polygon):
@@ -27,8 +29,12 @@ class IncreasingRightTriangle(Polygon):
             torch.Tensor: The membership
         """
         params = self._params()
-        return calc_m_linear_increasing(
-            unsqueeze(x), params.pt(0), params.pt(1), self._m
+        x = unsqueeze(x)
+        # return calc_m_linear_increasing(
+        #     unsqueeze(x), params.pt(0), params.pt(1), self._m
+        # )
+        return functional.shape.right_triangle(
+            x, params.pt(0), params.pt(1), True, self._m
         )
 
     def _calc_areas(self):
@@ -71,7 +77,7 @@ class IncreasingRightTriangle(Polygon):
         Returns:
             IncreasingRightTriangle: The updated vertical scale if the scale is greater
         """
-        updated_m = intersect(m, self._m)
+        updated_m = functional.inter(m, self._m)
         
         params = self._params()
         
@@ -88,7 +94,7 @@ class IncreasingRightTriangle(Polygon):
         Returns:
             IncreasingRightTrapezoid: The triangle truncated into a trapezoid
         """
-        updated_m = intersect(self._m, m)
+        updated_m = functional.inter(self._m, m)
         params = self._params()
 
         pt = calc_x_linear_increasing(
@@ -118,8 +124,12 @@ class DecreasingRightTriangle(Polygon):
             torch.Tensor: The membership
         """
         params = self._params()
-        return calc_m_linear_decreasing(
-            unsqueeze(x), params.pt(0), params.pt(1), self._m
+        # return calc_m_linear_decreasing(
+        #     unsqueeze(x), params.pt(0), params.pt(1), self._m
+        # )
+    
+        return functional.shape.right_triangle(
+            unsqueeze(x), params.pt(0), params.pt(1), False, self._m
         )
 
     def _calc_areas(self) -> torch.Tensor:
@@ -161,7 +171,7 @@ class DecreasingRightTriangle(Polygon):
         Returns:
             DecreasingRightTriangle: The updated vertical scale if the scale is greater
         """
-        updated_m = intersect(self._m, m)
+        updated_m = functional.inter(self._m, m)
         params = self._params()
         
         return DecreasingRightTriangle(
@@ -176,7 +186,7 @@ class DecreasingRightTriangle(Polygon):
         Returns:
             DecreasingRightTrapezoid: The triangle truncated into a RightTrapezoid
         """
-        updated_m = intersect(self._m, m)
+        updated_m = functional.inter(self._m, m)
         params = self._params()
 
         pt = calc_x_linear_decreasing(
@@ -204,13 +214,18 @@ class Triangle(Polygon):
             torch.Tensor: The membership
         """
         params = self._params()
-        m1 = calc_m_linear_increasing(
-            unsqueeze(x), params.pt(0), params.pt(1), self._m
+        x = unsqueeze(x)
+        # m1 = calc_m_linear_increasing(
+        #     unsqueeze(x), params.pt(0), params.pt(1), self._m
+        # )
+        # m2 = calc_m_linear_decreasing(
+        #     unsqueeze(x), params.pt(1), params.pt(2), self._m
+        # )
+        # return union(m1, m2)
+        return functional.shape.triangle(
+            x, params.pt(0), params.pt(1), params.pt(2), self._m
         )
-        m2 = calc_m_linear_decreasing(
-            unsqueeze(x), params.pt(1), params.pt(2), self._m
-        )
-        return union(m1, m2)
+
 
     def _calc_areas(self):
         """
@@ -250,7 +265,7 @@ class Triangle(Polygon):
         Returns:
             Triangle: The updated vertical scale if the scale is greater
         """
-        updated_m = intersect(self._m, m)        
+        updated_m = functional.inter(self._m, m)        
         return Triangle(
             self._params, updated_m
         )
@@ -263,7 +278,7 @@ class Triangle(Polygon):
         Returns:
             Trapezoid: The triangle truncated into a Trapezoid
         """
-        updated_m = intersect(self._m, m)
+        updated_m = functional.inter(self._m, m)
 
         params = self._params()
         pt1 = calc_x_linear_increasing(updated_m, params.pt(0), params.pt(1), self._m)
@@ -295,15 +310,19 @@ class IsoscelesTriangle(Polygon):
             torch.Tensor: The membership value of x
         """
         params = self._params()
-        left_m = calc_m_linear_increasing(
-            unsqueeze(x), params.pt(0), params.pt(1), self._m
+        x = unsqueeze(x)
+        # left_m = calc_m_linear_increasing(
+        #     unsqueeze(x), params.pt(0), params.pt(1), self._m
+        # )
+        # right_m = calc_m_linear_decreasing(
+        #     unsqueeze(x), params.pt(1), 
+        #     params.pt(1) + (params.pt(1) - params.pt(0)), 
+        #     self._m
+        # )
+        # return union(left_m, right_m)
+        return functional.shape.isosceles(
+            x, params.pt(0), params.pt(1), self._m
         )
-        right_m = calc_m_linear_decreasing(
-            unsqueeze(x), params.pt(1), 
-            params.pt(1) + (params.pt(1) - params.pt(0)), 
-            self._m
-        )
-        return union(left_m, right_m)
 
     def _calc_areas(self):
         """
@@ -342,7 +361,7 @@ class IsoscelesTriangle(Polygon):
             IsoscelesTriangle: The updated vertical scale if the scale is greater
         """
         params = self._params()
-        updated_m = intersect(self._m, m)
+        updated_m = functional.inter(self._m, m)
         return IsoscelesTriangle(
             params, updated_m
         )
@@ -356,7 +375,7 @@ class IsoscelesTriangle(Polygon):
             IsoscelesTrapezoid: The triangle truncated into an IsoscelesTrapezoid
         """
         params = self._params()
-        updated_m = intersect(self._m, m)
+        updated_m = functional.inter(self._m, m)
         pt1 = calc_x_linear_increasing(updated_m, params.pt(0), params.pt(1), self._m)
         pt2 = calc_x_linear_decreasing(
             updated_m, params.pt(1), params.pt(1) + params.pt(1) - params.pt(0), self._m)

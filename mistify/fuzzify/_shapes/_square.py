@@ -1,5 +1,7 @@
 from ._base import Polygon
 import torch
+from ... import _functional as functional
+from ...utils import unsqueeze
 
 
 class Square(Polygon):
@@ -18,10 +20,14 @@ class Square(Polygon):
             torch.Tensor: The membership value of x
         """
         params = self._params()
-        return (
-            (x[:,:,None] >= params.pt(0)) 
-            & (x[:,:,None] <= params.pt(1))
-        ).type_as(x) * self._m
+        x = unsqueeze(x)
+        # return (
+        #     (x[:,:,None] >= params.pt(0)) 
+        #     & (x[:,:,None] <= params.pt(1))
+        # ).type_as(x) * self._m
+        return functional.shape.square(
+            x, params.pt(0), params.pt(1), self._m
+        )
 
     def _calc_areas(self):
         """Calculates the area of each section and sums it up
@@ -64,7 +70,7 @@ class Square(Polygon):
         Returns:
             Square: The scaled square
         """
-        updated_m = torch.min(m, self._m)
+        updated_m = functional.inter(m, self._m)
         
         return Square(
             self._params, updated_m
@@ -79,7 +85,7 @@ class Square(Polygon):
         Returns:
             Square: The truncated square
         """
-        updated_m = torch.min(m, self._m)
+        updated_m = functional.inter(m, self._m)
 
         return Square(
             self._params, updated_m

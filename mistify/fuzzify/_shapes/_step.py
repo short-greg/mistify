@@ -6,8 +6,9 @@ import torch
 # local
 from ._base import ShapeParams, Monotonic
 from ...utils import unsqueeze
+from ... import _functional as functional
 
-intersect = torch.min
+# intersect = torch.min
 
 
 class Step(Monotonic):
@@ -30,7 +31,6 @@ class Step(Monotonic):
         self._threshold = threshold
         self._m = self._init_m(m, threshold.device)
 
-
     @property
     def thresholds(self) -> ShapeParams:
         """
@@ -47,15 +47,17 @@ class Step(Monotonic):
         )
 
     def join(self, x: torch.Tensor) -> torch.Tensor:
-        return intersect(self._m, (unsqueeze(x) >= self._threshold.pt(0)).type_as(x))
+        x = unsqueeze(x)
+        return self._m * functional.binarize(x - self._threshold.pt(0))
+        # return intersect(self._m, (unsqueeze(x) >= self._threshold.pt(0)).type_as(x))
 
     def _calc_min_cores(self):
         # NOTE: not correct if m is 0
         return self._threshold.pt(0) * torch.ones_like(self._m)
 
-    def _calc_area(self):
-        # NOTE: not correct if m is 0
-        return self._threshold.pt(0) * torch.zeros_like(self._m)
+    # def _calc_area(self):
+    #     # NOTE: not correct if m is 0
+    #     return self._threshold.pt(0) * torch.zeros_like(self._m)
 
     def truncate(self, m: torch.Tensor) -> 'Step':
         """Reduce the height of teh step function
@@ -66,5 +68,5 @@ class Step(Monotonic):
         Returns:
             Step: The updated step function
         """
-        m = intersect(self._m, m)
+        m = functional.inter(self._m, m)
         return Step(self._threshold, m)
