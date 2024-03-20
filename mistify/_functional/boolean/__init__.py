@@ -3,9 +3,9 @@
 #     BooleanOr, BooleanUnionOn, binary_func
 # )
 from ._generate import (
-    rand, positives, negatives
+    rand, positives, negatives, forget
 )
-from ._functional import (
-    differ, unify, intersect, intersect_on, unify_on, inclusion,
-    exclusion, complement, forget, else_
-)
+# from ._functional import (
+#     differ, unify, intersect, intersect_on, unify_on, inclusion,
+#     exclusion, complement, forget, else_
+# )

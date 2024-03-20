@@ -55,3 +55,14 @@ def unknowns(*size: int, dtype=torch.float32, device='cpu'):
     """
     return torch.full(size, 0.5, dtype=dtype, device=device)
 
+def forget(m: torch.Tensor, p: float) -> torch.Tensor:
+    """Randomly forget values (this will make them unknown)
+
+    Args:
+        m (torch.Tensor): the membership matrix
+        p (float): the probability of forgetting
+
+    Returns:
+        torch.Tensor: the tensor with randomly forgotten values
+    """
+    return m * (torch.rand_like(m) < p).type_as(m) + 0.5

@@ -30,7 +30,7 @@ class TestIntersectionOn:
 
     def test_intersection_on_returns_prod_value_on_dim_1(self):
 
-        intersect = ops.IntersectionOn(f='prod', dim=1)
+        intersect = ops.IntersectionOn(f='prob_inter_on', dim=1)
         m = torch.rand(3, 3, 2)
         m_out = intersect(m)
         t = m.prod(dim=1)
@@ -100,7 +100,7 @@ class TestElse:
 
     def test_else_returns_point7_if_all_max_is_point3(self):
 
-        else_ = ops.Else('boolean', keepdim=True)
+        else_ = ops.Else('else_', keepdim=True)
         x = torch.full((2, 2), 0.3)
         y = else_(x)
         t = torch.full((2, 1), 0.7)
@@ -108,7 +108,7 @@ class TestElse:
 
     def test_else_returns_neg1_if_all_positive(self):
 
-        else_ = ops.Else('signed', keepdim=True)
+        else_ = ops.Else('signed_else', keepdim=True)
         x = torch.full((2, 2), 1)
         y = else_(x)
         t = torch.full((2, 1), -1)
@@ -116,7 +116,7 @@ class TestElse:
 
     def test_else_returns_pos1_if_all_negative(self):
 
-        else_ = ops.Else('signed', keepdim=True)
+        else_ = ops.Else('signed_else', keepdim=True)
         x = torch.full((2, 2), -1)
         y = else_(x)
         t = torch.full((2, 1), 1)
@@ -143,7 +143,7 @@ class TestComplement:
 
     def test_complement_returns_neg_one_if_all_positive(self):
 
-        complement = ops.Complement('signed')
+        complement = ops.Complement('signed_complement')
         x = torch.ones(2, 2)
         y = complement(x)
         t = -torch.ones(2, 2)
@@ -151,7 +151,7 @@ class TestComplement:
 
     def test_complement_returns_one_if_all_negative(self):
 
-        complement = ops.Complement('signed')
+        complement = ops.Complement('signed_complement')
         x = -torch.ones(2, 2)
         y = complement(x)
         t = torch.ones(2, 2)

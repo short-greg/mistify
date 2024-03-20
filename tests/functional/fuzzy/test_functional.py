@@ -34,49 +34,10 @@ class TestFuzzySet(object):
         ones = fuzzy.rand(2, 3, 2, 4)
         assert ones.dim() == 4
 
-    def test_intersect_results_in_all_values_being_less_or_same(self):
-        torch.manual_seed(1)
-        c1 = fuzzy.rand(2, 3, 2, 4)
-        c2 = fuzzy.rand(2, 3, 2, 4)
-        c3 = fuzzy._functional.intersect(c1, c2)
-        assert (c3 <= c2).all()
-
-    def test_intersect_is_included_in_the_tensor(self):
-        
-        c1 = fuzzy.rand(2, 3, 2, 4)
-        c2 = fuzzy.rand(2, 3, 2, 4) * c1
-        assert (fuzzy._functional.inclusion(c2, c1) == 1).all()
-
-    def test_union_is_excluded_in_the_tensor(self):
-        
-        c1 = fuzzy.rand(2, 3, 2, 4)
-        c2 = fuzzy.rand(2, 3, 2, 4) + c1
-        assert (fuzzy._functional.exclusion(c2, c1).data == 1).all()
-    
-    def test_differ_is_greater_than_zero_for_all(self):
-        
-        c1 = fuzzy.rand(2, 3, 2, 4)
-        c2 = fuzzy.rand(2, 3, 2, 4)
-        assert ((fuzzy._functional.differ(c1, c2)).data >= 0.0).all()
-
-    def test_differ_is_included_in_tensor(self):
-        
-        c1 = fuzzy.rand(2, 3, 2, 4)
-        c2 = fuzzy.rand(2, 3, 2, 4)
-        assert (fuzzy._functional.inclusion(fuzzy._functional.differ(c1, c2), c1).data == 1.0).all()
-
     def test_transpose_tranposes_dimensions_correctly(self):
         
         c1 = fuzzy.rand(2, 3, 2, 4)
         assert (c1.transpose(1, 2) == c1.transpose(1, 2)).all()
-
-    def test_union_results_in_all_values_being_greater_or_same(self):
-        
-        torch.manual_seed(1)
-        c1 = fuzzy.rand(2, 3, 2, 4)
-        c2 = fuzzy.rand(2, 3, 2, 4)
-        c3 = fuzzy._functional.unify(c1, c2)
-        assert (c3.data >= c2.data).all()
     
     def test_rand_with_batch_and_variables_is_between_one_and_zero(self):
         

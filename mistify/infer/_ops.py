@@ -1,6 +1,5 @@
 # 1st party
 import typing
-from abc import abstractmethod
 
 # 3rd party
 import torch
@@ -9,9 +8,7 @@ import torch.nn as nn
 # local
 from .. import _functional
 from ..utils import EnumFactory
-from .._functional import signed
-from .._functional import fuzzy
-from .._functional import boolean
+from .._functional import _set_ops as set_ops
 
 
 class JunctionOn(nn.Module):
@@ -20,7 +17,7 @@ class JunctionOn(nn.Module):
 
     F = EnumFactory()
 
-    def __init__(self, f: typing.Union[typing.Callable, str]='min', dim: int=-1, keepdim: bool=False):
+    def __init__(self, f: typing.Union[typing.Callable, str]='inter_on', dim: int=-1, keepdim: bool=False):
         """Join sets that comprise a fuzzy set on a specified dimension
 
         Args:
@@ -45,11 +42,11 @@ class IntersectionOn(JunctionOn):
     """
 
     F = EnumFactory(
-        min=_functional.inter_on,
-        min_ada=_functional.smooth_inter_on,
-        prod=_functional.prob_inter_on,
-        bounded_min=_functional.bounded_inter_on,
-        prob_prod=_functional.prob_inter_on
+        inter_on=_functional.inter_on,
+        smooth_inter_on=_functional.smooth_inter_on,
+        bounded_inter_on=_functional.bounded_inter_on,
+        prob_inter_on=_functional.prob_inter_on,
+        ada_inter_on=_functional.ada_inter_on
     )
 
 
@@ -57,12 +54,14 @@ class UnionOn(JunctionOn):
     """Union on a specific dimension
     """
     F = EnumFactory(
-        max = _functional.union_on,
-        max_ada = _functional.smooth_union_on,
-        bounded_max=_functional.bounded_union_on
+        union_on = _functional.union_on,
+        smooth_union_on = _functional.smooth_union_on,
+        bounded_inter_on=_functional.bounded_union_on,
+        ada_union_on=_functional.ada_union_on,
+        prob_union_on=_functional.prob_union_on
     )
 
-    def __init__(self, f: typing.Union[typing.Callable, str]='max', dim: int=-1, keepdim: bool=False):
+    def __init__(self, f: typing.Union[typing.Callable, str]='union_on', dim: int=-1, keepdim: bool=False):
         """Union sets that comprise a fuzzy set on a specified dimension
 
         Args:
@@ -79,12 +78,11 @@ class UnionOn(JunctionOn):
 class Else(nn.Module):
 
     F = EnumFactory(
-        boolean=boolean.else_,
-        fuzzy=fuzzy.else_,
-        signed= signed.else_
+        else_=set_ops.else_,
+        signed_else=set_ops.signed_else_
     )
 
-    def __init__(self, f: typing.Callable='fuzzy', dim=-1, keepdim: bool = False):
+    def __init__(self, f: typing.Callable='else_', dim=-1, keepdim: bool = False):
         """Calculate else along a certain dimension It calculates the sum of all the membership values along the dimension
 
         Args:
@@ -111,7 +109,7 @@ class Else(nn.Module):
 
 class CatElse(nn.Module):
 
-    def __init__(self, f: typing.Callable='fuzzy', dim=-1):
+    def __init__(self, f: typing.Callable='else_', dim=-1):
         """Take the "Else" of the fuzzy set and then complement
 
         Args:
@@ -132,12 +130,11 @@ class CatElse(nn.Module):
 class Complement(nn.Module):
 
     F = EnumFactory(
-        signed = signed.complement,
-        boolean = boolean.complement,
-        fuzzy= fuzzy.complement
+        complement = set_ops.complement,
+        signed_complement = set_ops.signed_complement,
     )
 
-    def __init__(self, f: typing.Callable='boolean'):
+    def __init__(self, f: typing.Callable='complement'):
         """Take the complement of the set
 
         Args:
@@ -160,7 +157,7 @@ class Complement(nn.Module):
 
 class CatComplement(nn.Module):
 
-    def __init__(self, f: typing.Callable='boolean', dim=-1):
+    def __init__(self, f: typing.Callable='complement', dim=-1):
         """Take the complement and then concatenate it
 
         Args:
