@@ -6,8 +6,7 @@ import torch
 # local
 from ._base import ShapeParams, Monotonic
 from ...utils import unsqueeze
-
-intersect = torch.min
+from ... import _functional as functional
 
 
 class Ramp(Monotonic):
@@ -57,9 +56,11 @@ class Ramp(Monotonic):
         Returns:
             torch.Tensor: The membership
         """
+        x = unsqueeze(x)
         # min_ = torch.tensor(0, dtype=x.dtype, device=x.device)
-        m = (unsqueeze(x) * ((self._m / (self._coords.pt(1) - self._coords.pt(0))) - self._coords.pt(0)))
-        return torch.clamp(torch.clamp(m, max=self._m), 0.0)
+        # m = (unsqueeze(x) * ((self._m / (self._coords.pt(1) - self._coords.pt(0))) - self._coords.pt(0)))
+        # return torch.clamp(torch.clamp(m, max=self._m), 0.0)
+        return functional.ramp(x, self._coords.pt(0), self._coords.pt(1)) * self._m
     
     def _calc_min_cores(self):
         """
@@ -78,7 +79,7 @@ class Ramp(Monotonic):
         Returns:
             Ramp: The truncated ramp
         """
-        truncate_m = intersect(self._m, m)
+        truncate_m = functional.inter(self._m, m)
         pt = (truncate_m + self._coords.pt(0)) * (self._coords.pt(1) - self._coords.pt(0)) / self._m
         coords = self._coords.replace(pt, 1, True, truncate_m)
 

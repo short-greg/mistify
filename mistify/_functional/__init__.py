@@ -6,7 +6,7 @@ from . import fuzzy
 
 from ._m import (
     binarize, to_boolean, signify, 
-    to_signed, clamp
+    to_signed, clamp, ramp, threshold
 )
 from ._grad import (
     SignG, BinaryG,

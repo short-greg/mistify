@@ -9,9 +9,6 @@ from ._utils import (
 from ... import _functional as functional
 
 
-intersect = torch.min
-
-
 class Trapezoid(Polygon):
     """A general trapezoid consisting of four points
     """
@@ -405,4 +402,5 @@ class DecreasingRightTrapezoid(Polygon):
             updated_m, params.pt(0), params.pt(1), self._m
         )
         params = params.replace(x, 1, True, updated_m)
+
         return DecreasingRightTrapezoid(params, updated_m)

@@ -8,8 +8,7 @@ import torch
 from ._base import ShapeParams, Nonmonotonic
 from ...utils import unsqueeze, check_contains
 from ._utils import calc_dx_logistic, calc_area_logistic_one_side, calc_m_logistic, calc_x_logistic
-
-intersect = torch.min
+from ... import _functional as functional
 
 
 class Logistic(Nonmonotonic):
@@ -94,7 +93,7 @@ class LogisticBell(Logistic):
         Returns:
             LogisticBell: The updated LogisticBell
         """
-        updated_m = intersect(self._m, m)
+        updated_m = functional.inter(self._m, m)
         return LogisticBell(
             self._biases, self._scales, updated_m
         )
@@ -134,7 +133,7 @@ class LogisticTrapezoid(Logistic):
         super().__init__(biases, scales, scaled_m)
 
         truncated_m = self._init_m(truncated_m, biases.device)
-        self._truncated_m = intersect(truncated_m, self._m)
+        self._truncated_m = functional.inter(truncated_m, self._m)
         
         dx = unsqueeze(calc_dx_logistic(self._truncated_m, self._scales.pt(0), self._m))
         self._dx = ShapeParams(dx)
@@ -171,7 +170,7 @@ class LogisticTrapezoid(Logistic):
         return self._resize_to_m(self._biases.pt(0), self._m)
 
     def scale(self, m: torch.Tensor) -> 'LogisticTrapezoid':
-        updated_m = intersect(self._m, m)
+        updated_m = functional.inter(self._m, m)
         # TODO: check if multiplication is correct
         truncated_m = self._truncated_m * updated_m
 
@@ -180,7 +179,7 @@ class LogisticTrapezoid(Logistic):
         )
 
     def truncate(self, m: torch.Tensor) -> 'LogisticTrapezoid':
-        truncated_m = intersect(self._truncated_m, m)
+        truncated_m = functional.inter(self._truncated_m, m)
         return LogisticTrapezoid(
             self._biases, self._scales, truncated_m, self._m
         )
@@ -260,7 +259,7 @@ class RightLogistic(Logistic):
         Returns:
             RightLogistic: The updated vertical scale if the scale is greater
         """
-        updated_m = intersect(self._m, m)
+        updated_m = functional.inter(self._m, m)
         
         return RightLogistic(
             self._biases, self._scales, self._is_right, updated_m
@@ -275,7 +274,7 @@ class RightLogistic(Logistic):
         Returns:
             LogisticTrapezoid: The logistic with the top truncated
         """
-        truncated_m = intersect(self._m, m)
+        truncated_m = functional.inter(self._m, m)
         return RightLogisticTrapezoid(
             self._biases, self._scales, self._is_right, truncated_m, self._m
         )
@@ -308,7 +307,7 @@ class RightLogisticTrapezoid(Logistic):
         super().__init__(biases, scales, scaled_m)
 
         truncated_m = self._init_m(truncated_m, biases.device)
-        self._truncated_m = intersect(self._m, truncated_m)
+        self._truncated_m = functional.inter(self._m, truncated_m)
         dx = unsqueeze(calc_dx_logistic(self._truncated_m, self._scales.pt(0), self._m))
         self._dx = ShapeParams(dx)
         self._is_right = is_right
@@ -403,7 +402,7 @@ class RightLogisticTrapezoid(Logistic):
         Returns:
             RightLogisticTrapezoid: The updated vertical scale if the scale is greater
         """
-        updated_m = intersect(self._m, m)
+        updated_m = functional.inter(self._m, m)
 
         # TODO: Confirm if this is correct
         # I think it should be intersecting rather than multiplying
@@ -422,7 +421,7 @@ class RightLogisticTrapezoid(Logistic):
         Returns:
             RightLogisticTrapezoid: The updated vertical scale if the scale is greater
         """
-        truncated_m = intersect(self._truncated_m, m)
+        truncated_m = functional.inter(self._truncated_m, m)
         return RightLogisticTrapezoid(
             self._biases, self._scales, self._is_right, truncated_m, self._m
         )

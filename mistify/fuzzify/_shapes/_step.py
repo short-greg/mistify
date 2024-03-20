@@ -8,8 +8,6 @@ from ._base import ShapeParams, Monotonic
 from ...utils import unsqueeze
 from ... import _functional as functional
 
-# intersect = torch.min
-
 
 class Step(Monotonic):
     """A step membership function
@@ -48,8 +46,9 @@ class Step(Monotonic):
 
     def join(self, x: torch.Tensor) -> torch.Tensor:
         x = unsqueeze(x)
-        return self._m * functional.binarize(x - self._threshold.pt(0))
+        # return self._m * functional.binarize(x - self._threshold.pt(0))
         # return intersect(self._m, (unsqueeze(x) >= self._threshold.pt(0)).type_as(x))
+        return functional.threshold(x, self._threshold.pt(0)) * self._m
 
     def _calc_min_cores(self):
         # NOTE: not correct if m is 0

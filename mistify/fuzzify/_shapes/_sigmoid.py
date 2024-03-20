@@ -6,8 +6,7 @@ import torch
 # local
 from ._base import ShapeParams, Monotonic
 from ...utils import unsqueeze
-
-intersect = torch.min
+from ... import _functional as functional
 
 
 class Sigmoid(Monotonic):
@@ -61,7 +60,7 @@ class Sigmoid(Monotonic):
         """
         z = (unsqueeze(x) - self._biases.pt(0)) / self._scales.pt(0)
         
-        return intersect(self._truncate_m, torch.sigmoid(z))
+        return functional.inter(self._truncate_m, torch.sigmoid(z))
 
     def _calc_areas(self):
         # TODO: Need the integral of it
@@ -82,7 +81,7 @@ class Sigmoid(Monotonic):
             Sigmoid: The updated sigmoid
         """
         
-        updated_m = intersect(self._truncate_m, m)
+        updated_m = functional.inter(self._truncate_m, m)
         return Sigmoid(
             self._biases, self._scales, updated_m 
         )

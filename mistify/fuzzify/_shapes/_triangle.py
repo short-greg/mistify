@@ -9,9 +9,6 @@ from ...utils import unsqueeze
 
 from ... import _functional as functional
 
-# intersect = torch.min
-# union = torch.max
-
 
 class IncreasingRightTriangle(Polygon):
     """A right triangle with an increasing slope
@@ -383,6 +380,8 @@ class IsoscelesTriangle(Polygon):
         to_replace = torch.cat(
             [pt1.unsqueeze(3), pt2.unsqueeze(3)], dim=3
         )
+
+        # This will not work right
 
         params = self._params.replace(
             to_replace, 1, False, updated_m

@@ -54,6 +54,39 @@ def clamp(x: torch.Tensor, min_val: float=0.0, max_val: float=1.0, g: bool=False
     return ClampG.apply(x, min_val, max_val, ClipG(clip))
 
 
+def threshold(x: torch.Tensor, threshold: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
+    """
+
+    Args:
+        x (torch.Tensor): The value to threshold
+        threshold (torch.Tensor): The threshold
+        g (bool, optional): Where to use the ste. Defaults to False.
+        clip (float, optional): The . Defaults to None.
+
+    Returns:
+        torch.Tensor: The thresholded value
+    """
+    adjusted = x - threshold
+    return binarize(adjusted, g, clip)
+
+
+def ramp(x: torch.Tensor, lower: torch.Tensor, upper: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
+    """Use a ramp 
+
+    Args:
+        x (torch.Tensor): The value to ramp
+        lower (torch.Tensor): The lower value for the ramp
+        upper (torch.Tensor): The upper value for the ramp
+        g (bool, optional): Whether to use the ste. Defaults to False.
+        clip (float, optional): Value to clip by if using g. Defaults to None.
+
+    Returns:
+        torch.Tensor: The ramped 
+    """
+    scaled = (x - lower) / (upper - upper)
+    return clamp(scaled, 0.0, 1.0, g, clip)
+
+
 def to_boolean(signed: torch.Tensor) -> torch.Tensor:
     """Convert a signed (neg ones/ones) tensor to a binary one (zeros/ones)
 
