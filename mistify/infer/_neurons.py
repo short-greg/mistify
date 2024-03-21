@@ -91,8 +91,9 @@ class Or(LogicalNeuron):
 
     F = EnumFactory(
         max_min=functional.max_min,
-        max_min_ada=functional.ada_max_min,
-        max_prod=functional.max_prod
+        ada_max_min=functional.ada_max_min,
+        max_prod=functional.max_prod,
+
     )
 
     def __init__(self, in_features: int, out_features: int, n_terms: int=None, 
@@ -121,6 +122,12 @@ class And(LogicalNeuron):
     """An And neuron implements an and function where the input is unioned with the 
     weights and the intersection is used for the aggregation of those outputs.
     """
+    F = EnumFactory(
+        min_sum=functional.min_sum,
+        ada_min_max=functional.ada_min_max,
+        min_max=functional.min_max,
+        
+    )
 
     def __init__(self, in_features: int, out_features: int, n_terms: int=None, 
         f: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]]=None,
@@ -169,7 +176,7 @@ class MinMax(And):
         super().__init__(in_features, out_features, n_terms, 'min_max', wf)
 
 
-class MinSum(Or):
+class MinSum(And):
 
     def __init__(self, in_features: int, out_features: int, n_terms: int = None, wf: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]] = None) -> None:
         super().__init__(in_features, out_features, n_terms, 'min_sum', wf)

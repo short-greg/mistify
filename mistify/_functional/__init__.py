@@ -26,7 +26,7 @@ from ._join import (
 from ._logic import (
     max_min, min_max, 
     ada_max_min, ada_min_max,
-    max_prod
+    max_prod, min_sum
 )
 from ._factory import (
     AndF, OrF,
