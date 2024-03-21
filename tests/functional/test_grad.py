@@ -2,6 +2,64 @@ import torch
 from mistify._functional import _grad as F, ClipG, ZeroG
 
 
+class TestG:
+
+    def test_zerog_zeros_the_value(self):
+        g = F.ZeroG()
+        x = torch.rand(2)
+        grad = torch.rand(2)
+        oob = torch.tensor([True, False], dtype=torch.bool)
+        zerod = g(x, grad, oob)
+        assert zerod[0] == 0.0
+        assert zerod[1] == grad[1]
+
+    def test_zerog_doesnt_zero_the_value_if_false(self):
+        g = F.ZeroG()
+        x = torch.rand(2)
+        grad = torch.rand(2)
+        oob = False
+        zerod = g(x, grad, oob)
+        assert zerod[0] == grad[0]
+        assert zerod[1] == grad[1]
+
+    def test_mulg_multiplies_the_value(self):
+        g = F.MulG(0.1)
+        x = torch.rand(2)
+        grad = torch.rand(2)
+        oob = torch.tensor([True, False], dtype=torch.bool)
+        muld = g(x, grad, oob)
+        assert muld[0] == grad[0] * 0.1
+        assert muld[1] == grad[1]
+
+    def test_mulg_multiplies_all_values_if_true(self):
+        g = F.MulG(0.1)
+        x = torch.rand(2)
+        grad = torch.rand(2)
+        oob = True
+        muld = g(x, grad, oob)
+        assert muld[0] == grad[0] * 0.1
+        assert muld[1] == grad[1] * 0.1
+
+    def test_mulg_doesnt_multiply_if_none(self):
+        g = F.MulG(0.1)
+        x = torch.rand(2)
+        grad = torch.rand(2)
+        oob = None
+        muld = g(x, grad, oob)
+        assert muld[0] == grad[0] 
+        assert muld[1] == grad[1]
+
+    def test_all_passes_all_values(self):
+        g = F.AllG()
+        x = torch.rand(2)
+        grad = torch.rand(2)
+        oob = torch.tensor([True, False], dtype=torch.bool)
+        muld = g(x, grad, oob)
+        assert muld[0] == grad[0]
+        assert muld[1] == grad[1]
+
+
+
 class TestSignG:
 
     def test_sign_g(self):

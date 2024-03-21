@@ -5,7 +5,7 @@ import torch
 
 from ._grad import (
     MaxG, MaxOnG, MinG, ClampG,
-    MinOnG, ClipG, G, All, MulG
+    MinOnG, ClipG, G, AllG, MulG
 )
 
 

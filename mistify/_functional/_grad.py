@@ -24,7 +24,8 @@ class ClipG(G):
 
     def __call__(self, x: torch.Tensor, grad: torch.Tensor, oob: torch.Tensor=None):
         
-        if oob is None:
+        grad = grad.clone()
+        if oob is None or False:
             return grad
         if oob is True:
             grad = grad.clip(-self.val, self.val)
@@ -36,12 +37,18 @@ class ClipG(G):
 class MulG(G):
 
     def __init__(self, val: float):
+        """Multiply all values that are out of bounds
+
+        Args:
+            val (float): The value to multiply by
+        """
 
         self.val = val
 
     def __call__(self, x: torch.Tensor, grad: torch.Tensor, oob: torch.Tensor=None):
         
-        if oob is None:
+        grad = grad.clone()
+        if oob is None or False:
             return grad
         if oob is True:
             grad = grad * self.val
@@ -53,21 +60,31 @@ class MulG(G):
 class BindG(G):
 
     def __init__(self, val: float):
+        """Bind the gradient based on the value of x
+        (This one ignores oob)
+
+        Args:
+            val (float): The value to bind by
+        """
 
         self.val = val
 
     def __call__(self, x: torch.Tensor, grad: torch.Tensor, oob: torch.Tensor=None):
         
+        grad = grad.clone()
         oob = (x < -self.val) | (x > self.val)
         grad[oob] = 0.0
         return grad
 
 
 class ZeroG(G):
+    """Zero all gradients that are out of bounds
+    """
 
     def __call__(self, x: torch.Tensor, grad: torch.Tensor, oob: torch.Tensor=None):
         
-        if oob is None:
+        grad = grad.clone()
+        if oob is None or False:
             return grad
         
         if oob is True:
@@ -77,11 +94,13 @@ class ZeroG(G):
         return grad
 
 
-class All(G):
+class AllG(G):
+    """Allow all gradients to pass through as normal
+    """
 
     def __call__(self, x: torch.Tensor, grad: torch.Tensor, oob: torch.Tensor=None):
         
-        return grad
+        return grad.clone()
 
 
 class SignG(torch.autograd.Function):

@@ -11,7 +11,7 @@ from ._m import (
 from ._grad import (
     SignG, BinaryG,
     MaxG, MinG, ClampG, MaxOnG, MinOnG,
-    G, ClipG, All, ZeroG, BindG, MulG
+    G, ClipG, AllG, ZeroG, BindG, MulG
 )
 from ._join import (
     inter, inter_on, ada_inter,

@@ -65,7 +65,6 @@ class TestIncreasingRightTrapezoid(object):
         assert isinstance(shape, _trapezoid.IncreasingRightTrapezoid)
 
 
-
 class TestTrapezoid(object):
 
     def test_join_returns_fuzzy_set_with_correct_size(self):
