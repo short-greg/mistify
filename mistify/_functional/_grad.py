@@ -349,10 +349,11 @@ class MaxOnG(torch.autograd.Function):
         condition = (x >= t) & (x <= y)
         grad_input[condition] = torch.relu(x - t)[condition]
 
-        abs_grad = grad_output.abs()
+        # abs_grad = grad_output.abs()
         if ctx.g is not None:
+            min_diff = (x - t).min(dim=ctx.dim, keepdim=True)[0].abs()
             condition2 = (x < t) & (x < y)
-            grad_input[condition2] = -torch.min(abs_grad, torch.relu(t - x))[condition2]
+            grad_input[condition2] = -torch.min(min_diff, torch.relu(t - x))[condition2]
             grad_input = ctx.g(x, grad_input, condition2)
 
         return grad_input, None, None, None
@@ -395,10 +396,12 @@ class MinOnG(torch.autograd.Function):
         condition = (x <= t) & (x <= y)
         grad_input[condition] = -torch.relu(t - x)[condition]
 
-        abs_grad = grad_output.abs()
+        # abs_grad = grad_output.abs()
         if ctx.g is not None:
+            min_diff = (x - t).min(dim=ctx.dim, keepdim=True)[0].abs()
+
             condition2 = (x > t) & (x > y)
-            grad_input[condition2] = torch.min(abs_grad, torch.relu(x - t))[condition2]
+            grad_input[condition2] = torch.min(min_diff, torch.relu(x - t))[condition2]
             grad_input = ctx.g(x, grad_input, condition2)
 
         return grad_input, None, None, None

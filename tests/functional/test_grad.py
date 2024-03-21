@@ -59,7 +59,6 @@ class TestG:
         assert muld[1] == grad[1]
 
 
-
 class TestSignG:
 
     def test_sign_g(self):
