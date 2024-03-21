@@ -8,7 +8,7 @@ class TestOr:
 
         x = torch.rand(6, 4)
         w = torch.rand(4, 8)
-        assert F.or_(
+        assert F.max_min(
             x, w
         ).shape == torch.Size([6, 8])
 
@@ -17,7 +17,7 @@ class TestOr:
         x = torch.rand(6, 4, requires_grad=True)
         x.retain_grad()
         w = torch.rand(4, 8)
-        y = F.or_(x, w)
+        y = F.max_min(x, w)
         y.sum().backward()
         assert (x.grad != 0).any()
 
@@ -26,7 +26,7 @@ class TestOr:
         x = torch.rand(6, 4, requires_grad=True)
         x.retain_grad()
         w = torch.rand(4, 8)
-        y = F.or_(x, w, g=ClipG(0.1))
+        y = F.max_min(x, w, g=ClipG(0.1))
         y.sum().backward()
         assert (x.grad != 0).any()
 
@@ -37,7 +37,7 @@ class TestAnd:
 
         x = torch.rand(6, 4)
         w = torch.rand(4, 8)
-        assert F.and_(
+        assert F.min_max(
             x, w
         ).shape == torch.Size([6, 8])
 
@@ -46,7 +46,7 @@ class TestAnd:
         x = torch.rand(6, 4, requires_grad=True)
         x.retain_grad()
         w = torch.rand(4, 8)
-        y = F.and_(x, w)
+        y = F.min_max(x, w)
         y.sum().backward()
         assert (x.grad != 0).any()
 
@@ -55,7 +55,7 @@ class TestAnd:
         x = torch.rand(6, 4, requires_grad=True)
         x.retain_grad()
         w = torch.rand(4, 8)
-        y = F.and_(x, w, g=ClipG(0.1))
+        y = F.min_max(x, w, g=ClipG(0.1))
         y.sum().backward()
         assert (x.grad != 0).any()
 
@@ -66,7 +66,7 @@ class TestAdaOr:
 
         x = torch.rand(6, 4)
         w = torch.rand(4, 8)
-        assert F.ada_or(
+        assert F.ada_max_min(
             x, w
         ).shape == torch.Size([6, 8])
 
@@ -75,7 +75,7 @@ class TestAdaOr:
         x = torch.rand(6, 4, requires_grad=True)
         x.retain_grad()
         w = torch.rand(4, 8)
-        y = F.ada_or(x, w)
+        y = F.ada_max_min(x, w)
         y.sum().backward()
         assert (x.grad != 0).any()
 
@@ -84,7 +84,7 @@ class TestAdaOr:
         x = torch.rand(6, 4, requires_grad=True)
         x.retain_grad()
         w = torch.rand(4, 8)
-        y = F.ada_or(x, w)
+        y = F.ada_max_min(x, w)
         y.sum().backward()
         assert (x.grad != 0).any()
 
@@ -95,7 +95,7 @@ class TestAdaAnd:
 
         x = torch.rand(6, 4)
         w = torch.rand(4, 8)
-        assert F.ada_and(
+        assert F.ada_min_max(
             x, w
         ).shape == torch.Size([6, 8])
 
@@ -104,7 +104,7 @@ class TestAdaAnd:
         x = torch.rand(6, 4, requires_grad=True)
         x.retain_grad()
         w = torch.rand(4, 8)
-        y = F.ada_and(x, w)
+        y = F.ada_min_max(x, w)
         y.sum().backward()
         assert (x.grad != 0).any()
 
@@ -113,7 +113,7 @@ class TestAdaAnd:
         x = torch.rand(6, 4, requires_grad=True)
         x.retain_grad()
         w = torch.rand(4, 8)
-        y = F.ada_and(x, w)
+        y = F.ada_min_max(x, w)
         y.sum().backward()
         assert (x.grad != 0).any()
 
@@ -124,7 +124,7 @@ class TestOrProd:
 
         x = torch.rand(6, 4)
         w = torch.rand(4, 8)
-        assert F.or_prod(
+        assert F.max_prod(
             x, w
         ).shape == torch.Size([6, 8])
 
@@ -133,7 +133,7 @@ class TestOrProd:
         x = torch.rand(6, 4, requires_grad=True)
         x.retain_grad()
         w = torch.rand(4, 8)
-        y = F.or_prod(x, w)
+        y = F.max_prod(x, w)
         y.sum().backward()
         assert (x.grad != 0).any()
 
@@ -142,6 +142,6 @@ class TestOrProd:
         x = torch.rand(6, 4, requires_grad=True)
         x.retain_grad()
         w = torch.rand(4, 8)
-        y = F.or_prod(x, w, g=ClipG(0.1))
+        y = F.max_prod(x, w, g=ClipG(0.1))
         y.sum().backward()
         assert (x.grad != 0).any()

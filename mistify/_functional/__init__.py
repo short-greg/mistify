@@ -24,12 +24,12 @@ from ._join import (
 )
 
 from ._logic import (
-    or_, and_, 
-    ada_or, ada_and,
-    or_prod
+    max_min, min_max, 
+    ada_max_min, ada_min_max,
+    max_prod
 )
 from ._factory import (
-    AndF, OrF,
+    # AndF, OrF,
     Union, UnionOn, Inter, InterOn
 )
 from . import _shape as shape

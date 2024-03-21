@@ -1,5 +1,4 @@
 # 1st party
-import typing
 from abc import ABC, abstractmethod
 
 # 3rd party
@@ -349,7 +348,6 @@ class MaxOnG(torch.autograd.Function):
         condition = (x >= t) & (x <= y)
         grad_input[condition] = torch.relu(x - t)[condition]
 
-        # abs_grad = grad_output.abs()
         if ctx.g is not None:
             min_diff = (x - t).min(dim=ctx.dim, keepdim=True)[0].abs()
             condition2 = (x < t) & (x < y)
@@ -396,7 +394,6 @@ class MinOnG(torch.autograd.Function):
         condition = (x <= t) & (x <= y)
         grad_input[condition] = -torch.relu(t - x)[condition]
 
-        # abs_grad = grad_output.abs()
         if ctx.g is not None:
             min_diff = (x - t).min(dim=ctx.dim, keepdim=True)[0].abs()
 

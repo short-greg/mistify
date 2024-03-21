@@ -5,38 +5,40 @@ import torch
 
 from ._grad import (
     MaxG, MaxOnG, MinG, ClampG,
-    MinOnG, ClipG, G, AllG, MulG
+    MinOnG, G
 )
 
 
-def union(x1: torch.Tensor, x2: torch.Tensor, g: bool=False) -> torch.Tensor:
+def union(x1: torch.Tensor, x2: torch.Tensor, g: G=None) -> torch.Tensor:
     """Convenience function to use the straight through estimator for max
 
     Args:
         x1 (torch.Tensor): First tensor
         x2 (torch.Tensor): Second tensor
+        g (G): Function to use on grads for straight through estimation
 
     Returns:
         torch.Tensor: The max tensor
     """
-    if g is False:
+    if g is None:
         return torch.max(x1, x2)
-    return MaxG.apply(x1, x2, ClipG(0.1))
+    return MaxG.apply(x1, x2, g)
 
 
-def inter(x1: torch.Tensor, x2: torch.Tensor, g: bool=False) -> torch.Tensor:
+def inter(x1: torch.Tensor, x2: torch.Tensor, g: G=None) -> torch.Tensor:
     """Convenience function to use the straight through estimator for min
 
     Args:
         x1 (torch.Tensor): First tensor
         x2 (torch.Tensor): Second tensor
+        g (G): Function to use on grads for straight through estimation
 
     Returns:
         torch.Tensor: The min tensor
     """
-    if g is False:
+    if g is None:
         return torch.min(x1, x2)
-    return MinG.apply(x1, x2, ClipG(0.1))
+    return MinG.apply(x1, x2, g)
 
 def smooth_union(x: torch.Tensor, x2: torch.Tensor, a: float=None) -> torch.Tensor:
     """Smooth approximation to the max function of two tensors
@@ -184,39 +186,43 @@ def ada_inter_on(x: torch.Tensor, dim: int, keepdim: bool=False) -> torch.Tensor
     return (torch.sum(x ** q.unsqueeze(dim), dim=dim, keepdim=keepdim) / x.size(dim)) ** (1 / q)
 
 
-def inter_on(x: torch.Tensor, dim: int=-1, keepdim: bool=False, g: bool=False, idx: bool=False) -> torch.Tensor:
+def inter_on(x: torch.Tensor, dim: int=-1, keepdim: bool=False, g: G=None, idx: bool=False) -> torch.Tensor:
     """Convenience function to use the straight through estimator for min
 
     Args:
         x (torch.Tensor): The input
         dim (int, optional): The dimension. Defaults to -1.
         keepdim (bool, optional): Whether to keep the dimension. Defaults to False.
+        g (G): Function to use on grads for straight through estimation
+        idx: Whether to keep the index that is output for calculating Min
 
     Returns:
         torch.Tensor: The min
     """
-    if g is False:
+    if g is None:
         y = torch.min(x, dim, keepdim)
-    else: y = MinOnG.apply(x, dim, keepdim, ClipG(0.1))
+    else: y = MinOnG.apply(x, dim, keepdim, g)
     if idx:
         return y
     return y[0]
 
 
-def union_on(x: torch.Tensor, dim: int=-1, keepdim: bool=False, g: bool=False, idx: bool=False) -> torch.Tensor:
+def union_on(x: torch.Tensor, dim: int=-1, keepdim: bool=False, g: G=None, idx: bool=False) -> torch.Tensor:
     """Convenience function to use the straight through estimator for max
 
     Args:
         x (torch.Tensor): The input
         dim (int, optional): The dimension. Defaults to -1.
         keepdim (bool, optional): Whether to keep the dimension. Defaults to False.
+        g (G): Function to use on grads for straight through estimation
+        idx: Whether to keep the index that is output for calculating Max
 
     Returns:
         torch.Tensor: The max
     """
-    if g is False:
+    if g is None:
         y = torch.max(x, dim, keepdim)
-    else: y = MaxOnG.apply(x, dim, keepdim, ClipG(0.1))
+    else: y = MaxOnG.apply(x, dim, keepdim, g)
     if idx:
         return y
     return y[0]
@@ -274,51 +280,53 @@ def prob_union_on(x: torch.Tensor, dim: int=-1, keepdim: bool=False) -> torch.Te
     return 1 - torch.prod(1 - x, dim=dim, keepdim=keepdim)
 
 
-def bounded_inter(x1: torch.Tensor, x2: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
+def bounded_inter(x1: torch.Tensor, x2: torch.Tensor, g: G=None) -> torch.Tensor:
     """Convenience function to use the straight through estimator for bounded min
 
     Args:
         x1 (torch.Tensor): First tensor
         x2 (torch.Tensor): Second tensor
+        g (G): Function to use on grads for straight through estimation
 
     Returns:
         torch.Tensor: The max tensor
     """
     y = x1 + x2 - 1
-    # max_val = torch.tensor(0.0, dtype=x1.dtype, device=x1.device)
-    if g is False:
+    if g is None:
         return torch.relu(y)
     return ClampG.apply(
-        y, 0.0, 1.0, ClipG(0.1)
+        y, 0.0, 1.0, g
     )
 
 
-def bounded_union(x1: torch.Tensor, x2: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
+def bounded_union(x1: torch.Tensor, x2: torch.Tensor, g: G=None) -> torch.Tensor:
     """Convenience function to use the straight through estimator for bounded max
 
     Args:
         x1 (torch.Tensor): First tensor
         x2 (torch.Tensor): Second tensor
+        g (G): Function to use on grads for straight through estimation
 
     Returns:
         torch.Tensor: The max tensor
     """
     y = x1 + x2
     # max_val = torch.tensor(1.0, dtype=x1.dtype, device=x1.device)
-    if g is False:
+    if g is None:
         return torch.clamp(y, max=1.0)
     return ClampG.apply(
-        y, 0.0, 1.0, ClipG(0.1)
+        y, 0.0, 1.0, g
     )
 
 
-def bounded_union_on(m: torch.Tensor, dim=-1, keepdim: bool=False, g: bool=False, clip: float=None) -> torch.Tensor:
+def bounded_union_on(m: torch.Tensor, dim=-1, keepdim: bool=False, g: G=None) -> torch.Tensor:
     """Take the bounded max on a given dimension
 
     Args:
         x (torch.Tensor): Tensor to take the bounded max of
         dim (int, optional): The dimension to take the bounded max on. Defaults to -1.
         keepdim (bool, optional): Whether to keep the dim. Defaults to False.
+        g (G): Function to use on grads for straight through estimation
 
     Returns:
         torch.Tensor: The bounded max
@@ -327,17 +335,18 @@ def bounded_union_on(m: torch.Tensor, dim=-1, keepdim: bool=False, g: bool=False
     if g is None:
         return torch.clamp(y, max=1.0)
     return ClampG.apply(
-        y, 0.0, 1.0, ClipG(0.1)
+        y, 0.0, 1.0, g
     )
 
 
-def bounded_inter_on(x: torch.Tensor, dim=-1, keepdim: bool=False, g: bool=False, clip: float=None) -> torch.Tensor:
+def bounded_inter_on(x: torch.Tensor, dim=-1, keepdim: bool=False, g: G=None) -> torch.Tensor:
     """Take the bounded min on a given dimension
 
     Args:
         x (torch.Tensor): Tensor to take the bounded min of
         dim (int, optional): The dimension to take the bounded min on. Defaults to -1.
         keepdim (bool, optional): Whether to keep the dim. Defaults to False.
+        g (G): Function to use on grads for straight through estimation
 
     Returns:
         torch.Tensor: The bounded min
@@ -346,5 +355,5 @@ def bounded_inter_on(x: torch.Tensor, dim=-1, keepdim: bool=False, g: bool=False
     if g is False:
         return torch.relu(y)
     return ClampG.apply(
-        y, 0.0, 1.0, ClipG(0.1)
+        y, 0.0, 1.0, g
     )
