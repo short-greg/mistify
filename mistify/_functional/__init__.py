@@ -29,7 +29,7 @@ from ._logic import (
     max_prod
 )
 from ._factory import (
-    # AndF, OrF,
+    AndF, OrF,
     Union, UnionOn, Inter, InterOn
 )
 from . import _shape as shape

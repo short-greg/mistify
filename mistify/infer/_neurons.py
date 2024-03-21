@@ -12,6 +12,8 @@ from .. import _functional as functional
 from .._functional import G
 from ..utils import EnumFactory
 
+from typing_extensions import Self
+
 
 WEIGHT_FACTORY = EnumFactory(
     sigmoid=torch.sigmoid,
@@ -173,100 +175,102 @@ class MinSum(Or):
         super().__init__(in_features, out_features, n_terms, 'min_sum', wf)
 
 
-class LogisticFBuilder(object):
+class BuildLogical(object):
 
-    def sigmoid_wf(self) -> 'LogisticFBuilder':
+    def sigmoid_wf(self) -> Self:
 
         self.wf = torch.sigmoid
         return self
     
-    def sign_wf(self, g: G=None) -> 'LogisticFBuilder':
+    def sign_wf(self, g: G=None) -> Self:
 
         self.wf = partial(functional.signify, g=g)
         return self
     
-    def no_wf(self) -> 'LogisticFBuilder':
+    def no_wf(self) -> Self:
 
         self.wf = lambda x: x
         return self
 
-    def boolean_wf(self, g: G=None) -> 'LogisticFBuilder':
+    def boolean_wf(self, g: G=None) -> Self:
 
         self.wf = partial(functional.binarize, g=g)
         return self
 
-    def clamp_wf(self, min_val: float=0.0, max_val: float=1.0, g: G=None) -> 'LogisticFBuilder':
+    def clamp_wf(self, min_val: float=0.0, max_val: float=1.0, g: G=None) -> Self:
 
         self.wf = partial(functional.clamp, min_val=min_val, max_val=max_val, g=g)
         return self
 
 
-class OrB(LogisticFBuilder):
+class BuildOr(BuildLogical):
 
     def __init__(self) -> None:
         super().__init__()
         self.inter()
         self.union_on()
 
-    def sub1(self, sub1: bool=True) -> 'OrB':
+    def sub1(self, sub1: bool=True) -> Self:
         self.sub1 = sub1
         return self
     
-    def inter(self, g: G=None) -> 'OrB':
+    def inter(self, g: G=None) -> Self:
 
         self.interf = partial(functional.inter, g=g)
         return self
 
-    def prob_inter(self) -> 'OrB':
+    def prob_inter(self) -> Self:
 
         self.interf = functional.prob_inter
         return self
 
-    def smooth_inter(self, a: float=10.0) -> 'OrB':
+    def smooth_inter(self, a: float=10.0) -> Self:
 
         self.interf = partial(functional.smooth_inter, a=a)
         return self
 
-    def ada_inter(self) -> 'OrB':
+    def ada_inter(self) -> Self:
 
         self.interf = functional.ada_inter
         return self
 
-    def bounded_inter(self, g: G=None) -> 'OrB':
+    def bounded_inter(self, g: G=None) -> Self:
 
         self.interf = partial(functional.bounded_inter, g=g)
         return self
 
-    def union_on(self, g: G=None) -> 'OrB':
+    def union_on(self, g: G=None) -> Self:
 
         self.union_onf = partial(functional.union_on, g=g)
         return self
 
-    def prob_union_on(self) -> 'OrB':
+    def prob_union_on(self) -> Self:
 
         self.union_onf = functional.prob_union_on
         return self
 
-    def smooth_union_on(self, a: float=10.0) -> 'OrB':
+    def smooth_union_on(self, a: float=10.0) -> Self:
 
         self.union_onf = partial(functional.smooth_union_on, a=a)
         return self
 
-    def ada_union_on(self) -> 'OrB':
+    def ada_union_on(self) -> Self:
 
         self.union_onf = functional.ada_union_on
         return self
 
-    def bounded_union_on(self, g: G=None) -> 'OrB':
+    def bounded_union_on(self, g: G=None) -> Self:
 
         self.union_onf = partial(functional.bounded_union_on, g=g)
         return self
 
-    def lambda_union_on(self, union_on_f):
+    def lambda_union_on(self, union_on_f) -> Self:
         self.union_onf = union_on_f
+        return self
 
-    def lambda_inter(self, inter_f):
+    def lambda_inter(self, inter_f) -> Self:
         self.interf = inter_f
+        return self
 
     def build(self, in_features: int, out_features: int, n_terms: int=None) -> 'Or':
 
@@ -275,76 +279,73 @@ class OrB(LogisticFBuilder):
         )
 
 
-class AndB(LogisticFBuilder):
-    """_summary_
-
-    Args:
-        LogisticFBuilder (_type_): _description_
-    """
+class BuildAnd(BuildLogical):
 
     def __init__(self) -> None:
+        """Build an and function
+        """
         super().__init__()
         self.union()
         self.inter_on()
 
-    def sub1(self, sub1: bool=True) -> 'AndB':
+    def sub1(self, sub1: bool=True) -> Self:
         self.sub1 = sub1
         return self
     
-    def union(self, g: G=None) -> 'AndB':
+    def union(self, g: G=None) -> Self:
 
         self.unionf = partial(functional.union, g=g)
         return self
 
-    def prob_union(self) -> 'AndB':
+    def prob_union(self) -> Self:
 
         self.unionf = functional.prob_union
         return self
 
-    def smooth_union(self, a: float=10.0) -> 'AndB':
+    def smooth_union(self, a: float=10.0) -> Self:
 
         self.unionf = partial(functional.smooth_union, a=a)
         return self
 
-    def ada_union(self) -> 'AndB':
+    def ada_union(self) -> Self:
 
         self.unionf = functional.ada_union
         return self
 
-    def bounded_union(self) -> 'AndB':
+    def bounded_union(self) -> Self:
 
-        self.unionf = partial(functional.bounded_union, g=g)
+        self.unionf = partial(functional.bounded_union, g=G)
         return self
 
-    def inter_on(self, g: G=None) -> 'AndB':
+    def inter_on(self, g: G=None) -> Self:
 
         self.inter_onf = partial(functional.inter_on, g=g)
         return self
 
-    def prob_inter_on(self) -> 'AndB':
+    def prob_inter_on(self) -> Self:
 
         self.inter_onf = functional.prob_inter_on
         return self
 
-    def smooth_inter_on(self, a: float=10.0) -> 'AndB':
+    def smooth_inter_on(self, a: float=10.0) -> Self:
 
         self.inter_onf = partial(functional.smooth_inter_on, a=a)
         return self
 
-    def ada_inter_on(self) -> 'AndB':
+    def ada_inter_on(self) -> Self:
 
         self.inter_onf = functional.ada_inter_on
         return self
 
-    def bounded_inter_on(self, g: G=None) -> 'AndB':
+    def bounded_inter_on(self, g: G=None) -> Self:
 
         self.inter_onf = partial(functional.bounded_inter_on, g=g)
         return self
 
-    def lambda_inter_on(self, inter_on_f):
+    def lambda_inter_on(self, inter_on_f) -> Self:
         self.inter_onf = inter_on_f
 
-    def lambda_union(self, union_f):
+    def lambda_union(self, union_f) -> Self:
         self.unionf = union_f
 
     def build(self, in_features: int, out_features: int, n_terms: int=None) -> 'And':

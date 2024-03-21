@@ -1,7 +1,6 @@
 # 3rd party
 import torch
 
-
 from ._join import (
     union_on, inter, ada_inter, ada_inter_on,
     ada_union, ada_union_on, union, inter_on,

@@ -1,5 +1,5 @@
 from mistify.infer import _neurons as neurons
-from mistify._functional import fuzzy, boolean
+from mistify._functional import fuzzy, boolean, MulG, ClipG
 
 import torch
 
@@ -91,15 +91,57 @@ class TestCrispComposition(object):
         crisp_set = boolean.rand(4, 2, 2)
         assert composition.forward(crisp_set).size() == torch.Size([4, 2, 4])
 
-#     # def test_forward_outputs_all_ones_or_zeros(self):
-#     #     composition = crisp.CrispComposition(2, 4, True, in_variables=2)
-#     #     crisp_set = crisp.CrispSet.rand(4, 2, 2)
-#     #     result = composition.forward(crisp_set)
-#     #     assert ((result.data == torch.tensor(1.0)) | (result.data == torch.tensor(0.0))).all()
 
-#     # def test_forward_outputs_correct_size(self):
-#     #     composition = crisp.CrispComposition(2, 4, True, in_variables=2)
-#     #     crisp_set = crisp.CrispSet.rand(4, 2, 2)
-#     #     result = composition.forward(crisp_set)
-#     #     assert result.data.size() == torch.Size([4, 2, 4])
+class TestAndB(object):
+
+    def test_build_and_builds_and_neuron_with_g_with_correct_shape(self):
+
+        x = torch.Tensor(5, 4)
+        neuron = neurons.BuildAnd().boolean_wf(ClipG(0.1)).inter_on(
+            MulG(0.1)
+        ).union(MulG(0.1)).build(4, 8)
+        assert neuron(x).shape == torch.Size([5, 8])
+
+    def test_build_and_builds_and_neuron_with_g(self):
+
+        neuron = neurons.BuildAnd().boolean_wf(ClipG(0.1)).inter_on(
+            MulG(0.1)
+        ).union(MulG(0.1)).build(4, 8)
+        assert isinstance(neuron, neurons.And)
+
+
+class TestOrB(object):
+
+    def test_build_or_builds_or_neuron_with_correct_out_shape(self):
+
+        x = torch.Tensor(5, 4)
+        neuron = (
+            neurons.BuildOr()
+                   .clamp_wf()
+                   .inter()
+                   .union_on()
+        ).build(4, 8)
+        assert neuron(x).shape == torch.Size([5, 8])
+
+    def test_build_or_builds_or_neuron_with_g_with_correct_shape(self):
+
+        x = torch.Tensor(5, 4)
+        neuron = neurons.BuildOr().boolean_wf(ClipG(0.1)).inter(
+            MulG(0.1)
+        ).union_on(MulG(0.1)).build(4, 8)
+        assert neuron(x).shape == torch.Size([5, 8])
+
+    def test_build_or_builds_or_neuron_with_g(self):
+
+        neuron = neurons.BuildOr().boolean_wf(ClipG(0.1)).inter(
+            MulG(0.1)
+        ).union_on(MulG(0.1)).build(4, 8)
+        assert isinstance(neuron, neurons.Or)
+
+    def test_build_or_builds_or_neuron_with_prob(self):
+
+        neuron = neurons.BuildOr().boolean_wf(ClipG(0.1)).prob_inter(
+        
+        ).prob_union_on().build(4, 8)
+        assert isinstance(neuron, neurons.Or)
 

@@ -3,7 +3,6 @@ from abc import abstractmethod, ABC
 import torch
 from functools import partial
 import typing
-from ..utils import EnumFactory
 
 from ._join import (
     prob_inter, bounded_inter_on, prob_union, prob_inter_on,
@@ -91,60 +90,60 @@ class Union(Enum):
         return self.value[0](x1, x2, **kwargs)
 
 
-# class LogicalF(ABC):
-#     """A function for executing 
-#     """
+class LogicalF(ABC):
+    """A function for executing 
+    """
 
-#     @abstractmethod
-#     def __call__(self, x: torch.Tensor, w: torch.Tensor, dim=-2) -> torch.Tensor:
-#         pass
-
-
-# class AndF(LogicalF):
-
-#     def __init__(self, union: BETWEEN_F, inter_on: ON_F):
-#         """Create a Functor for performing an And operation between
-#         a tensor and a weight
-
-#         Args:
-#             union (BETWEEN_F): The inner operation
-#             inter_on (ON_F): The aggregate operation
-#         """
-#         if isinstance(union, str):
-#             union = Union[union]
-#         if isinstance(inter_on, str):
-#             inter_on = InterOn[inter_on]
-
-#         self.union = union
-#         self.inter_on = inter_on
-
-#     def __call__(self, x: torch.Tensor, w: torch.Tensor, dim=-2) -> torch.Tensor:
-
-#         return self.inter_on(
-#             self.union(x.unsqueeze(-1), w[None]), dim=dim
-#         )
+    @abstractmethod
+    def __call__(self, x: torch.Tensor, w: torch.Tensor, dim=-2) -> torch.Tensor:
+        pass
 
 
-# class OrF(LogicalF):
+class AndF(LogicalF):
 
-#     def __init__(self, inter: BETWEEN_F, union_on: ON_F):
-#         """Create a Functor for performing an Or operation between
-#         a tensor and a weight
+    def __init__(self, union: BETWEEN_F, inter_on: ON_F):
+        """Create a Functor for performing an And operation between
+        a tensor and a weight
 
-#         Args:
-#             inter (BETWEEN_F): The inner operation
-#             union_on (ON_F): The aggregate operation
-#         """
-#         if isinstance(inter, str):
-#             inter = Inter[inter]
-#         if isinstance(union_on, str):
-#             union_on = UnionOn[union_on]
+        Args:
+            union (BETWEEN_F): The inner operation
+            inter_on (ON_F): The aggregate operation
+        """
+        if isinstance(union, str):
+            union = Union[union]
+        if isinstance(inter_on, str):
+            inter_on = InterOn[inter_on]
 
-#         self.union_on = union_on
-#         self.inter = inter
+        self.union = union
+        self.inter_on = inter_on
 
-#     def __call__(self, x: torch.Tensor, w: torch.Tensor, dim=-2) -> torch.Tensor:
+    def __call__(self, x: torch.Tensor, w: torch.Tensor, dim=-2) -> torch.Tensor:
 
-#         return self.union_on(
-#             self.inter(x.unsqueeze(-1), w[None]), dim=dim
-#         )
+        return self.inter_on(
+            self.union(x.unsqueeze(-1), w[None]), dim=dim
+        )
+
+
+class OrF(LogicalF):
+
+    def __init__(self, inter: BETWEEN_F, union_on: ON_F):
+        """Create a Functor for performing an Or operation between
+        a tensor and a weight
+
+        Args:
+            inter (BETWEEN_F): The inner operation
+            union_on (ON_F): The aggregate operation
+        """
+        if isinstance(inter, str):
+            inter = Inter[inter]
+        if isinstance(union_on, str):
+            union_on = UnionOn[union_on]
+
+        self.union_on = union_on
+        self.inter = inter
+
+    def __call__(self, x: torch.Tensor, w: torch.Tensor, dim=-2) -> torch.Tensor:
+
+        return self.union_on(
+            self.inter(x.unsqueeze(-1), w[None]), dim=dim
+        )
