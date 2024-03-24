@@ -109,3 +109,13 @@ def to_signed(boolean: torch.Tensor) -> torch.Tensor:
         torch.Tensor: The signed tensor
     """
     return (boolean * 2) - 1
+
+
+# class Argmax(nn.Module):
+
+#     def __init__(self, dim=-1):
+#         super().__init__()
+#         self._dim = dim
+
+#     def forward(self, x: torch.Tensor) -> torch.LongTensor:
+#         return torch.argmax(x, dim=-1)

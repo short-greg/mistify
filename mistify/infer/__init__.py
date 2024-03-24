@@ -10,3 +10,7 @@ from ._ops import (
     Complement, CatComplement, CatElse, 
     Else
 )
+from ._activate import (
+    MembershipActivation, Descale,
+    Sigmoidal, Triangular, Hedge
+)

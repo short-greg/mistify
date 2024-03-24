@@ -1,6 +1,6 @@
 import torch
 
-from mistify.activate import _modules as modules
+from mistify._functional import _modules as modules
 
 
 class TestBoolean:

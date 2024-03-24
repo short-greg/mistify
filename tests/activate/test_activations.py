@@ -1,4 +1,4 @@
-from mistify.activate import _membership as activations
+from mistify.infer import _activate as activations
 
 import torch
 

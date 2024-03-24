@@ -160,7 +160,10 @@ class And(LogicalNeuron):
 
 class MaxMin(Or):
 
-    def __init__(self, in_features: int, out_features: int, n_terms: int = None, wf: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]] = None) -> None:
+    def __init__(
+        self, in_features: int, out_features: int, 
+        n_terms: int = None, wf: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]] = None
+    ) -> None:
         super().__init__(in_features, out_features, n_terms, 'max_min', wf)
 
 
