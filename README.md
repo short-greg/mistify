@@ -1,6 +1,6 @@
 # Mistify
 
-Mistify is a library built on PyTorch for building Fuzzy Neural Networks or Neurofuzzy Systems. 
+Mistify is a library built on PyTorch for building Neurofuzzy Systems. A neurofuzzy system is a trainable fuzzy system, typically consisting of a fuzzifier, rules layers, and a defuzzifier. Mistify provides a variety of modules to use at each layer of the pipeline 
 
 ## Installation
 
@@ -12,11 +12,12 @@ pip install mistify
 
 Mistify consists of several subpackages
 
-- **mistify.fuzzify**: Modules for building fuzzifiers and defuzzifiers.
-- **mistify.infer**: Modules for performing inference operations such as Or Neurons, Intersections, etc.
+- **mistify**: Contains the core functions used for fuzzification and inference.
+- **mistify.fuzzify**: Modules for building fuzzifiers and defuzzifiers. Contains a variety of shapes or other fuzzification and defuzzification modules to use.
+- **mistify.infer**: Modules for performing inference operations such as Or Neurons, Intersections, Activations etc.
 - **mistify.process**: Modules for preprocessing or postprocessing on the data to input into the fuzzy system
-- **mistify.activate**: Activations to perform on memberships or to use before fuzzification etc.
-- **mistify.functional**: Contains the functional definitions for many of the operations.
+- **mistify.systems**: Modules for building systems more easily.
+- **mistify.utils**: Contains utilities used by other modules in Mistify. 
 
 ## Usage
 
@@ -30,24 +31,36 @@ class FuzzySystem(nn.Module):
     def __init__(
         self, in_features: int, h1: int, h2: int, out_features: int
     ):
-        self.fuzzifier = SigmoidFuzzifier(in_features, categories)
+
+        # Use for these builders for buliding a neuron
+        # In this case, tehre is no wait fou
+        AndNeruon = BuildAnd().no_wf().inter_on().prob_union()
+        OrNeuron = BuildOr().no_wf().union_on().prob_inter()
+
+        # 
+        self.fuzzifier = mistify.fuzzify.SigmoidFuzzyConverter.from_linspace(
+            n_terms, 'min_core', 'average'
+        )
         self.flatten = FlattenCat()
         self.layer1 = OrNeuron(in_features * categories, h1)
-        self.layer2 = AndNeuron(h1, h2)
+        self.layer2 = AndNeruon(h1, h2)
         self.layer3 = OrNeuron(h2, out_features * out_categories)
         self.deflatten = DeflattenCat(out_categories)
-        self.defuzzifier = SigmoidDefuzzifier(
-            out_features, out_categories)
-    
+
+        self.defuzzifier = mistify.fuzzify.IsoscelesFuzzyConverter.from_linspace(
+            out_terms, 'min_core', 'average'
+        )
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
-        m = self.fuzzifier(x)
+        m = self.fuzzifier.fuzzify(x)
         m = self.flatten(m)
         m = self.layer1(m)
         m = self.layer2(m)
         m = self.layer3(m)
+        # use to prepare for defuzzification
         m = self.deflatten(m)
-        return self.defuzzifier(m)
+        return self.defuzzifier.defuzzify(m)
 
 ```
 
