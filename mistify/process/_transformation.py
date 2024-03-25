@@ -1,12 +1,14 @@
 # 1st party
 from abc import abstractmethod
+import typing
 
 # 3rd party
 import torch.nn as nn
 import torch
-from torch.distributions import Normal
-import typing
 import torch.nn.functional
+from torch.distributions import Normal
+
+# local
 from ._reverse import Reversible
 
 

@@ -1,5 +1,8 @@
+# 3rd party
 import torch.nn as nn
 import torch
+
+# local
 from ..fuzzify import Fuzzifier
 from ..infer import And
 

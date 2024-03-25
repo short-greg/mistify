@@ -1,5 +1,8 @@
+# 3rd party
 from torch import nn
 import torch
+
+# local
 from .._functional import binarize, signify, clamp
 
 class Argmax(nn.Module):

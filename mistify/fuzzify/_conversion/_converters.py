@@ -348,6 +348,24 @@ class IsoscelesTrapezoidFuzzyConverter(CompositeFuzzyConverter):
         )
 
     @classmethod
+    def create(
+        cls, left: torch.Tensor, right: torch.Tensor, middle: torch.Tensor=None, 
+        hypothesis: typing.Union[ShapeHypothesis, str]="area", 
+        conclusion: typing.Union[Conclusion, str]="max", 
+        truncate: bool=True
+    ):
+        left, right, middle = validate_terms(left, right, middle)
+        left_shape = shape.DecreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
+        right_shape = shape.IncreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
+        left_shape = left_shape(ShapeParams(left))
+        right_shape = right_shape(ShapeParams(right))
+        if middle is not None:
+            middle = shape.IsoscelesTrapezoid(ShapeParams(middle))
+        return IsoscelesTrapezoidFuzzyConverter(
+            left, right, middle, hypothesis, conclusion, truncate
+        )
+
+    @classmethod
     def from_coords(
         cls, coords: torch.Tensor, n_terms: int,
         hypothesis: typing.Union[ShapeHypothesis, str]="area", 
@@ -432,6 +450,24 @@ class TrapezoidFuzzyConverter(CompositeFuzzyConverter):
         """
         super().__init__(
             polygon_set(left, middle, right), hypothesis, conclusion, truncate
+        )
+    
+    @classmethod
+    def create(
+        cls, left: torch.Tensor, right: torch.Tensor, middle: torch.Tensor=None, 
+        hypothesis: typing.Union[ShapeHypothesis, str]="area", 
+        conclusion: typing.Union[Conclusion, str]="max", 
+        truncate: bool=True
+    ):
+        left, right, middle = validate_terms(left, right, middle)
+        left_shape = shape.DecreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
+        right_shape = shape.IncreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
+        left_shape = left_shape(ShapeParams(left))
+        right_shape = right_shape(ShapeParams(right))
+        if middle is not None:
+            middle = shape.Trapezoid(ShapeParams(middle))
+        return TrapezoidFuzzyConverter(
+            left, right, middle, hypothesis, conclusion, truncate
         )
 
     @classmethod
@@ -520,6 +556,24 @@ class TriangleFuzzyConverter(CompositeFuzzyConverter):
         super().__init__(
             polygon_set(left, middle, right), hypothesis, conclusion, truncate
         )
+    
+    @classmethod
+    def create(
+        cls, left: torch.Tensor, right: torch.Tensor, middle: torch.Tensor=None, 
+        hypothesis: typing.Union[ShapeHypothesis, str]="area", 
+        conclusion: typing.Union[Conclusion, str]="max", 
+        truncate: bool=True
+    ):
+        left, right, middle = validate_terms(left, right, middle)
+        left_shape = shape.DecreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
+        right_shape = shape.IncreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
+        left_shape = left_shape(ShapeParams(left))
+        right_shape = right_shape(ShapeParams(right))
+        if middle is not None:
+            middle = shape.Triangle(ShapeParams(middle))
+        return TriangleFuzzyConverter(
+            left, right, middle, hypothesis, conclusion, truncate
+        )
 
     @classmethod
     def from_coords(
@@ -606,6 +660,19 @@ class SquareFuzzyConverter(CompositeFuzzyConverter):
         )
 
     @classmethod
+    def create(
+        cls, middle: torch.Tensor, 
+        hypothesis: typing.Union[ShapeHypothesis, str]="area", 
+        conclusion: typing.Union[Conclusion, str]="max", 
+        truncate: bool=True
+    ):
+        middle = validate_terms(middle)
+        middle = shape.Square(ShapeParams(middle))
+        return SquareFuzzyConverter(
+            middle, hypothesis, conclusion, truncate
+        )
+
+    @classmethod
     def from_coords(
         cls, coords: torch.Tensor, n_terms: int,
         hypothesis: typing.Union[ShapeHypothesis, str]="area", 
@@ -651,6 +718,7 @@ class LogisticFuzzyConverter(CompositeFuzzyConverter):
         super().__init__(
             polygon_set(left, middle, right), hypothesis, conclusion, truncate
         )
+
 
     @classmethod
     def from_coords(
