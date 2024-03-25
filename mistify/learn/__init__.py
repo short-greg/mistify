@@ -14,3 +14,6 @@ from ._infer import (
     MinMaxLoss, MinMaxPredictorLoss, MinMaxSortedPredictorLoss,
     IntersectionOnLoss, UnionOnLoss
 )
+from ._learn import (
+    PreFit, PostFit
+)
