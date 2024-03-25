@@ -26,7 +26,7 @@ def binarize(x: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
     return BinaryG.apply(x, ClipG(clip))
 
 
-def signify(x: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
+def signify(x: torch.Tensor, g: G=None) -> torch.Tensor:
     """Convenience function to use the straight through estimator for sign
 
     Args:
@@ -35,12 +35,12 @@ def signify(x: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
     Returns:
         torch.Tensor: The signed tensor
     """
-    if g is False:
-        clip = None
-    return SignG.apply(x, ClipG(clip))
+    if g is None:
+        return x.sign()
+    return SignG.apply(x, g)
 
 
-def clamp(x: torch.Tensor, min_val: float=0.0, max_val: float=1.0, g: bool=False, clip: float=None) -> torch.Tensor:
+def clamp(x: torch.Tensor, min_val: float=0.0, max_val: float=1.0, g: G=None) -> torch.Tensor:
     """Convenience function to use the straight through estimator for ramp
 
     Args:
@@ -49,28 +49,27 @@ def clamp(x: torch.Tensor, min_val: float=0.0, max_val: float=1.0, g: bool=False
     Returns:
         torch.Tensor: The signed tensor
     """
-    if g is False:
-        clip = None
-    return ClampG.apply(x, min_val, max_val, ClipG(clip))
+    if g is None:
+        return x.clamp(min_val, max_val)
+    return ClampG.apply(x, min_val, max_val, g)
 
 
-def threshold(x: torch.Tensor, threshold: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
+def threshold(x: torch.Tensor, threshold: torch.Tensor, g: G=None) -> torch.Tensor:
     """
 
     Args:
         x (torch.Tensor): The value to threshold
         threshold (torch.Tensor): The threshold
         g (bool, optional): Where to use the ste. Defaults to False.
-        clip (float, optional): The . Defaults to None.
 
     Returns:
         torch.Tensor: The thresholded value
     """
     adjusted = x - threshold
-    return binarize(adjusted, g, clip)
+    return binarize(adjusted, g)
 
 
-def ramp(x: torch.Tensor, lower: torch.Tensor, upper: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
+def ramp(x: torch.Tensor, lower: torch.Tensor, upper: torch.Tensor, g: G=None) -> torch.Tensor:
     """Use a ramp 
 
     Args:
@@ -84,7 +83,7 @@ def ramp(x: torch.Tensor, lower: torch.Tensor, upper: torch.Tensor, g: bool=Fals
         torch.Tensor: The ramped 
     """
     scaled = (x - lower) / (upper - upper)
-    return clamp(scaled, 0.0, 1.0, g, clip)
+    return clamp(scaled, 0.0, 1.0, g)
 
 
 def to_boolean(signed: torch.Tensor) -> torch.Tensor:
