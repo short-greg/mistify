@@ -314,7 +314,7 @@ class BuildOr(BuildLogical):
         self.interf = inter_f
         return self
 
-    def build(self, in_features: int, out_features: int, n_terms: int=None) -> 'Or':
+    def __call__(self, in_features: int, out_features: int, n_terms: int=None) -> 'Or':
 
         return Or(
             in_features, out_features, n_terms, functional.OrF(self.interf, self.union_onf), self.wf
@@ -390,7 +390,7 @@ class BuildAnd(BuildLogical):
     def lambda_union(self, union_f) -> Self:
         self.unionf = union_f
 
-    def build(self, in_features: int, out_features: int, n_terms: int=None) -> 'And':
+    def __call__(self, in_features: int, out_features: int, n_terms: int=None) -> 'And':
 
         return And(
             in_features, out_features, n_terms, functional.AndF(self.unionf, self.inter_onf), self.wf

@@ -99,14 +99,14 @@ class TestAndB(object):
         x = torch.Tensor(5, 4)
         neuron = neurons.BuildAnd().boolean_wf(ClipG(0.1)).inter_on(
             MulG(0.1)
-        ).union(MulG(0.1)).build(4, 8)
+        ).union(MulG(0.1)).__call__(4, 8)
         assert neuron(x).shape == torch.Size([5, 8])
 
     def test_build_and_builds_and_neuron_with_g(self):
 
         neuron = neurons.BuildAnd().boolean_wf(ClipG(0.1)).inter_on(
             MulG(0.1)
-        ).union(MulG(0.1)).build(4, 8)
+        ).union(MulG(0.1)).__call__(4, 8)
         assert isinstance(neuron, neurons.And)
 
 
@@ -120,7 +120,7 @@ class TestOrB(object):
                    .clamp_wf()
                    .inter()
                    .union_on()
-        ).build(4, 8)
+        ).__call__(4, 8)
         assert neuron(x).shape == torch.Size([5, 8])
 
     def test_build_or_builds_or_neuron_with_g_with_correct_shape(self):
@@ -128,20 +128,20 @@ class TestOrB(object):
         x = torch.Tensor(5, 4)
         neuron = neurons.BuildOr().boolean_wf(ClipG(0.1)).inter(
             MulG(0.1)
-        ).union_on(MulG(0.1)).build(4, 8)
+        ).union_on(MulG(0.1)).__call__(4, 8)
         assert neuron(x).shape == torch.Size([5, 8])
 
     def test_build_or_builds_or_neuron_with_g(self):
 
         neuron = neurons.BuildOr().boolean_wf(ClipG(0.1)).inter(
             MulG(0.1)
-        ).union_on(MulG(0.1)).build(4, 8)
+        ).union_on(MulG(0.1)).__call__(4, 8)
         assert isinstance(neuron, neurons.Or)
 
     def test_build_or_builds_or_neuron_with_prob(self):
 
         neuron = neurons.BuildOr().boolean_wf(ClipG(0.1)).prob_inter(
         
-        ).prob_union_on().build(4, 8)
+        ).prob_union_on().__call__(4, 8)
         assert isinstance(neuron, neurons.Or)
 

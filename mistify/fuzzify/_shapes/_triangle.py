@@ -27,9 +27,6 @@ class IncreasingRightTriangle(Polygon):
         """
         params = self._params()
         x = unsqueeze(x)
-        # return calc_m_linear_increasing(
-        #     unsqueeze(x), params.pt(0), params.pt(1), self._m
-        # )
         return functional.shape.right_triangle(
             x, params.pt(0), params.pt(1), True, self._m
         )
@@ -121,9 +118,6 @@ class DecreasingRightTriangle(Polygon):
             torch.Tensor: The membership
         """
         params = self._params()
-        # return calc_m_linear_decreasing(
-        #     unsqueeze(x), params.pt(0), params.pt(1), self._m
-        # )
     
         return functional.shape.right_triangle(
             unsqueeze(x), params.pt(0), params.pt(1), False, self._m
@@ -212,13 +206,6 @@ class Triangle(Polygon):
         """
         params = self._params()
         x = unsqueeze(x)
-        # m1 = calc_m_linear_increasing(
-        #     unsqueeze(x), params.pt(0), params.pt(1), self._m
-        # )
-        # m2 = calc_m_linear_decreasing(
-        #     unsqueeze(x), params.pt(1), params.pt(2), self._m
-        # )
-        # return union(m1, m2)
         return functional.shape.triangle(
             x, params.pt(0), params.pt(1), params.pt(2), self._m
         )
@@ -308,15 +295,6 @@ class IsoscelesTriangle(Polygon):
         """
         params = self._params()
         x = unsqueeze(x)
-        # left_m = calc_m_linear_increasing(
-        #     unsqueeze(x), params.pt(0), params.pt(1), self._m
-        # )
-        # right_m = calc_m_linear_decreasing(
-        #     unsqueeze(x), params.pt(1), 
-        #     params.pt(1) + (params.pt(1) - params.pt(0)), 
-        #     self._m
-        # )
-        # return union(left_m, right_m)
         return functional.shape.isosceles(
             x, params.pt(0), params.pt(1), self._m
         )

@@ -140,15 +140,6 @@ class IsoscelesTrapezoid(Polygon):
         """
         x = unsqueeze(x)
         params = self._params()
-        # left_m = calc_m_linear_increasing(
-        #     x, params.pt(0), params.pt(1), self._m
-        # )
-        # middle = calc_m_flat(x, params.pt(1), params.pt(2), self._m)
-        # pt3 = params.pt(1) - params.pt(0) + params.pt(2)
-        # right_m = calc_m_linear_decreasing(
-        #     x, params.pt(2), pt3, self._m
-        # )
-        # return torch.max(torch.max(left_m, middle), right_m)
         return functional.shape.isosceles_trapezoid(
             x, params.pt(0), params.pt(1), params.pt(2), self._m
         )
@@ -183,9 +174,6 @@ class IsoscelesTrapezoid(Polygon):
                 params.pt(0), params.pt(2), self._m
             ), self._m
         )
-        # return self._resize_to_m(
-        #     0.5 * (self.a(params) + self.b(params)) * self._m, self._m
-        # )
 
     def _calc_mean_cores(self) -> torch.Tensor:
         """
@@ -249,15 +237,9 @@ class IncreasingRightTrapezoid(Polygon):
     def join(self, x: torch.Tensor) -> 'torch.Tensor':
 
         params = self._params()
-        # m = calc_m_linear_increasing(
-        #     unsqueeze(x), params.pt(0), params.pt(1), self._m
-        # )
-        # m2 = calc_m_flat(unsqueeze(x), params.pt(1), params.pt(2), self._m)
         return functional.shape.right_trapezoid(
             unsqueeze(x), params.pt(0), params.pt(1), params.pt(2), True, self._m
         )
-
-        # return torch.max(m, m2)
     
     def a(self, params: ShapeParams):
         return (
@@ -327,12 +309,6 @@ class DecreasingRightTrapezoid(Polygon):
         # the parameters must also be "registered" if tunable
         
         params = self._params()
-        # m = calc_m_linear_decreasing(
-        #     unsqueeze(x), params.pt(0), params.pt(1), self._m
-        # )
-        # m2 = calc_m_flat(unsqueeze(x), params.pt(1), params.pt(2), self._m)
-
-        # return torch.max(m, m2)
         return functional.shape.right_trapezoid(
             unsqueeze(x), params.pt(0), params.pt(1), params.pt(2), False, self._m
         )

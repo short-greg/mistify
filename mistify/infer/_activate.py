@@ -17,7 +17,7 @@ class MembershipAct(nn.Module):
         raise NotImplementedError
 
 
-class DescaleAct(MembershipAct):
+class Descale(MembershipAct):
     """Activation scales the membership function to disregard values below a certain value and 
     remove all other values
     """
@@ -48,7 +48,7 @@ class DescaleAct(MembershipAct):
 
 
 # TODO: check if it works with current
-class SigmoidalAct(MembershipAct):
+class Sigmoidal(MembershipAct):
     """Inverse sigmoid followed by parameterized forward sigmoid"""
 
     def __init__(self, n_terms: int, positive_scale: bool=False, n_vars: int=False, device='cpu'):
@@ -98,7 +98,7 @@ class SigmoidalAct(MembershipAct):
         return result
 
 
-class TriangularAct(MembershipAct):
+class Triangular(MembershipAct):
     """Warps the membership by a triangular function then warps back"""
 
     def __init__(self, n_terms: int, n_vars: int=False, device='cpu'):
@@ -129,7 +129,7 @@ class TriangularAct(MembershipAct):
         return torch.min((x + b) / b, (b - x) / b)
 
 
-class HedgeAct(nn.Module):
+class Hedge(nn.Module):
     """Update the linguistic term with an exponential
     """
 

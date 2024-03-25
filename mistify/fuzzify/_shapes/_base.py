@@ -233,7 +233,6 @@ class ShapeParams(nn.Module):
             x = x[None]
         assert x.dim() == 4
             
-        # self._x = nn.parameter.Parameter(x.detach())
         if not tunable:
             self._x = x
         else:
@@ -241,14 +240,14 @@ class ShapeParams(nn.Module):
         self._tunable = tunable
         self._descending = descending
 
-    @property
-    def is_tunable(self) -> bool:
-        return self._x.requires_grad
+    # @property
+    # def is_tunable(self) -> bool:
+    #     return self._x.requires_grad
     
-    def tunable(self, tunable: bool=True) -> bool:
+    # def tunable(self, tunable: bool=True) -> bool:
 
-        self._x.requires_grad_(tunable)
-        return tunable
+    #     self._x.requires_grad_(tunable)
+    #     return tunable
 
     def sub(self, index: typing.Union[int, typing.Tuple[int, int]]) -> 'ShapeParams':
         """Extract a subset of the parameters

@@ -12,6 +12,6 @@ from ._ops import (
     Else
 )
 from ._activate import (
-    MembershipAct, DescaleAct,
-    SigmoidalAct, TriangularAct, HedgeAct
+    MembershipAct, Descale,
+    Sigmoidal, Triangular, Hedge
 )
