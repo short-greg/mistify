@@ -2,6 +2,7 @@
 import typing
 from abc import ABC
 from functools import partial
+from typing_extensions import Self
 
 # 3rd party
 import torch
@@ -11,8 +12,6 @@ import torch.nn as nn
 from .. import _functional as functional
 from .._functional import G
 from ..utils import EnumFactory
-
-from typing_extensions import Self
 
 
 WEIGHT_FACTORY = EnumFactory(

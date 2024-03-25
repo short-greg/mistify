@@ -201,7 +201,8 @@ def inter_on(x: torch.Tensor, dim: int=-1, keepdim: bool=False, g: G=None, idx: 
     """
     if g is None:
         y = torch.min(x, dim, keepdim)
-    else: y = MinOnG.apply(x, dim, keepdim, g)
+    else:
+        y = MinOnG.apply(x, dim, keepdim, g)
     if idx:
         return y
     return y[0]

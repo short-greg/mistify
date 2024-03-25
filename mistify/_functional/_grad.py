@@ -229,19 +229,18 @@ class MaxG(torch.autograd.Function):
         Backward pass of the Binary Step function using the Straight-Through Estimator.
         """
         x1, x2, y = ctx.saved_tensors
-        grad_input = grad_output.clone()
-        t = y - grad_input
+        t = y - grad_output
 
         # Check if this works if they are different sizes
-
         x1_grad = grad_output.clone()
-        # TODO: Experiment with clipping
+        x1_grad[(x1 < x2)] = 0.0
+        
         if ctx.g is not None:
-            condition = (x2 <= x1)
+            condition = (x1 < x2)
             x1_grad[condition] = torch.relu(x1 - t)[condition]
 
             abs_grad = grad_output.abs()
-            condition2 = (x1 < x2) & (x1 < t)
+            condition2 = condition & (x1 < t)
             x1_grad[condition2] = -torch.min(abs_grad, torch.relu(t - x1))[condition2]
             x1_grad = ctx.g(x1, x1_grad, condition2 | condition)
 
@@ -249,11 +248,12 @@ class MaxG(torch.autograd.Function):
         
         # Handle x2
         x2_grad = grad_output.clone()
+        x2_grad[(x2 < x1)] = 0.0
 
         if ctx.g is not None:
-            condition = (x1 <= x2)
+            condition = (x2 < x1)
             x2_grad[condition] = torch.relu(x2 - t)[condition]
-            condition2 = (x2 < x1) & (x2 < t)
+            condition2 = condition & (x2 < t)
             x2_grad[condition2] = -torch.min(abs_grad, torch.relu(t - x2))[condition2]
             x2_grad = ctx.g(x2, x2_grad, condition2 | condition)
 
@@ -292,9 +292,9 @@ class MinG(torch.autograd.Function):
         x1_grad[(x1 > x2)] = 0.0
 
         if ctx.g is not None:
-            condition = (x1 >= x2)
+            condition = (x1 > x2)
             x1_grad[condition] = -torch.relu(t - x1)[condition]
-            condition2 = (x1 > x2) & (x1 > t)
+            condition2 = condition & (x1 > t)
             x1_grad[condition2] = torch.min(abs_grad, torch.relu(x1 - t))[condition2]
             x1_grad = ctx.g(x1, x1_grad, condition2 | condition)
 
@@ -304,9 +304,9 @@ class MinG(torch.autograd.Function):
         x2_grad[(x2 > x1)] = 0.0
 
         if ctx.g is not None:
-            condition = (x2 >= x1)
+            condition = (x2 > x1)
             x2_grad[condition] = -torch.relu(t - x2)[condition]
-            condition2 = (x2 > x1) & (x2 > t)
+            condition2 = condition & (x2 > t)
             x2_grad[condition2] = torch.min(abs_grad, torch.relu(x2 - t))[condition2]
             x2_grad = ctx.g(x2, x2_grad, condition2 | condition)
         x2_grad = reduce_as(x2_grad, x2)
@@ -336,23 +336,26 @@ class MaxOnG(torch.autograd.Function):
         """
         Backward pass of the Binary Step function using the Straight-Through Estimator.
         """
-        
         x, y = ctx.saved_tensors
         t = y - grad_output
+
         if not ctx.keepdim:
             grad_output = grad_output.unsqueeze(ctx.dim)
             y = y.unsqueeze(ctx.dim)
             t = t.unsqueeze(ctx.dim)
+
         r = [1] * x.dim()
         r[ctx.dim] = x.size(ctx.dim)
         grad_input = grad_output.repeat(r)
 
+        cond = (x != y)
+        grad_input[cond] = 0.0
 
         if ctx.g is not None:
-            condition = (x >= t) & (x <= y)
+            condition = (x < y)
             grad_input[condition] = torch.relu(x - t)[condition]
             min_diff = (x - t).min(dim=ctx.dim, keepdim=True)[0].abs()
-            condition2 = (x < t) & (x < y)
+            condition2 = condition & (x < y)
             grad_input[condition2] = -torch.min(min_diff, torch.relu(t - x))[condition2]
             grad_input = ctx.g(x, grad_input, condition2 | condition)
 
@@ -381,24 +384,28 @@ class MinOnG(torch.autograd.Function):
         """
         Backward pass of the Binary Step function using the Straight-Through Estimator.
         """
-        
+    
         x, y = ctx.saved_tensors
         t = y - grad_output
+    
         if not ctx.keepdim:
             grad_output = grad_output.unsqueeze(ctx.dim)
             y = y.unsqueeze(ctx.dim)
             t = t.unsqueeze(ctx.dim)
+
         r = [1] * x.dim()
         r[ctx.dim] = x.size(ctx.dim)
         grad_input = grad_output.repeat(r)
-        # grad_input[condition] = 0.0
+
+        cond = (x != y)
+        grad_input[cond] = 0.0
 
         if ctx.g is not None:
-            condition = (x <= t) & (x >= y)
+            condition = (x > y)
             grad_input[condition] = -torch.relu(t - x)[condition]
             min_diff = (x - t).min(dim=ctx.dim, keepdim=True)[0].abs()
 
-            condition2 = (x > t) & (x > y)
+            condition2 = condition & (x > y)
             grad_input[condition2] = torch.min(min_diff, torch.relu(x - t))[condition2]
             grad_input = ctx.g(x, grad_input, condition2 | condition)
 
