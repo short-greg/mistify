@@ -11,7 +11,7 @@ from ._grad import (
     SignG, G, ClipG
 )
 
-def binarize(x: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
+def binarize(x: torch.Tensor, g: G=None) -> torch.Tensor:
     """Convenience function to use the straight through estimator for binary
 
     Args:
@@ -21,9 +21,9 @@ def binarize(x: torch.Tensor, g: bool=False, clip: float=None) -> torch.Tensor:
     Returns:
         torch.Tensor: The binarized tensor
     """
-    if g is False:
+    if g is None:
         clip = None
-    return BinaryG.apply(x, ClipG(clip))
+    return BinaryG.apply(x, g)
 
 
 def signify(x: torch.Tensor, g: G=None) -> torch.Tensor:
