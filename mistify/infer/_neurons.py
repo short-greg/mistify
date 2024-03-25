@@ -66,6 +66,7 @@ class LogicalNeuron(nn.Module):
         if f is None:
             f = torch.rand_like
         self.weight_base.data = f(self.weight_base.data)
+    
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         """
@@ -77,11 +78,37 @@ class LogicalNeuron(nn.Module):
             torch.Tensor: The output of the membership
         """
         w = self.w()
-        # greater = (w > 1.0).float().sum()
-        # lesser = (w < 0.0).float().sum()
-        # if greater > 0 or lesser > 0:
-        #     print(f'Neuron: Outside bounds counts {greater} {lesser}')
         return self.f(m, w)
+
+
+def validate_weight_range(w: torch.Tensor, min_value: float, max_value: float) -> typing.Tuple[int, int]:
+    """Calculate the number of weights outside the valid range
+
+    Args:
+        w (torch.Tensor): the weights
+        min_value (float): Min value for weights
+        max_value (float): Max value for weights
+
+    Returns:
+        typing.Tuple[int, int]: [lesser count, greater count]
+    """
+    greater = (w > max_value).float().sum()
+    lesser = (w < min_value).float().sum()
+    return lesser.item(), greater.item()
+
+
+def validate_binary_weight(w: torch.Tensor, neg_value: float=0.0, pos_value: float=1.0) -> int:
+    """_summary_
+
+    Args:
+        w (torch.Tensor): _description_
+        neg_value (float, optional): _description_. Defaults to 0.0.
+        pos_value (float, optional): _description_. Defaults to 1.0.
+
+    Returns:
+        int: _description_
+    """
+    return ((w != neg_value) & (w != pos_value)).float().sum().item()
 
 
 class Or(LogicalNeuron):
@@ -126,7 +153,6 @@ class And(LogicalNeuron):
         min_sum=functional.min_sum,
         ada_min_max=functional.ada_min_max,
         min_max=functional.min_max,
-        
     )
 
     def __init__(self, in_features: int, out_features: int, n_terms: int=None, 
@@ -175,13 +201,19 @@ class MaxProd(Or):
 
 class MinMax(And):
 
-    def __init__(self, in_features: int, out_features: int, n_terms: int = None, wf: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]] = None) -> None:
+    def __init__(
+        self, in_features: int, out_features: int, 
+        n_terms: int = None, wf: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]] = None
+    ) -> None:
         super().__init__(in_features, out_features, n_terms, 'min_max', wf)
 
 
 class MinSum(And):
 
-    def __init__(self, in_features: int, out_features: int, n_terms: int = None, wf: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]] = None) -> None:
+    def __init__(
+        self, in_features: int, out_features: int, 
+        n_terms: int = None, wf: typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]] = None
+    ) -> None:
         super().__init__(in_features, out_features, n_terms, 'min_sum', wf)
 
 

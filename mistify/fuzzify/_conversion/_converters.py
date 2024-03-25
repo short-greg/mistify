@@ -179,6 +179,43 @@ def polygon_set(left: shape.Shape, middle: shape.Shape, right: shape.Shape) -> t
     return [left, middle, right]
 
 
+def validate_terms(*xs: torch.Tensor):
+    
+    # Think more about this
+    dim = None
+    n_terms = None
+    result = []
+    for x in xs:
+
+        if x.dim() == 1:
+            x = x.unsqueeze(0)
+
+        if dim is None:
+            dim = x.dim()
+
+            n_terms = None if dim == 2 else x.size(0)
+        else:
+            if n_terms is not None:
+                if n_terms != x.size(0):
+                    raise RuntimeError(f'The number of terms is not aligned for the shapes')
+            if x.dim() != dim:
+                raise RuntimeError(f'The number of dimensions is not aligned')
+        result.append(x)
+    if (dim != 2) and (dim != 3):
+        raise RuntimeError(f'The dimension of the shapes must be 2 or 3 not {dim}')
+    
+    return x
+
+
+def flat_edges(x: torch.Tensor, base_size: int):
+
+    if x.size(-1) == base_size:
+        return False
+    if x.size(-1) == (base_size + 1):
+        return True
+    raise RuntimeError(f'Invalid size for x. Must be either {base_size} or {base_size + 1}')
+
+
 class IsoscelesFuzzyConverter(CompositeFuzzyConverter):
     """Create a FuzzyConverter consisting of isosceles triangles
     """
@@ -203,6 +240,24 @@ class IsoscelesFuzzyConverter(CompositeFuzzyConverter):
         """
         super().__init__(
             polygon_set(left, middle, right), hypothesis, conclusion, truncate
+        )
+
+    @classmethod
+    def create(
+        cls, left: torch.Tensor, right: torch.Tensor, middle: torch.Tensor=None, 
+        hypothesis: typing.Union[ShapeHypothesis, str]="area", 
+        conclusion: typing.Union[Conclusion, str]="max", 
+        truncate: bool=True
+    ):
+        left, right, middle = validate_terms(left, right, middle)
+        left_shape = shape.DecreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
+        right_shape = shape.IncreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
+        left_shape = left_shape(ShapeParams(left))
+        right_shape = right_shape(ShapeParams(right))
+        if middle is not None:
+            middle = shape.IsoscelesTriangle(ShapeParams(middle))
+        return IsoscelesFuzzyConverter(
+            left, right, middle, hypothesis, conclusion, truncate
         )
 
     @classmethod

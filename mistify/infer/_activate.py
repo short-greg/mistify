@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch
 
 
-class MembershipActivation(nn.Module):
+class MembershipAct(nn.Module):
 
     def __init__(self, n_terms: int=None):
         super().__init__()
@@ -17,7 +17,7 @@ class MembershipActivation(nn.Module):
         raise NotImplementedError
 
 
-class Descale(MembershipActivation):
+class DescaleAct(MembershipAct):
     """Activation scales the membership function to disregard values below a certain value and 
     remove all other values
     """
@@ -48,7 +48,7 @@ class Descale(MembershipActivation):
 
 
 # TODO: check if it works with current
-class Sigmoidal(MembershipActivation):
+class SigmoidalAct(MembershipAct):
     """Inverse sigmoid followed by parameterized forward sigmoid"""
 
     def __init__(self, n_terms: int, positive_scale: bool=False, n_vars: int=False, device='cpu'):
@@ -98,7 +98,7 @@ class Sigmoidal(MembershipActivation):
         return result
 
 
-class Triangular(MembershipActivation):
+class TriangularAct(MembershipAct):
     """Warps the membership by a triangular function then warps back"""
 
     def __init__(self, n_terms: int, n_vars: int=False, device='cpu'):
@@ -129,7 +129,7 @@ class Triangular(MembershipActivation):
         return torch.min((x + b) / b, (b - x) / b)
 
 
-class Hedge(nn.Module):
+class HedgeAct(nn.Module):
     """Update the linguistic term with an exponential
     """
 
