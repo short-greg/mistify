@@ -63,7 +63,7 @@ class Gaussian(Nonmonotonic):
 
 def gaussian_area(m, scale):
     
-    return m * torch.sqrt(2 * torch.pi) * scale
+    return m * math.sqrt(2 * torch.pi) * scale
 
 
 def gaussian_invert(y, m, bias, scale):
@@ -74,9 +74,9 @@ def gaussian_invert(y, m, bias, scale):
 
 def gaussian_area_up_to_a(a, m, bias, scale):
     
-    return m * scale * torch.sqrt(torch.pi) / math.sqrt(2.0) * torch.erf(
+    return m * scale * math.sqrt(torch.pi) / math.sqrt(2.0) * torch.erf(
         (a - bias) / (math.sqrt(2.) * scale)
-    ) + torch.erf(bias / (scale * torch.sqrt(2.0)))
+    ) + torch.erf(bias / (scale * math.sqrt(2.0)))
 
 
 def gaussian_area_up_to_a_inv(area, m, bias, scale):
@@ -89,7 +89,7 @@ def gaussian_area_up_to_a_inv(area, m, bias, scale):
     right = torch.erf(
         bias / (scale * math.sqrt(2.))
     )
-    return bias + scale * torch.sqrt(2) * torch.erfinv(left - right)
+    return bias + scale * math.sqrt(2.) * torch.erfinv(left - right)
 
 
 def gaussian(x: torch.Tensor, m: torch.Tensor, bias: torch.Tensor, scale: torch.Tensor):
@@ -104,7 +104,7 @@ class GaussianBell(Gaussian):
     def join(self, x: Tensor) -> Tensor:
 
         return gaussian(
-            unsqueeze(x), self._m, self._biases, self.sigma
+            unsqueeze(x), self._m, self._biases.pt(0), self.sigma
         )
     
 
@@ -167,12 +167,13 @@ class GaussianTrapezoid(Gaussian):
         self._truncated_m = functional.inter(truncated_m, self._m)
         
         pt1, pt2 = gaussian_invert(
-            self._truncated_m, self._m, self._biases, self.sigma
+            self._truncated_m, self._m, self._biases.pt(0), self.sigma
         )
+
         self._pts = ShapeParams(
             torch.concat([
-                pt1, pt2
-            ]), dim=-1
+                unsqueeze(pt1), unsqueeze(pt2)
+            ], dim=-1)
         )
 
     @property
@@ -185,8 +186,8 @@ class GaussianTrapezoid(Gaussian):
 
     def join(self, x: torch.Tensor) -> 'torch.Tensor':
 
-        inside = check_contains(x, self._pts.pt(0), self._pts.pt(1)).float()
-        m1 = gaussian(x, self._m, self.biases, self.sigma)
+        inside = check_contains(unsqueeze(x), self._pts.pt(0), self._pts.pt(1)).float()
+        m1 = gaussian(unsqueeze(x), self._m, self.biases.pt(0), self.sigma)
         m2 = self._truncated_m * inside
         return torch.max(m1, m2)
 
@@ -282,12 +283,12 @@ class RightGaussian(Gaussian):
             torch.Tensor: The centroid of the curve
         """
         y = self._m * 0.25
-        offset = gaussian_invert(
+        left, right = gaussian_invert(
             y, self._m, self._biases.pt(0), self.sigma
         )
         if self._is_right:
-            return self._resize_to_m(self._biases.pt(0) + offset, self._m)
-        return self._resize_to_m(self._biases.pt(0) - offset, self._m)
+            return self._resize_to_m(left, self._m)
+        return self._resize_to_m(right, self._m)
 
     def scale(self, m: torch.Tensor) -> 'RightGaussian':
         """Update the vertical scale of the right logistic
@@ -349,17 +350,15 @@ class RightGaussianTrapezoid(Gaussian):
         self._truncated_m = functional.inter(self._m, truncated_m)
 
         pt1, pt2 = gaussian_invert(
-            self._truncated_m, self._m, self._biases, self.sigma
+            self._truncated_m, self._m, self._biases.pt(0), self.sigma
         )
         self._is_right = is_right
-        if self._is_right:
-            self._pts = ShapeParams(
-                pt2
-            )
-        else:
-            self._pts = ShapeParams(
-                pt1
-            )
+        self._left = ShapeParams(
+            unsqueeze(pt2)
+        )
+        self._right = ShapeParams(
+            unsqueeze(pt1)
+        )
 
     @property
     def dx(self):
@@ -378,12 +377,13 @@ class RightGaussianTrapezoid(Gaussian):
         Returns:
             typing.Tuple[torch.Tensor, torch.Tensor]: Multipliers for whether the value is contained
         """
+        print(x.shape, self._biases.pt(0).shape, self._right.pt(0).shape)
         if self._is_right:
-            square_contains = (x >= self._biases.pt(0)) & (x <= self._pts.pt(0))
-            gaussian_contains = x >= self._pts.pt(0)
+            square_contains = (x >= self._biases.pt(0)) & (x <= self._right.pt(0))
+            gaussian_contains = x >= self._right.pt(0)
         else:
-            square_contains = (x <= self._biases.pt(0)) & (x >= self._pts[0])
-            gaussian_contains = x <= self._pts.pt(0)
+            square_contains = (x <= self._biases.pt(0)) & (x >= self._left.pt(0))
+            gaussian_contains = x <= self._left.pt(0)
         return square_contains.float(), gaussian_contains.float()
 
     def join(self, x: torch.Tensor) -> 'torch.Tensor':
@@ -413,7 +413,7 @@ class RightGaussianTrapezoid(Gaussian):
         
         return self._resize_to_m(
             gaussian_area_up_to_a(self._left.pt(0), self._m, self._biases.pt(0), self.sigma)
-            + (self._biases.pt(0) - self._pts.pt(0)) * self._truncated_m, self._m
+            + (self._biases.pt(0) - self._left.pt(0)) * self._truncated_m, self._m
         )
 
     def _calc_mean_cores(self):
