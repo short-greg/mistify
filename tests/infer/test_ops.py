@@ -41,7 +41,7 @@ class TestUnionOn:
 
     def test_intersection_on_returns_max_value(self):
 
-        intersect = ops.UnionOnBase()
+        intersect = ops.UnionOn()
         m = torch.rand(3, 3, 2)
         m_out = intersect(m)
         t = m.max(dim=2)[0]
@@ -49,15 +49,16 @@ class TestUnionOn:
 
     def test_intersection_on_returns_max_value_with_keepdim(self):
 
-        intersect = ops.UnionOnBase(keepdim=True)
+        intersect = ops.UnionOn(keepdim=True)
         m = torch.rand(3, 3, 2)
         m_out = intersect(m)
         t = m.max(dim=2, keepdim=True)[0]
+        print(m_out.shape, t.shape)
         assert (m_out == t).all()
 
     def test_intersection_on_returns_max_value_on_dim_1(self):
 
-        intersect = ops.UnionOnBase(dim=1)
+        intersect = ops.UnionOn(dim=1)
         m = torch.rand(3, 3, 2)
         m_out = intersect(m)
         t = m.max(dim=1)[0]

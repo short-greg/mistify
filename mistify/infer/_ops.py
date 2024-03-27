@@ -11,11 +11,17 @@ from ..utils import EnumFactory
 from .._functional import _set_ops as set_ops, G
 
 
-class JunctionOn(nn.Module):
+class InterOnBase(nn.Module):
     """Intersect sets that comprise a fuzzy set on a dimension
     """
 
-    F = EnumFactory()
+    F = EnumFactory(
+        inter_on=_functional.inter_on,
+        smooth_inter_on=_functional.smooth_inter_on,
+        bounded_inter_on=_functional.bounded_inter_on,
+        prob_inter_on=_functional.prob_inter_on,
+        ada_inter_on=_functional.ada_inter_on
+    )
 
     def __init__(self, f: typing.Union[typing.Callable, str]='inter_on', dim: int=-1, keepdim: bool=False):
         """Join sets that comprise a fuzzy set on a specified dimension
@@ -33,24 +39,11 @@ class JunctionOn(nn.Module):
         self.dim = dim
         self.keepdim = keepdim
 
-    def forward(self, m: torch.Tensor) -> torch.Tensor:
-        return self._f(m, dim=self.dim, keepdim=self.keepdim)
+    def forward(self, m: torch.Tensor, dim: int=None) -> torch.Tensor:
+        return self._f(m, dim=dim if dim is not None else self.dim, keepdim=self.keepdim)
 
 
-class InterOnBase(JunctionOn):
-    """Intersect sets that comprise a fuzzy set on a dimension
-    """
-
-    F = EnumFactory(
-        inter_on=_functional.inter_on,
-        smooth_inter_on=_functional.smooth_inter_on,
-        bounded_inter_on=_functional.bounded_inter_on,
-        prob_inter_on=_functional.prob_inter_on,
-        ada_inter_on=_functional.ada_inter_on
-    )
-
-
-class UnionOnBase(JunctionOn):
+class UnionOnBase(nn.Module):
     """Union on a specific dimension
     """
     F = EnumFactory(
@@ -72,7 +65,10 @@ class UnionOnBase(JunctionOn):
         Raises:
             ValueError: If the union function is invalid
         """
-        super().__init__(f, dim, keepdim)
+        super().__init__()
+        self._f = self.F.f(f)
+        self.dim = dim
+        self.keepdim = keepdim
 
 
 class UnionOn(UnionOnBase):
@@ -93,8 +89,8 @@ class UnionOn(UnionOnBase):
         super().__init__(_functional.union_on, dim, keepdim)
         self.g = g
 
-    def forward(self, m: torch.Tensor) -> torch.Tensor:
-        return self._f(m, g=self.g)
+    def forward(self, m: torch.Tensor, dim: int=None) -> torch.Tensor:
+        return self._f(m, g=self.g, keepdim=self.keepdim, dim=self.dim if dim is None else dim)
 
 
 class ProbUnionOn(UnionOnBase):
@@ -114,8 +110,8 @@ class ProbUnionOn(UnionOnBase):
         """
         super().__init__(_functional.prob_union_on, dim, keepdim)
 
-    def forward(self, m: torch.Tensor) -> torch.Tensor:
-        return self._f(m)
+    def forward(self, m: torch.Tensor, dim: int=None) -> torch.Tensor:
+        return self._f(m, dim=self.dim if dim is None else dim)
 
 
 class SmoothUnionOn(UnionOnBase):
@@ -136,8 +132,8 @@ class SmoothUnionOn(UnionOnBase):
         super().__init__(_functional.smooth_union_on, dim, keepdim)
         self.a = a
 
-    def forward(self, m: torch.Tensor) -> torch.Tensor:
-        return self._f(m, a=self.a)
+    def forward(self, m: torch.Tensor, dim: int=None) -> torch.Tensor:
+        return self._f(m, a=self.a, keepdim=self.keepdim, dim=self.dim if dim is None else dim)
 
 
 class BoundedUnionOn(UnionOnBase):
@@ -158,8 +154,8 @@ class BoundedUnionOn(UnionOnBase):
         super().__init__(_functional.bounded_union_on, dim, keepdim)
         self.g = g
 
-    def forward(self, m: torch.Tensor) -> torch.Tensor:
-        return self._f(m, g=self.g)
+    def forward(self, m: torch.Tensor, dim: int=None) -> torch.Tensor:
+        return self._f(m, g=self.g, keepdim=self.keepdim, dim=self.dim if dim is None else dim)
 
 
 
@@ -181,8 +177,9 @@ class InterOn(InterOnBase):
         super().__init__(_functional.inter_on, dim, keepdim)
         self.g = g
 
-    def forward(self, m: torch.Tensor) -> torch.Tensor:
-        return self._f(m, g=self.g)
+    def forward(self, m: torch.Tensor, dim: int=None) -> torch.Tensor:
+        dim = dim or self.dim
+        return self._f(m, g=self.g,keepdim=self.keepdim,  dim=self.dim if dim is None else dim)
 
 
 class ProbInterOn(InterOnBase):
@@ -202,8 +199,8 @@ class ProbInterOn(InterOnBase):
         """
         super().__init__(_functional.prob_inter_on, dim, keepdim)
 
-    def forward(self, m: torch.Tensor) -> torch.Tensor:
-        return self._f(m)
+    def forward(self, m: torch.Tensor, dim: int=None) -> torch.Tensor:
+        return self._f(m, keepdim=self.keepdim, dim=self.dim if dim is None else dim)
 
 
 class SmoothInterOn(InterOnBase):
@@ -224,8 +221,8 @@ class SmoothInterOn(InterOnBase):
         super().__init__(_functional.smooth_inter_on, dim, keepdim)
         self.a = a
 
-    def forward(self, m: torch.Tensor) -> torch.Tensor:
-        return self._f(m, a=self.a)
+    def forward(self, m: torch.Tensor, dim: int=None) -> torch.Tensor:
+        return self._f(m, a=self.a, keepdim=self.keepdim, dim=self.dim if dim is None else dim)
 
 
 class BoundedInterOn(InterOnBase):
@@ -246,23 +243,11 @@ class BoundedInterOn(InterOnBase):
         super().__init__(_functional.bounded_inter_on, dim, keepdim)
         self.g = g
 
-    def forward(self, m: torch.Tensor) -> torch.Tensor:
-        return self._f(m, g=self.g)
+    def forward(self, m: torch.Tensor, dim: int=None) -> torch.Tensor:
+        return self._f(m, g=self.g, keepdim=self.keepdim, dim=self.dim if dim is None else dim)
 
 
-class Junction(nn.Module):
-
-    def __init__(self, f: typing.Callable[[torch.Tensor, torch.Tensor], torch.Tensor]) -> torch.Tensor:
-
-        super().__init__()
-        self._f = f
-
-    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
-        
-        return self._f(m1, m2)
-
-
-class InterBase(Junction):
+class InterBase(nn.Module):
 
     def __init__(self, f: typing.Callable[[torch.Tensor, torch.Tensor], torch.Tensor]) -> torch.Tensor:
 
@@ -274,7 +259,7 @@ class InterBase(Junction):
         return self._f(m1, m2)
 
 
-class UnionBase(Junction):
+class UnionBase(nn.Module):
 
     def __init__(self, f: typing.Callable[[torch.Tensor, torch.Tensor], torch.Tensor]) -> torch.Tensor:
 
@@ -285,6 +270,99 @@ class UnionBase(Junction):
         
         return self._f(m1, m2)
 
+
+class Inter(InterBase):
+
+    def __init__(self, g: G=None) -> torch.Tensor:
+
+        super().__init__(_functional.inter)
+        self.g = g
+
+    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+        
+        return self._f(m1, m2, g=self.g)
+
+
+class ProbInter(InterBase):
+
+    def __init__(self) -> torch.Tensor:
+
+        super().__init__(_functional.prob_inter)
+
+    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+        
+        return self._f(m1, m2)
+
+
+class SmoothInter(InterBase):
+
+    def __init__(self, a: float=None) -> torch.Tensor:
+
+        super().__init__(_functional.smooth_inter)
+        self.a = a
+
+    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+        
+        return self._f(m1, m2, a=self.a)
+
+
+class BoundedInter(InterBase):
+
+    def __init__(self, g: G=None) -> torch.Tensor:
+
+        super().__init__(_functional.bounded_inter)
+        self.g = g
+
+    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+        
+        return self._f(m1, m2, g=self.g)
+
+
+class Union(UnionBase):
+
+    def __init__(self, g: G=None) -> torch.Tensor:
+
+        super().__init__(_functional.union)
+        self.g = g
+
+    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+        
+        return self._f(m1, m2, g=self.g)
+
+
+class ProbUnion(UnionBase):
+
+    def __init__(self) -> torch.Tensor:
+
+        super().__init__(_functional.prob_union)
+
+    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+        
+        return self._f(m1, m2)
+
+
+class SmoothUnion(UnionBase):
+
+    def __init__(self, a: float=None) -> torch.Tensor:
+
+        super().__init__(_functional.smooth_union)
+        self.a = a
+
+    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+        
+        return self._f(m1, m2, a=self.a)
+
+
+class BoundedUnion(UnionBase):
+
+    def __init__(self, g: G=None) -> torch.Tensor:
+
+        super().__init__(_functional.bounded_union)
+        self.g = g
+
+    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+        
+        return self._f(m1, m2, g=self.g)
 
 
 
@@ -387,3 +465,30 @@ class CatComplement(nn.Module):
         return torch.cat(
             [m, complement], dim=self.dim
         )
+
+
+
+# class JunctionOn(nn.Module):
+#     """Intersect sets that comprise a fuzzy set on a dimension
+#     """
+
+#     F = EnumFactory()
+
+#     def __init__(self, f: typing.Union[typing.Callable, str]='inter_on', dim: int=-1, keepdim: bool=False):
+#         """Join sets that comprise a fuzzy set on a specified dimension
+
+#         Args:
+#             f (str, optional): The function to use for junction. Defaults to 'min'.
+#             dim (int, optional): Dimension to junction on. Defaults to -1.
+#             keepdim (bool, optional): Whether to keep the dim or not. Defaults to False.
+
+#         Raises:
+#             ValueError: If the junction function is invalid
+#         """
+#         super().__init__()
+#         self._f = self.F.f(f)
+#         self.dim = dim
+#         self.keepdim = keepdim
+
+#     def forward(self, m: torch.Tensor) -> torch.Tensor:
+#         return self._f(m, dim=self.dim, keepdim=self.keepdim)

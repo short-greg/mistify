@@ -5,9 +5,9 @@ from torch.nn import functional as nn_func
 from torch import nn
 
 from ._core import MistifyLoss, ToOptim
-from ..infer._neurons import Or, And, LogicalNeuron
+from ..infer._neurons import Or, And
 
-from ..infer._ops import InterOnBase, UnionOnBase, JunctionOn
+from ..infer._ops import InterOnBase, UnionOnBase, Inter, Union
 from zenkai import IO, Reduction
 
 
@@ -248,7 +248,7 @@ class MaxMinLoss3(FuzzyLoss):
 class NeuronMSELoss(FuzzyLoss):
 
     def __init__(
-        self, neuron: LogicalNeuron, reduction='batchmean', 
+        self, neuron: typing.Union[Or, And], reduction='batchmean', 
         not_chosen_x_weight: float=0.01, not_chosen_theta_weight: float=0.01, 
         default_optim: ToOptim=ToOptim.BOTH
     ):
@@ -294,7 +294,7 @@ class JunctionMSELoss(FuzzyLoss):
     """
 
     def __init__(
-        self, junction: JunctionOn, reduction='batchmean', 
+        self, junction: typing.Union[Union, Inter], reduction='batchmean', 
         not_chosen_x_weight: float=0.01,
         default_optim: ToOptim=ToOptim.BOTH
     ):
