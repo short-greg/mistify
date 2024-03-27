@@ -186,7 +186,6 @@ def validate_terms(*xs: torch.Tensor):
     n_terms = None
     result = []
     for x in xs:
-
         if x.dim() == 1:
             x = x.unsqueeze(0)
 
@@ -205,6 +204,21 @@ def validate_terms(*xs: torch.Tensor):
         raise RuntimeError(f'The dimension of the shapes must be 2 or 3 not {dim}')
     
     return x
+
+def validate_n_points(*xs: torch.Tensor, n_points: int=None, ignore_none: bool=True):
+
+    for x in xs:
+        if ignore_none and x is None:
+            continue
+        if n_points is not None and x.size(-1) != n_points:
+            raise RuntimeError(f'The number of points for the shape must be {n_points}')
+
+
+def validate_right_trapezoid(*xs: torch.Tensor):
+        
+    for x in xs:
+        if x.size(-1) not in (2, 3):
+            raise RuntimeError(f'Number of points for shape must be two (triangle) or three (trapezoid)')
 
 
 def flat_edges(x: torch.Tensor, base_size: int):
@@ -247,15 +261,17 @@ class IsoscelesFuzzyConverter(CompositeFuzzyConverter):
         cls, left: torch.Tensor, right: torch.Tensor, middle: torch.Tensor=None, 
         hypothesis: typing.Union[ShapeHypothesis, str]="area", 
         conclusion: typing.Union[Conclusion, str]="max", 
-        truncate: bool=True
+        truncate: bool=True, tunable: bool=False
     ):
         left, right, middle = validate_terms(left, right, middle)
+        validate_n_points(middle, n_points=2)
+        validate_right_trapezoid(left, right)
         left_shape = shape.DecreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
         right_shape = shape.IncreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
-        left_shape = left_shape(ShapeParams(left))
-        right_shape = right_shape(ShapeParams(right))
+        left_shape = left_shape(ShapeParams(left, tunable))
+        right_shape = right_shape(ShapeParams(right, tunable))
         if middle is not None:
-            middle = shape.IsoscelesTriangle(ShapeParams(middle))
+            middle = shape.IsoscelesTriangle(ShapeParams(middle, tunable))
         return IsoscelesFuzzyConverter(
             left, right, middle, hypothesis, conclusion, truncate
         )
@@ -352,15 +368,17 @@ class IsoscelesTrapezoidFuzzyConverter(CompositeFuzzyConverter):
         cls, left: torch.Tensor, right: torch.Tensor, middle: torch.Tensor=None, 
         hypothesis: typing.Union[ShapeHypothesis, str]="area", 
         conclusion: typing.Union[Conclusion, str]="max", 
-        truncate: bool=True
+        truncate: bool=True, tunable: bool=False
     ):
         left, right, middle = validate_terms(left, right, middle)
+        validate_n_points(middle, n_points=3)
+        validate_right_trapezoid(left, right)
         left_shape = shape.DecreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
         right_shape = shape.IncreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
-        left_shape = left_shape(ShapeParams(left))
-        right_shape = right_shape(ShapeParams(right))
+        left_shape = left_shape(ShapeParams(left, tunable))
+        right_shape = right_shape(ShapeParams(right, tunable))
         if middle is not None:
-            middle = shape.IsoscelesTrapezoid(ShapeParams(middle))
+            middle = shape.IsoscelesTrapezoid(ShapeParams(middle, tunable=tunable))
         return IsoscelesTrapezoidFuzzyConverter(
             left, right, middle, hypothesis, conclusion, truncate
         )
@@ -460,6 +478,8 @@ class TrapezoidFuzzyConverter(CompositeFuzzyConverter):
         truncate: bool=True
     ):
         left, right, middle = validate_terms(left, right, middle)
+        validate_n_points(middle, n_points=4)
+        validate_right_trapezoid(left, right)
         left_shape = shape.DecreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
         right_shape = shape.IncreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
         left_shape = left_shape(ShapeParams(left))
@@ -565,6 +585,8 @@ class TriangleFuzzyConverter(CompositeFuzzyConverter):
         truncate: bool=True
     ):
         left, right, middle = validate_terms(left, right, middle)
+        validate_n_points(middle, n_points=3)
+        validate_right_trapezoid(left, right)
         left_shape = shape.DecreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
         right_shape = shape.IncreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
         left_shape = left_shape(ShapeParams(left))
@@ -661,15 +683,17 @@ class SquareFuzzyConverter(CompositeFuzzyConverter):
 
     @classmethod
     def create(
-        cls, middle: torch.Tensor, 
+        cls, params: torch.Tensor, 
         hypothesis: typing.Union[ShapeHypothesis, str]="area", 
         conclusion: typing.Union[Conclusion, str]="max", 
         truncate: bool=True
     ):
-        middle = validate_terms(middle)
-        middle = shape.Square(ShapeParams(middle))
+        params = validate_terms(params)
+        
+        validate_n_points(params, n_points=2)
+        params = shape.Square(ShapeParams(params))
         return SquareFuzzyConverter(
-            middle, hypothesis, conclusion, truncate
+            params, hypothesis, conclusion, truncate
         )
 
     @classmethod
@@ -719,6 +743,25 @@ class LogisticFuzzyConverter(CompositeFuzzyConverter):
             polygon_set(left, middle, right), hypothesis, conclusion, truncate
         )
 
+    
+    @classmethod
+    def create(
+        cls, left_scales: torch.Tensor, left_biases: torch.Tensor, right_scales: torch.Tensor, right_biases: torch.Tensor, 
+        middle_scales: torch.Tensor=None, middle_biases: torch.Tensor=None,
+        hypothesis: typing.Union[ShapeHypothesis, str]="area", 
+        conclusion: typing.Union[Conclusion, str]="max", 
+        truncate: bool=True, tunable: bool=False
+    ):
+        left, right, middle = validate_terms(left_scales, right_scales, left_scales, left_biases, middle_scales, middle_biases)
+        validate_n_points(left, middle, right, n_points=1)
+        left = shape.RightLogistic(ShapeParams(left_biases, tunable), ShapeParams(left_scales, tunable), True)
+        right = shape.RightLogistic(ShapeParams(right_biases, tunable), ShapeParams(right_scales, tunable), False)
+
+        if middle is not None:
+            middle = shape.Logistic(middle_biases, middle_scales)
+        return LogisticFuzzyConverter(
+            left, right, middle, hypothesis, conclusion, truncate
+        )
 
     @classmethod
     def from_coords(
@@ -769,6 +812,24 @@ class SigmoidFuzzyConverter(CompositeFuzzyConverter):
         )
 
     @classmethod
+    def create(
+        cls, biases: torch.Tensor, scales: typing.Union[torch.Tensor, float],
+        hypothesis: typing.Union[ShapeHypothesis, str]="area", 
+        conclusion: typing.Union[Conclusion, str]="max", 
+        truncate: bool=True, tunable: bool=False
+    ):
+        biases = validate_terms(biases, scales)
+        validate_n_points(biases, scales, n_points=1)
+        biases_params = ShapeParams(biases, tunable)
+        if isinstance(scales, float):
+
+            scales = ShapeParams(generate_repeat_params(biases_params.n_terms, scales, biases_params.n_variables))
+        sigmoid = shape.Sigmoid(biases, scales)
+        return SigmoidFuzzyConverter(
+            sigmoid, hypothesis, conclusion, truncate
+        )
+
+    @classmethod
     def from_coords(
         cls, bias_coords: torch.Tensor, scale_coords: torch.Tensor, n_terms: int,
         hypothesis: typing.Union[ShapeHypothesis, str]="min_core", 
@@ -811,6 +872,21 @@ class RampFuzzyConverter(CompositeFuzzyConverter):
         """
         super().__init__(
             [ramp], hypothesis, conclusion, True
+        )
+
+    @classmethod
+    def create(
+        cls, points: torch.Tensor,
+        hypothesis: typing.Union[ShapeHypothesis, str]="area", 
+        conclusion: typing.Union[Conclusion, str]="max", 
+        truncate: bool=True, tunable: bool=False
+    ):
+        points = validate_terms(points)
+        validate_n_points(points, 2)
+        point_params = ShapeParams(points, tunable)
+        ramp = shape.Ramp(point_params, tunable)
+        return RampFuzzyConverter(
+            ramp, hypothesis, conclusion, truncate,
         )
 
     @classmethod
@@ -875,6 +951,22 @@ class StepFuzzyConverter(CompositeFuzzyConverter):
         """
         super().__init__(
             [step], hypothesis, conclusion, True
+        )
+
+    @classmethod
+    def create(
+        cls, points: torch.Tensor,
+        hypothesis: typing.Union[ShapeHypothesis, str]="area", 
+        conclusion: typing.Union[Conclusion, str]="max", 
+        truncate: bool=True, tunable: bool=False
+    ):
+        # TODO: Add more validation code
+        points = validate_terms(points)
+        validate_n_points(points, 1)
+        point_params = ShapeParams(points)
+        step = shape.Step(point_params, tunable)
+        return StepFuzzyConverter(
+            step, hypothesis, conclusion, truncate
         )
 
     @classmethod
