@@ -3,7 +3,8 @@ from ._neurons import (
     MinMax, MaxMin, MinSum, MaxProd,
     WeightF, NullWeightF, SignWeightF, Sub1WeightF, ClampWeightF,
     BooleanWeightF, 
-    validate_binary_weight, validate_weight_range
+    validate_binary_weight, validate_weight_range,
+    SigmoidWeightF
 )
 from ._noise import DropoutNoise, ExpNoise, GaussianClampNoise
 from ._shape import swap, expand_term, collapse_term
