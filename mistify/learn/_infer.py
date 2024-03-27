@@ -6,7 +6,7 @@ from zenkai import XCriterion, IO
 import torch.nn as nn
 import torch
 import zenkai
-from ..infer import Or, And, IntersectionOn, UnionOn
+from ..infer import Or, And, InterOnBase, UnionOnBase
 
 
 class MaxMinLoss(nn.Module):
@@ -283,7 +283,7 @@ class MinMaxSortedPredictorLoss(nn.Module):
 
 class IntersectionOnLoss(nn.Module):
 
-    def __init__(self, intersection_on: IntersectionOn, reduction: str='mean'):
+    def __init__(self, intersection_on: InterOnBase, reduction: str='mean'):
 
         super().__init__()
         self.intersection_on = intersection_on
@@ -302,7 +302,7 @@ class IntersectionOnLoss(nn.Module):
 
 class UnionOnLoss(nn.Module):
 
-    def __init__(self, union_on: UnionOn, reduction: str='mean'):
+    def __init__(self, union_on: UnionOnBase, reduction: str='mean'):
 
         super().__init__()
         self.union_on = union_on

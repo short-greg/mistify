@@ -5,6 +5,9 @@ from abc import abstractmethod
 import torch.nn as nn
 import torch
 
+# local
+from .._functional import clamp, G
+
 
 class MembershipAct(nn.Module):
 
@@ -133,7 +136,7 @@ class Hedge(nn.Module):
     """Update the linguistic term with an exponential
     """
 
-    def __init__(self, n_terms: int, n_vars: int=False, lower_bound: float=0.0, upper_bound: float=None):
+    def __init__(self, n_terms: int, n_vars: int=False, lower_bound: float=0.0, upper_bound: float=None, g: G=None):
 
         super().__init__()
         if lower_bound < 0.0:
@@ -153,6 +156,7 @@ class Hedge(nn.Module):
         self._upper_bound = upper_bound
         self._lower_bound = lower_bound
         self._batch_dim = 2 if n_vars is False else 3
+        self.g = g
 
     def align(self, w: torch.Tensor, m: torch.Tensor, dim: int=1) -> torch.Tensor:
 
@@ -171,5 +175,5 @@ class Hedge(nn.Module):
         else:
             w = self._w
 
-        w = torch.clamp(w, self._lower_bound, self._upper_bound)
+        w = clamp(w, self._lower_bound, self._upper_bound, self.g)
         return m ** w

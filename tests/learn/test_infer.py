@@ -133,7 +133,7 @@ class TestMinMaxSortedPredictorLoss(object):
 class TestUnionOnLoss(object):
 
     def test_union_on_loss(self):
-        or_ = infer.UnionOn()
+        or_ = infer.UnionOnBase()
         criterion = infer_learn.UnionOnLoss(or_)
         x = torch.randn(8, 4)
         t = torch.randn(8, 8)
@@ -142,7 +142,7 @@ class TestUnionOnLoss(object):
         assert (loss.item() != 0)
 
     def test_union_on_loss_with_sum(self):
-        or_ = infer.UnionOn()
+        or_ = infer.UnionOnBase()
         criterion = infer_learn.UnionOnLoss(or_, reduction='sum')
         x = torch.randn(8, 4)
         t = torch.randn(8, 8)
@@ -154,7 +154,7 @@ class TestUnionOnLoss(object):
 class TestIntersectionOnLoss(object):
 
     def test_intersection_on_loss(self):
-        and_ = infer.IntersectionOn()
+        and_ = infer.InterOnBase()
         criterion = infer_learn.IntersectionOnLoss(and_)
         x = torch.randn(8, 4)
         t = torch.randn(8, 8)
@@ -163,7 +163,7 @@ class TestIntersectionOnLoss(object):
         assert (loss.item() != 0)
 
     def test_intersection_on_loss_with_sum(self):
-        and_ = infer.IntersectionOn()
+        and_ = infer.InterOnBase()
         criterion = infer_learn.IntersectionOnLoss(and_, reduction='sum')
         x = torch.randn(8, 4)
         t = torch.randn(8, 8)

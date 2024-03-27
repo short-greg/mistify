@@ -21,7 +21,7 @@ Mistify consists of several subpackages
 
 ## Usage
 
-Mistify's primary prupose is to build neurofuzzy systems. 
+Mistify's primary prupose is to build neurofuzzy systems. They can be built using Pytorch's 
 
 Here is a (non-working) example that uses alternating Or and And neurons.
 ```bash

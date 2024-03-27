@@ -7,7 +7,7 @@ from torch import nn
 from ._core import MistifyLoss, ToOptim
 from ..infer._neurons import Or, And, LogicalNeuron
 
-from ..infer._ops import IntersectionOn, UnionOn, JunctionOn
+from ..infer._ops import InterOnBase, UnionOnBase, JunctionOn
 from zenkai import IO, Reduction
 
 
@@ -32,7 +32,7 @@ class FuzzyAggregatorLoss(FuzzyLoss):
 
 class IntersectionOnLoss(FuzzyAggregatorLoss):
 
-    def __init__(self, intersect: IntersectionOn, reduction: str='mean', not_chosen_weight: float=1.0):
+    def __init__(self, intersect: InterOnBase, reduction: str='mean', not_chosen_weight: float=1.0):
         super().__init__(intersect, reduction)
         self.intersect = intersect
         self.not_chosen_weight = not_chosen_weight
@@ -62,7 +62,7 @@ class IntersectionOnLoss(FuzzyAggregatorLoss):
 
     @classmethod
     def factory(cls, reduction: str, not_chosen_weight: float=0.1) -> typing.Callable[[nn.Module], 'IntersectionOnLoss']:
-        def _(intersect_on: IntersectionOn):
+        def _(intersect_on: InterOnBase):
             return IntersectionOnLoss(
                 intersect_on, reduction, not_chosen_weight
             )
@@ -71,7 +71,7 @@ class IntersectionOnLoss(FuzzyAggregatorLoss):
 
 class UnionOnLoss(FuzzyAggregatorLoss):
 
-    def __init__(self, union: UnionOn, reduction: str='mean', not_chosen_weight: float=1.0):
+    def __init__(self, union: UnionOnBase, reduction: str='mean', not_chosen_weight: float=1.0):
         super().__init__(union, reduction)
         self.union = union
         self.not_chosen_weight = not_chosen_weight
@@ -100,7 +100,7 @@ class UnionOnLoss(FuzzyAggregatorLoss):
 
     @classmethod
     def factory(cls, reduction: str, not_chosen_weight: float=0.1) -> typing.Callable[[nn.Module], 'IntersectionOnLoss']:
-        def _(union_on: UnionOn):
+        def _(union_on: UnionOnBase):
             return UnionOnLoss(
                 union_on, reduction, not_chosen_weight
             )

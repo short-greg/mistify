@@ -1,429 +1,512 @@
 # TODO: Implement
 
-# # 1st party
-# import typing
+# 1st party
+import typing
+import math
 
-# # 3rd party
-# import torch
-# from torch import Tensor
+# 3rd party
+import torch
+from torch import Tensor
 
-# # local
-# from ._base import ShapeParams, Nonmonotonic
-# from ...utils import unsqueeze, check_contains
-# from ._utils import calc_dx_logistic, calc_area_logistic_one_side, calc_m_logistic, calc_x_logistic
-# from ... import _functional as functional
+# local
+from ._base import ShapeParams, Nonmonotonic
+from ...utils import unsqueeze, check_contains
+from ... import _functional as functional
+import torch.nn.functional
 
-# class Gaussian(Nonmonotonic):
+# TODO: Review and update
+# Try to get simpler functions
 
-#     def __init__(
-#         self, biases: ShapeParams, scales: ShapeParams, m: torch.Tensor=None
-#     ):
-#         """The base class for logistic distribution functions
 
-#         Note: Don't need to sort for this because there is only one point per parameter
+class Gaussian(Nonmonotonic):
 
-#         Args:
-#             biases (ShapeParams): The bias of the distribution
-#             scales (ShapeParams): The scale value for the distribution
-#             m (torch.Tensor, optional): The max membership. Defaults to None.
-#         """
-#         super().__init__(
-#             biases.n_variables,
-#             biases.n_terms
-#         )
-#         self._m = self._init_m(m, biases.device)
-#         self._biases = biases
-#         self._scales = scales
+    def __init__(
+        self, biases: ShapeParams, scales: ShapeParams, m: torch.Tensor=None
+    ):
+        """The base class for logistic distribution functions
 
+        Note: Don't need to sort for this because there is only one point per parameter
+
+        Args:
+            biases (ShapeParams): The bias of the distribution
+            scales (ShapeParams): The scale value for the distribution
+            m (torch.Tensor, optional): The max membership. Defaults to None.
+        """
+        super().__init__(
+            biases.n_variables,
+            biases.n_terms
+        )
+        self._m = self._init_m(m, biases.device)
+        self._biases = biases
+        self._scales = scales
+
+    @property
+    def sigma(self) -> torch.Tensor:
+        return torch.nn.functional.softplus(self._scales.pt(0))
+
+    @property
+    def biases(self) -> 'ShapeParams':
+        """
+        Returns:
+            ShapeParams: The bias values
+        """
+        return self._biases
     
-#     @property
-#     def biases(self) -> 'ShapeParams':
-#         """
-#         Returns:
-#             ShapeParams: The bias values
-#         """
-#         return self._biases
+    @property
+    def scales(self) -> 'ShapeParams':
+        """
+        Returns:
+            ShapeParams: The scales
+        """
+        return self._scales
+
+
+def gaussian_area(m, scale):
     
-#     @property
-#     def scales(self) -> 'ShapeParams':
-#         """
-#         Returns:
-#             ShapeParams: The scales
-#         """
-#         return self._scales
+    return m * torch.sqrt(2 * torch.pi) * scale
+
+
+def gaussian_invert(y, m, bias, scale):
+    
+    base = torch.sqrt(-2 * scale ** 2 * torch.log(y / (m + 1e-7)))
+    return bias - base, bias + base
+
+
+def gaussian_area_up_to_a(a, m, bias, scale):
+    
+    return m * scale * torch.sqrt(torch.pi) / math.sqrt(2.0) * torch.erf(
+        (a - bias) / (math.sqrt(2.) * scale)
+    ) + torch.erf(bias / (scale * torch.sqrt(2.0)))
+
+
+def gaussian_area_up_to_a_inv(area, m, bias, scale):
+    # area = m
+    # c = scale
+    # b = bias
+    # a = weight
+    
+    left = math.sqrt(2.0) * area / (m * scale * math.sqrt(math.pi))
+    right = torch.erf(
+        bias / (scale * math.sqrt(2.))
+    )
+    return bias + scale * torch.sqrt(2) * torch.erfinv(left - right)
+
+
+def gaussian(x: torch.Tensor, m: torch.Tensor, bias: torch.Tensor, scale: torch.Tensor):
+    
+    return m * torch.exp(-((x - bias) ** 2) / (2 * (scale **2)))
+
+
+class GaussianBell(Gaussian):
+    """Use the GaussianBell function as the membership function
+    """
+
+    def join(self, x: Tensor) -> Tensor:
+
+        return gaussian(
+            unsqueeze(x), self._m, self._biases, self.sigma
+        )
     
 
-# class GaussianBell(Gaussian):
-#     """Use the GaussianBell function as the membership function
-#     """
-
-#     def join(self, x: Tensor) -> Tensor:
-
-#         scale = torch.nn.functional.softplus(self._scale)
-#         return torch.exp(
-#             -0.5 * ((x.unsqueeze(-1) - self._loc) / scale) ** 2
-#         )
-
-#     def _calc_areas(self):
-
-#         return self._resize_to_m(4 * self._m / self._biases.pt(0), self._m)
+    def _calc_areas(self):
+        return gaussian_area(self._m, self.sigma)
         
-#     def _calc_mean_cores(self):
-#         return self._resize_to_m(self._biases.pt(0), self._m)
+    def _calc_mean_cores(self):
+        return self._resize_to_m(self._biases.pt(0), self._m)
 
-#     def _calc_centroids(self):
-#         return self._resize_to_m(self._biases.pt(0), self._m)
+    def _calc_centroids(self):
+        return self._resize_to_m(self._biases.pt(0), self._m)
 
-#     def scale(self, m: torch.Tensor) -> 'GaussianBell':
-#         """Scale the height of the GaussianBell
+    def scale(self, m: torch.Tensor) -> 'GaussianBell':
+        """Scale the height of the GaussianBell
 
-#         Args:
-#             m (torch.Tensor): The new height
+        Args:
+            m (torch.Tensor): The new height
 
-#         Returns:
-#             GaussianBell: The updated GaussianBell
-#         """
-#         updated_m = functional.intersect(self._m, m)
-#         return GaussianBell(
-#             self._biases, self._scales, updated_m
-#         )
+        Returns:
+            GaussianBell: The updated GaussianBell
+        """
+        updated_m = functional.inter(self._m, m)
+        return GaussianBell(
+            self._biases, self._scales, updated_m
+        )
 
-#     def truncate(self, m: torch.Tensor) -> 'GaussianTrapezoid':
-#         """Truncate the height of the GaussianBell
+    def truncate(self, m: torch.Tensor) -> 'GaussianTrapezoid':
+        """Truncate the height of the GaussianBell
 
-#         Args:
-#             m (torch.Tensor): The new height
+        Args:
+            m (torch.Tensor): The new height
 
-#         Returns:
-#             GaussianBell: The updated GaussianBell
-#         """
-#         return GaussianTrapezoid(
-#             self._biases, self._scales, m, self._m 
-#         )
+        Returns:
+            GaussianBell: The updated GaussianBell
+        """
+        return GaussianTrapezoid(
+            self._biases, self._scales, m, self._m 
+        )
 
 
-# class GaussianTrapezoid(Gaussian):
-#     """A membership function that has a ceiling on the heighest value
-#     """
+class GaussianTrapezoid(Gaussian):
+    """A membership function that has a ceiling on the heighest value
+    """
     
-#     def __init__(
-#         self, biases: ShapeParams, scales: ShapeParams, 
-#         truncated_m: torch.Tensor=None, scaled_m: torch.Tensor=None
-#     ):
-#         """Create a membership function that has a ceiling on the heighest value
+    def __init__(
+        self, biases: ShapeParams, scales: ShapeParams, 
+        truncated_m: torch.Tensor=None, scaled_m: torch.Tensor=None
+    ):
+        """Create a membership function that has a ceiling on the heighest value
 
-#         Note: Don't need to sort for this because it is derived
+        Note: Don't need to sort for this because it is derived
 
-#         Args:
-#             biases (ShapeParams): The biases for the logistic part of the funciton
-#             scales (ShapeParams): The scales for the logistic part of teh function
-#             truncated_m (torch.Tensor, optional): The maximum height of the membership. Defaults to None.
-#             scaled_m (torch.Tensor, optional): The scale of the GaussianTrapezoid. Defaults to None.
-#         """
-#         super().__init__(biases, scales, scaled_m)
-
-#         truncated_m = self._init_m(truncated_m, biases.device)
-#         self._truncated_m = functional.inter(truncated_m, self._m)
+        Args:
+            biases (ShapeParams): The biases for the logistic part of the funciton
+            scales (ShapeParams): The scales for the logistic part of teh function
+            truncated_m (torch.Tensor, optional): The maximum height of the membership. Defaults to None.
+            scaled_m (torch.Tensor, optional): The scale of the GaussianTrapezoid. Defaults to None.
+        """
+        super().__init__(biases, scales, scaled_m)
+        self._truncated_m = functional.inter(truncated_m, self._m)
         
-#         dx = unsqueeze(calc_dx_logistic(self._truncated_m, self._scales.pt(0), self._m))
-#         self._dx = ShapeParams(dx)
-#         self._pts = ShapeParams(torch.concat([
-#             self._biases.x - self._dx.x,
-#             self._biases.x + self._dx.x
-#         ], dim=dx.dim() - 1))
+        pt1, pt2 = gaussian_invert(
+            self._truncated_m, self._m, self._biases, self.sigma
+        )
+        self._pts = ShapeParams(
+            torch.concat([
+                pt1, pt2
+            ]), dim=-1
+        )
 
-#     @property
-#     def dx(self):
-#         return self._dx
+    @property
+    def dx(self):
+        return self._dx
     
-#     @property
-#     def m(self) -> torch.Tensor:
-#         return self._truncated_m
+    @property
+    def m(self) -> torch.Tensor:
+        return self._truncated_m
 
-#     def join(self, x: torch.Tensor) -> 'torch.Tensor':
-#         x = unsqueeze(x)
-#         inside = check_contains(x, self._pts.pt(0), self._pts.pt(1)).float()
-#         m1 = calc_m_logistic(x, self._biases.pt(0), self._scales.pt(0), self._m) * (1 - inside)
-#         m2 = self._truncated_m * inside
-#         return torch.max(m1, m2)
+    def join(self, x: torch.Tensor) -> 'torch.Tensor':
 
-#     def _calc_areas(self):
-#         # symmetrical so multiply by 2
-#         return self._resize_to_m(2 * calc_area_logistic_one_side(
-#             self._pts.pt(0), self._biases.pt(0), self._scales.pt(0), self._m
-#         ), self._m)
+        inside = check_contains(x, self._pts.pt(0), self._pts.pt(1)).float()
+        m1 = gaussian(x, self._m, self.biases, self.sigma)
+        m2 = self._truncated_m * inside
+        return torch.max(m1, m2)
+
+    def _calc_areas(self):
         
-#     def _calc_mean_cores(self):
-#         return self._resize_to_m(self._biases.pt(0), self._m)
+        return self._resize_to_m(2 * gaussian_area_up_to_a(
+            self._pts.pt(0), self._m, self._biases.pt(0), self.sigma
+        ) + self._truncated_m * (self._pts.pt(1) - self._pts.pt(0)), self._m)
+        
+        
+    def _calc_mean_cores(self):
+        return self._resize_to_m(self._biases.pt(0), self._m)
 
-#     def _calc_centroids(self):
-#         return self._resize_to_m(self._biases.pt(0), self._m)
+    def _calc_centroids(self):
+        return self._resize_to_m(self._biases.pt(0), self._m)
 
-#     def scale(self, m: torch.Tensor) -> 'GaussianTrapezoid':
-#         updated_m = functional.inter(self._m, m)
-#         # TODO: check if multiplication is correct
-#         truncated_m = self._truncated_m * updated_m
+    def scale(self, m: torch.Tensor) -> 'GaussianTrapezoid':
+        updated_m = functional.inter(self._m, m)
+        # TODO: check if multiplication is correct
+        truncated_m = self._truncated_m * updated_m
 
-#         return GaussianTrapezoid(
-#             self._biases, self._scales, truncated_m, updated_m
-#         )
+        return GaussianTrapezoid(
+            self._biases, self._scales, truncated_m, updated_m
+        )
 
-#     def truncate(self, m: torch.Tensor) -> 'GaussianTrapezoid':
-#         truncated_m = functional.inter(self._truncated_m, m)
-#         return GaussianTrapezoid(
-#             self._biases, self._scales, truncated_m, self._m
-#         )
+    def truncate(self, m: torch.Tensor) -> 'GaussianTrapezoid':
+        truncated_m = functional.inter(self._truncated_m, m)
+        return GaussianTrapezoid(
+            self._biases, self._scales, truncated_m, self._m
+        )
 
 
 
-# class RightGaussian(Gaussian):
-#     """A Gaussian shaped membership function that contains only one side
-#     """
+class RightGaussian(Gaussian):
+    """A Gaussian shaped membership function that contains only one side
+    """
     
-#     def __init__(
-#         self, biases: ShapeParams, scales: ShapeParams, is_right: bool=True,
-#         m: torch.Tensor= None
-#     ):
-#         """Create a Gaussian shaped membership function that contains only one side
+    def __init__(
+        self, biases: ShapeParams, scales: ShapeParams, is_right: bool=True,
+        m: torch.Tensor= None
+    ):
+        """Create a Gaussian shaped membership function that contains only one side
 
-#         Args:
-#             biases (ShapeParams): The bias for the logistic function
-#             scales (ShapeParams): The scale of the logistic function
-#             is_right (bool, optional): Whether it is pointed right or left. Defaults to True.
-#             m (torch.Tensor, optional): The max membership of the function. Defaults to None.
-#         """
-#         super().__init__(biases, scales, m)
-#         self._is_right = is_right
-#         self._direction = is_right * 2 - 1
+        Args:
+            biases (ShapeParams): The bias for the logistic function
+            scales (ShapeParams): The scale of the logistic function
+            is_right (bool, optional): Whether it is pointed right or left. Defaults to True.
+            m (torch.Tensor, optional): The max membership of the function. Defaults to None.
+        """
+        super().__init__(biases, scales, m)
+        self._is_right = is_right
+        self._direction = is_right * 2 - 1
     
-#     def _on_side(self, x: torch.Tensor):
-#         if self._is_right:
-#             side = x >= self._biases.pt(0)
-#         else: side = x <= self._biases.pt(0)
-#         return side
+    def _on_side(self, x: torch.Tensor):
+        if self._is_right:
+            side = x >= self._biases.pt(0)
+        else: side = x <= self._biases.pt(0)
+        return side
 
-#     def join(self, x: torch.Tensor) -> torch.Tensor:
-#         """
+    def join(self, x: torch.Tensor) -> torch.Tensor:
+        """
 
-#         Args:
-#             x (torch.Tensor): The value to join with
+        Args:
+            x (torch.Tensor): The value to join with
 
-#         Returns:
-#             torch.Tensor: The membership
-#         """
-#         x = unsqueeze(x)
-#         return calc_m_logistic(
-#             x, self._biases.pt(0), 
-#             self._scales.pt(0), self._m
-#         ) * self._on_side(x).float()
+        Returns:
+            torch.Tensor: The membership
+        """
+        x = unsqueeze(x)
 
-#     def _calc_areas(self) -> torch.Tensor:
-#         """Calculates the area of each section and sums it up
+        return gaussian(
+            x, self._m, self._biases.pt(0), self.sigma
+        ) * self._on_side(x)
 
-#         Returns:
-#             torch.Tensor: The area of the trapezoid
-#         """
-#         return self._resize_to_m(2 * self._m / self._biases.pt(0), self._m)
+    def _calc_areas(self) -> torch.Tensor:
+        """Calculates the area of each section and sums it up
 
-#     def _calc_mean_cores(self) -> torch.Tensor:
-#         """
-#         Returns:
-#             torch.Tensor: the mode of the curve
-#         """
-#         return self._resize_to_m(self._biases.pt(0), self._m)
+        Returns:
+            torch.Tensor: The area of the trapezoid
+        """
+        return self._resize_to_m(gaussian_area(self._m, self.sigma) / 2.0, self._m)
 
-#     def _calc_centroids(self):
-#         """
-#         Returns:
-#             torch.Tensor: The centroid of the curve
-#         """
-#         base_y = 0.75 if self._is_right else 0.25
-#         x = torch.logit(torch.tensor(base_y, dtype=torch.float, device=self._m.device)) / self._scales.pt(0) + self._biases.pt(0)
-#         return self._resize_to_m(x, self._m)
+    def _calc_mean_cores(self) -> torch.Tensor:
+        """
+        Returns:
+            torch.Tensor: the mode of the curve
+        """
+        return self._resize_to_m(self._biases.pt(0), self._m)
 
-#     def scale(self, m: torch.Tensor) -> 'RightGaussian':
-#         """Update the vertical scale of the right logistic
+    def _calc_centroids(self):
+        """
+        Returns:
+            torch.Tensor: The centroid of the curve
+        """
+        y = self._m * 0.25
+        offset = gaussian_invert(
+            y, self._m, self._biases.pt(0), self.sigma
+        )
+        if self._is_right:
+            return self._resize_to_m(self._biases.pt(0) + offset, self._m)
+        return self._resize_to_m(self._biases.pt(0) - offset, self._m)
 
-#         Args:
-#             m (torch.Tensor): The new vertical scale
+    def scale(self, m: torch.Tensor) -> 'RightGaussian':
+        """Update the vertical scale of the right logistic
 
-#         Returns:
-#             RightGaussian: The updated vertical scale if the scale is greater
-#         """
-#         updated_m = functional.inter(self._m, m)
+        Args:
+            m (torch.Tensor): The new vertical scale
+
+        Returns:
+            RightGaussian: The updated vertical scale if the scale is greater
+        """
+        updated_m = functional.inter(self._m, m)
         
-#         return RightGaussian(
-#             self._biases, self._scales, self._is_right, updated_m
-#         )
+        return RightGaussian(
+            self._biases, self._scales, self._is_right, updated_m
+        )
 
-#     def truncate(self, m: torch.Tensor) -> 'GaussianTrapezoid':
-#         """Truncate the right logistic. This requires the points be recalculated
+    def truncate(self, m: torch.Tensor) -> 'GaussianTrapezoid':
+        """Truncate the right logistic. This requires the points be recalculated
 
-#         Args:
-#             m (torch.Tensor): The new maximum value
+        Args:
+            m (torch.Tensor): The new maximum value
 
-#         Returns:
-#             GaussianTrapezoid: The logistic with the top truncated
-#         """
-#         truncated_m = functional.inter(self._m, m)
-#         return RightGaussianTrapezoid(
-#             self._biases, self._scales, self._is_right, truncated_m, self._m
-#         )
+        Returns:
+            GaussianTrapezoid: The logistic with the top truncated
+        """
+        truncated_m = functional.inter(self._m, m)
+        return RightGaussianTrapezoid(
+            self._biases, self._scales, self._is_right, truncated_m, self._m
+        )
 
-#     @classmethod
-#     def from_combined(cls, params: torch.Tensor, is_right: bool=True,m: torch.Tensor=None):
-#         # TODO: Check this and confirm
-#         if params.dim() == 4:
-#             return cls(params.sub(0), params.sub(1), is_right, m)
-#         return cls(params.sub(0), params.sub(1), is_right, m)
+    @classmethod
+    def from_combined(cls, params: torch.Tensor, is_right: bool=True,m: torch.Tensor=None):
+        # TODO: Check this and confirm
+        if params.dim() == 4:
+            return cls(params.sub(0), params.sub(1), is_right, m)
+        return cls(params.sub(0), params.sub(1), is_right, m)
 
 
-# class RightGaussianTrapezod(Gaussian):
-#     """A GaussianTrapezoid shaped membership function that contains only one side
-#     """
+class RightGaussianTrapezoid(Gaussian):
+    """A GaussianTrapezoid shaped membership function that contains only one side
+    """
 
-#     def __init__(
-#         self, biases: ShapeParams, scales: ShapeParams, is_right: bool, 
-#         truncated_m: torch.Tensor=None, scaled_m: torch.Tensor=None
-#     ):
-#         """Create a RightGaussian shaped membership function that contains only one side
+    def __init__(
+        self, biases: ShapeParams, scales: ShapeParams, is_right: bool, 
+        truncated_m: torch.Tensor=None, scaled_m: torch.Tensor=None
+    ):
+        """Create a RightGaussian shaped membership function that contains only one side
 
-#         Args:
-#             biases (ShapeParams): The bias for the logistic function
-#             scales (ShapeParams): The scale of the logistic function
-#             is_right (bool, optional): Whether it is pointed right or left. Defaults to True.
-#             truncated_m (torch.Tensor, optional): The max membership of the function. Defaults to None.
-#             scaled_m (torch.Tensor, optional): The scale of the membership function. Defaults to None.
-#         """
-#         super().__init__(biases, scales, scaled_m)
+        Args:
+            biases (ShapeParams): The bias for the logistic function
+            scales (ShapeParams): The scale of the logistic function
+            is_right (bool, optional): Whether it is pointed right or left. Defaults to True.
+            truncated_m (torch.Tensor, optional): The max membership of the function. Defaults to None.
+            scaled_m (torch.Tensor, optional): The scale of the membership function. Defaults to None.
+        """
+        super().__init__(biases, scales, scaled_m)
 
-#         truncated_m = self._init_m(truncated_m, biases.device)
-#         self._truncated_m = functional.inter(self._m, truncated_m)
-#         dx = unsqueeze(calc_dx_logistic(self._truncated_m, self._scales.pt(0), self._m))
-#         self._dx = ShapeParams(dx)
-#         self._is_right = is_right
-#         self._direction = is_right * 2 - 1
-#         self._pts = ShapeParams(self._biases.x + self._direction * dx)
+        truncated_m = self._init_m(truncated_m, biases.device)
+        self._truncated_m = functional.inter(self._m, truncated_m)
 
-#     @property
-#     def dx(self):
-#         return self._dx
+        pt1, pt2 = gaussian_invert(
+            self._truncated_m, self._m, self._biases, self.sigma
+        )
+        self._is_right = is_right
+        if self._is_right:
+            self._pts = ShapeParams(
+                pt2
+            )
+        else:
+            self._pts = ShapeParams(
+                pt1
+            )
 
-#     @property
-#     def m(self):
-#         return self._truncated_m
+    @property
+    def dx(self):
+        return self._dx
 
-#     def _contains(self, x: torch.Tensor) -> typing.Tuple[torch.Tensor, torch.Tensor]:
-#         """Check whether x is contained in the membership function
+    @property
+    def m(self):
+        return self._truncated_m
 
-#         Args:
-#             x (torch.Tensor): the value to check
+    def _contains(self, x: torch.Tensor) -> typing.Tuple[torch.Tensor, torch.Tensor]:
+        """Check whether x is contained in the membership function
 
-#         Returns:
-#             typing.Tuple[torch.Tensor, torch.Tensor]: Multipliers for whether the value is contained
-#         """
-#         if self._is_right:
-#             square_contains = (x >= self._biases.pt(0)) & (x <= self._pts.pt(0))
-#             logistic_contains = x >= self._pts.pt(0)
-#         else:
-#             square_contains = (x <= self._biases.pt(0)) & (x >= self._pts[0])
-#             logistic_contains = x <= self._pts.pt(0)
-#         return square_contains.float(), logistic_contains.float()
+        Args:
+            x (torch.Tensor): the value to check
 
-#     def join(self, x: torch.Tensor) -> 'torch.Tensor':
-#         """Join calculates the membership value for each section of right logistic and uses the maximimum value
-#         as the value
+        Returns:
+            typing.Tuple[torch.Tensor, torch.Tensor]: Multipliers for whether the value is contained
+        """
+        if self._is_right:
+            square_contains = (x >= self._biases.pt(0)) & (x <= self._pts.pt(0))
+            gaussian_contains = x >= self._pts.pt(0)
+        else:
+            square_contains = (x <= self._biases.pt(0)) & (x >= self._pts[0])
+            gaussian_contains = x <= self._pts.pt(0)
+        return square_contains.float(), gaussian_contains.float()
 
-#         Args:
-#             x (torch.Tensor): The value to calculate the membership for
+    def join(self, x: torch.Tensor) -> 'torch.Tensor':
+        """Join calculates the membership value for each section of right logistic and uses the maximimum value
+        as the value
 
-#         Returns:
-#             torch.Tensor: The membership
-#         """
-#         x = unsqueeze(x)
+        Args:
+            x (torch.Tensor): The value to calculate the membership for
+
+        Returns:
+            torch.Tensor: The membership
+        """
+        x = unsqueeze(x)
         
-#         square_contains, logistic_contains = self._contains(x)
+        square_contains, gaussian_contains = self._contains(x)
         
-#         m1 = calc_m_logistic(
-#             x, self._biases.pt(0), self._scales.pt(0), self._m
-#         ) * logistic_contains
-#         m2 = self._m * square_contains
-#         return torch.max(m1, m2)
+        m1 = gaussian(x, self._m, self._biases.pt(0), self.sigma) * gaussian_contains
+        m2 = self._truncated_m * square_contains
+        return torch.max(m1, m2)
 
-#     def _calc_areas(self):
-#         """Calculates the area of each logistic and sum up
+    def _calc_areas(self):
+        """Calculates the area of each logistic and sum up
 
-#         Returns:
-#             torch.Tensor: The area of the trapezoid
-#         """
-#         a1 = self._resize_to_m(calc_area_logistic_one_side(
-#             self._pts.pt(0), self._biases.pt(0), self._scales.pt(0), 
-#             self._m), self._m)
-#         a2 = 0.5 * (self._biases.pt(0) + self._pts.pt(0)) * self._m
-#         return self._resize_to_m(a1 + a2, self._m)
+        Returns:
+            torch.Tensor: The area of the trapezoid
+        """
+        
+        return self._resize_to_m(
+            gaussian_area_up_to_a(self._left.pt(0), self._m, self._biases.pt(0), self.sigma)
+            + (self._biases.pt(0) - self._pts.pt(0)) * self._truncated_m, self._m
+        )
 
-#     def _calc_mean_cores(self):
-#         """
-#         Returns:
-#             torch.Tensor: the mean value of the top of the Trapezoid
-#         """
-#         return self._resize_to_m(0.5 * (self._biases.pt(0) + self._pts.pt(0)), self._m) 
+    def _calc_mean_cores(self):
+        """
+        Returns:
+            torch.Tensor: the mean value of the top of the Trapezoid
+        """
+        if not self._is_right:
+            return self._resize_to_m(0.5 * (self._biases.pt(0) - self._left.pt(0)), self._m)
+        return self._resize_to_m(0.5 * (self._right.pt(0) - self._biases.pt(0)), self._m)
 
-#     def _calc_centroids(self):
-#         """
-#         Returns:
-#             torch.Tensor: The center of mass for the three sections of the trapezoid
-#         """
-#         # area up to "dx"
-#         p = torch.sigmoid(self._scales.pt(0) * (-self._dx.pt(0)))
-#         centroid_logistic = self._biases.pt(0) + torch.logit(p / 2) / self._scales.pt(0)
-#         centroid_square = self._biases.pt(0) - self._dx.pt(0) / 2
+    def _calc_centroids(self):
+        """
+        Returns:
+            torch.Tensor: The center of mass for the three sections of the trapezoid
+        """
+        left_area = gaussian_area_up_to_a(self._left.pt(0), self._m, self._biases.pt(0), self.sigma)
+        mid_area = (self._biases.pt(0) - self._left.pt(0)) * self._truncated_m
+        mid_centroid = (self._biases.pt(0) - self._left.pt(0)) / 2.0
+        left_centroid = gaussian_area_up_to_a_inv(left_area / 2.0, self._m, self._biases.pt(0), self.sigma)
 
-#         centroid = (centroid_logistic * p + centroid_square * self._dx.pt(0)) / (p + self._dx.pt(0))
-#         if self._is_right:
-#             return self._biases.pt(0) + self._biases.pt(0) - centroid
-#         return self._resize_to_m(centroid, self._m)
+        return self._resize_to_m(
+            (left_area * left_centroid + mid_area * mid_centroid) / (left_area + mid_area),
+            self._m
+        )
 
-#     def scale(self, m: torch.Tensor) -> 'RightGaussianTrapezoid':
-#         """Update the vertical scale of the logistic
+        # how to calculate the left centroid
+        # gaussian_area_invert((left_area / 2)) 
 
-#         Args:
-#             m (torch.Tensor): The new vertical scale
+        # calc area of left
+        # calc area of mid
+        # calc centroid of mid
+        # calc centroid of left ()
+        # weight by area of left
+        # weight by area of mid
 
-#         Returns:
-#             RightGaussianTrapezoid: The updated vertical scale if the scale is greater
-#         """
-#         updated_m = functional.inter(self._m, m)
+        # area up to "dx"
+        # p = torch.sigmoid(self._scales.pt(0) * (-self._dx.pt(0)))
+        # centroid_logistic = self._biases.pt(0) + torch.logit(p / 2) / self._scales.pt(0)
+        # centroid_square = self._biases.pt(0) - self._dx.pt(0) / 2
 
-#         # TODO: Confirm if this is correct
-#         # I think it should be intersecting rather than multiplying
-#         truncated_m = self._truncated_m * updated_m
+        # centroid = (centroid_logistic * p + centroid_square * self._dx.pt(0)) / (p + self._dx.pt(0))
+        # if self._is_right:
+        #     return self._biases.pt(0) + self._biases.pt(0) - centroid
+        # return self._resize_to_m(centroid, self._m)
+        # area_square = (self._right.pt(0) - self._biases.pt(0)) * self._truncated_m 
+        # area_gaussian = gaussian_area_up_to_a(self._left.pt(0), self._m, self._biases.pt(0), self.sigma)
 
-#         return RightGaussianTrapezoid(
-#             self._biases, self._scales, self._is_right, truncated_m, updated_m
-#         )
+        
+        # calc_area_logistic_one_side(
+        #     self._left_pt(0)
+        # )
 
-#     def truncate(self, m: torch.Tensor) -> 'RightGaussianTrapezoid':
-#         """Truncate the right logistic. This requires the points be recalculated
+    def scale(self, m: torch.Tensor) -> 'RightGaussianTrapezoid':
+        """Update the vertical scale of the logistic
 
-#         Args:
-#             m (torch.Tensor): The new maximum value
+        Args:
+            m (torch.Tensor): The new vertical scale
 
-#         Returns:
-#             RightGaussianTrapezoid: The updated vertical scale if the scale is greater
-#         """
-#         truncated_m = functional.inter(self._truncated_m, m)
-#         return RightGaussianTrapezoid(
-#             self._biases, self._scales, self._is_right, truncated_m, self._m
-#         )
+        Returns:
+            RightGaussianTrapezoid: The updated vertical scale if the scale is greater
+        """
+        updated_m = functional.inter(self._m, m)
 
-#     @classmethod
-#     def from_combined(cls, params: torch.Tensor, is_right: bool=True,m: torch.Tensor=None):
+        # TODO: Confirm if this is correct
+        # I think it should be intersecting rather than multiplying
+        truncated_m = self._truncated_m * updated_m
 
-#         if params.dim() == 4:
+        return RightGaussianTrapezoid(
+            self._biases, self._scales, self._is_right, truncated_m, updated_m
+        )
 
-#             return cls(params.sub(0), params.sub(1), is_right, m)
-#         return cls(params.sub(0), params.sub(1), is_right, m)
+    def truncate(self, m: torch.Tensor) -> 'RightGaussianTrapezoid':
+        """Truncate the right logistic. This requires the points be recalculated
+
+        Args:
+            m (torch.Tensor): The new maximum value
+
+        Returns:
+            RightGaussianTrapezoid: The updated vertical scale if the scale is greater
+        """
+        truncated_m = functional.inter(self._truncated_m, m)
+        return RightGaussianTrapezoid(
+            self._biases, self._scales, self._is_right, truncated_m, self._m
+        )
+
+    @classmethod
+    def from_combined(cls, params: torch.Tensor, is_right: bool=True,m: torch.Tensor=None):
+
+        if params.dim() == 4:
+
+            return cls(params.sub(0), params.sub(1), is_right, m)
+        return cls(params.sub(0), params.sub(1), is_right, m)
 
 
 

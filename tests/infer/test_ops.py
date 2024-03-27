@@ -6,7 +6,7 @@ class TestIntersectionOn:
 
     def test_intersection_on_returns_min_value(self):
 
-        intersect = ops.IntersectionOn()
+        intersect = ops.InterOnBase()
         m = torch.rand(3, 3, 2)
         m_out = intersect(m)
         t = m.min(dim=2)[0]
@@ -14,7 +14,7 @@ class TestIntersectionOn:
 
     def test_intersection_on_returns_min_value_with_keepdim(self):
 
-        intersect = ops.IntersectionOn(keepdim=True)
+        intersect = ops.InterOnBase(keepdim=True)
         m = torch.rand(3, 3, 2)
         m_out = intersect(m)
         t = m.min(dim=2, keepdim=True)[0]
@@ -22,7 +22,7 @@ class TestIntersectionOn:
 
     def test_intersection_on_returns_min_value_on_dim_1(self):
 
-        intersect = ops.IntersectionOn(dim=1)
+        intersect = ops.InterOnBase(dim=1)
         m = torch.rand(3, 3, 2)
         m_out = intersect(m)
         t = m.min(dim=1)[0]
@@ -30,7 +30,7 @@ class TestIntersectionOn:
 
     def test_intersection_on_returns_prod_value_on_dim_1(self):
 
-        intersect = ops.IntersectionOn(f='prob_inter_on', dim=1)
+        intersect = ops.InterOnBase(f='prob_inter_on', dim=1)
         m = torch.rand(3, 3, 2)
         m_out = intersect(m)
         t = m.prod(dim=1)
@@ -41,7 +41,7 @@ class TestUnionOn:
 
     def test_intersection_on_returns_max_value(self):
 
-        intersect = ops.UnionOn()
+        intersect = ops.UnionOnBase()
         m = torch.rand(3, 3, 2)
         m_out = intersect(m)
         t = m.max(dim=2)[0]
@@ -49,7 +49,7 @@ class TestUnionOn:
 
     def test_intersection_on_returns_max_value_with_keepdim(self):
 
-        intersect = ops.UnionOn(keepdim=True)
+        intersect = ops.UnionOnBase(keepdim=True)
         m = torch.rand(3, 3, 2)
         m_out = intersect(m)
         t = m.max(dim=2, keepdim=True)[0]
@@ -57,7 +57,7 @@ class TestUnionOn:
 
     def test_intersection_on_returns_max_value_on_dim_1(self):
 
-        intersect = ops.UnionOn(dim=1)
+        intersect = ops.UnionOnBase(dim=1)
         m = torch.rand(3, 3, 2)
         m_out = intersect(m)
         t = m.max(dim=1)[0]
