@@ -205,6 +205,7 @@ def validate_terms(*xs: torch.Tensor):
     
     return x
 
+
 def validate_n_points(*xs: torch.Tensor, n_points: int=None, ignore_none: bool=True):
 
     for x in xs:

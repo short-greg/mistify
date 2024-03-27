@@ -3,12 +3,43 @@ import typing
 
 # 3rd party
 import torch
+import torch.nn.functional
 
 # local
 from ._base import ShapeParams, Nonmonotonic
 from ...utils import unsqueeze, check_contains
 from ._utils import calc_dx_logistic, calc_area_logistic_one_side, calc_m_logistic, calc_x_logistic
 from ... import _functional as functional
+
+
+def logistic_area(m, scale):
+    
+    return 4 * m / scale
+
+
+def logistic_invert(y, m, bias, scale):
+    
+    base = torch.sqrt(-2 * scale ** 2 * torch.log(y / (m + 1e-7)))
+    return bias - base, bias + base
+
+
+def logistic_area_up_to_a(a, m, bias, scale):
+
+    z = scale * (a - bias)
+    return m * torch.sigmoid(z)
+
+
+def logistic_area_up_to_a_inv(area, m, bias, scale):
+    
+    # print(area.shape, scale.shape, bias.shape, m.shape)
+    return -torch.log(m / area - 1) / scale + bias
+
+
+def logistic(x: torch.Tensor, m: torch.Tensor, bias: torch.Tensor, scale: torch.Tensor):
+    
+    sig = torch.sigmoid(-scale * (x - bias))
+    return 4  * (1 - sig) * sig * m
+
 
 
 class Logistic(Nonmonotonic):
@@ -35,6 +66,11 @@ class Logistic(Nonmonotonic):
         self._m = self._init_m(m, biases.device)
         self._biases = biases
         self._scales = scales
+
+    @property
+    def sigma(self) -> torch.Tensor:
+
+        return torch.nn.functional.softplus(self._scales.pt(0))
 
     @property
     def biases(self) -> 'ShapeParams':
@@ -70,13 +106,18 @@ class LogisticBell(Logistic):
     """
 
     def join(self, x: torch.Tensor) -> torch.Tensor:
-        z = self._scales.pt(0) * (unsqueeze(x) - self._biases.pt(0))
-        sig = torch.sigmoid(z)
+        # z = self._scales.pt(0) * (unsqueeze(x) - self._biases.pt(0))
+        # sig = torch.sigmoid(z)
         # not 4 / s
-        return 4  * (1 - sig) * sig * self._m
+        # return 4  * (1 - sig) * sig * self._m
+        return logistic(unsqueeze(x), self._m, self._biases.pt(0), self._scales.pt(0))
 
     def _calc_areas(self):
-        return self._resize_to_m(4 * self._m / self._biases.pt(0), self._m)
+
+        return self._resize_to_m(
+            logistic_area(self._m, self._scales.pt(0)), self._m
+        )
+        # return self._resize_to_m(4 * self._m / self._biases.pt(0), self._m)
         
     def _calc_mean_cores(self):
         return self._resize_to_m(self._biases.pt(0), self._m)
@@ -107,6 +148,7 @@ class LogisticBell(Logistic):
         Returns:
             LogisticBell: The updated LogisticBell
         """
+        m = functional.inter(self._m, m)
         return LogisticTrapezoid(
             self._biases, self._scales, m, self._m 
         )
@@ -135,12 +177,18 @@ class LogisticTrapezoid(Logistic):
         truncated_m = self._init_m(truncated_m, biases.device)
         self._truncated_m = functional.inter(truncated_m, self._m)
         
-        dx = unsqueeze(calc_dx_logistic(self._truncated_m, self._scales.pt(0), self._m))
-        self._dx = ShapeParams(dx)
-        self._pts = ShapeParams(torch.concat([
-            self._biases.x - self._dx.x,
-            self._biases.x + self._dx.x
-        ], dim=dx.dim() - 1))
+        left = self._resize_to_m(logistic_area_up_to_a_inv(
+            self._truncated_m, self._m, self._biases.pt(0), self.sigma
+        ), self._truncated_m)
+        self._left = ShapeParams(unsqueeze(left))
+        self._right = ShapeParams(unsqueeze(2 * self._biases.pt(0) - self._left.pt(0)))
+        # TODO: Update
+        # dx = unsqueeze(calc_dx_logistic(self._truncated_m, self._scales.pt(0), self._m))
+        # self._dx = ShapeParams(dx)
+        # self._pts = ShapeParams(torch.concat([
+        #     self._biases.x - self._dx.x,
+        #     self._biases.x + self._dx.x
+        # ], dim=dx.dim() - 1))
 
     @property
     def dx(self):
@@ -152,16 +200,26 @@ class LogisticTrapezoid(Logistic):
 
     def join(self, x: torch.Tensor) -> 'torch.Tensor':
         x = unsqueeze(x)
-        inside = check_contains(x, self._pts.pt(0), self._pts.pt(1)).float()
-        m1 = calc_m_logistic(x, self._biases.pt(0), self._scales.pt(0), self._m) * (1 - inside)
+        inside = check_contains(x, self._left.pt(0), self._right.pt(0)).float()
+        m1 = logistic(x, self._m, self._biases.pt(0), self.sigma)
+        # m1 = calc_m_logistic(x, self._biases.pt(0), self._scales.pt(0), self._m) * (1 - inside)
         m2 = self._truncated_m * inside
         return torch.max(m1, m2)
 
     def _calc_areas(self):
         # symmetrical so multiply by 2
-        return self._resize_to_m(2 * calc_area_logistic_one_side(
-            self._pts.pt(0), self._biases.pt(0), self._scales.pt(0), self._m
-        ), self._m)
+
+        logist = 2 * logistic_area_up_to_a(
+            self._left.pt(0), self._m, self._biases.pt(0), self.sigma
+        )
+        flat = (self._left.pt(0) - self._right.pt(0)) * self._m
+        return self._resize_to_m(
+            logist + flat, self._m
+        )
+
+        # return self._resize_to_m(2 * calc_area_logistic_one_side(
+        #     self._pts.pt(0), self._biases.pt(0), self._scales.pt(0), self._m
+        # ), self._m)
         
     def _calc_mean_cores(self):
         return self._resize_to_m(self._biases.pt(0), self._m)
@@ -203,7 +261,6 @@ class RightLogistic(Logistic):
         """
         super().__init__(biases, scales, m)
         self._is_right = is_right
-        self._direction = is_right * 2 - 1
     
     def _on_side(self, x: torch.Tensor):
         if self._is_right:
@@ -221,10 +278,14 @@ class RightLogistic(Logistic):
             torch.Tensor: The membership
         """
         x = unsqueeze(x)
-        return calc_m_logistic(
-            x, self._biases.pt(0), 
-            self._scales.pt(0), self._m
+        return logistic(
+            x, self._m, self._biases.pt(0), self.sigma
         ) * self._on_side(x).float()
+
+        # return calc_m_logistic(
+        #     x, self._biases.pt(0), 
+        #     self._scales.pt(0), self._m
+        # ) * self._on_side(x).float()
 
     def _calc_areas(self) -> torch.Tensor:
         """Calculates the area of each section and sums it up
@@ -232,7 +293,10 @@ class RightLogistic(Logistic):
         Returns:
             torch.Tensor: The area of the trapezoid
         """
-        return self._resize_to_m(2 * self._m / self._biases.pt(0), self._m)
+        return self._resize_to_m(
+            logistic_area(self._m, self.sigma) / 2.0, self._m
+        )
+        # return self._resize_to_m(2 * self._m / self._biases.pt(0), self._m)
 
     def _calc_mean_cores(self) -> torch.Tensor:
         """
@@ -246,9 +310,23 @@ class RightLogistic(Logistic):
         Returns:
             torch.Tensor: The centroid of the curve
         """
-        base_y = 0.75 if self._is_right else 0.25
-        x = torch.logit(torch.tensor(base_y, dtype=torch.float, device=self._m.device)) / self._scales.pt(0) + self._biases.pt(0)
-        return self._resize_to_m(x, self._m)
+
+        if self._is_right:
+            centroid = logistic_area_up_to_a_inv(
+                0.75, self._m, self._biases.pt(0), self.sigma
+            )
+        else:
+            centroid = logistic_area_up_to_a_inv(
+                0.25, self._m, self._biases.pt(0), self.sigma
+            )
+        centroid = self._resize_to_m(
+            centroid, self._m
+        )
+        return centroid
+
+        # base_y = 0.75 if self._is_right else 0.25
+        # x = torch.logit(torch.tensor(base_y, dtype=torch.float, device=self._m.device)) / self._scales.pt(0) + self._biases.pt(0)
+        # return self._resize_to_m(x, self._m)
 
     def scale(self, m: torch.Tensor) -> 'RightLogistic':
         """Update the vertical scale of the right logistic
@@ -308,15 +386,15 @@ class RightLogisticTrapezoid(Logistic):
 
         truncated_m = self._init_m(truncated_m, biases.device)
         self._truncated_m = functional.inter(self._m, truncated_m)
-        dx = unsqueeze(calc_dx_logistic(self._truncated_m, self._scales.pt(0), self._m))
-        self._dx = ShapeParams(dx)
+        # dx = unsqueeze(calc_dx_logistic(self._truncated_m, self._scales.pt(0), self._m))
+        # self._dx = ShapeParams(dx)
+        self._left = ShapeParams(unsqueeze(logistic_area_up_to_a_inv(
+            self._truncated_m, self._m, self._biases.pt(0), self.sigma
+        )))
+        self._right = ShapeParams(unsqueeze(2 * self._biases.pt(0) - self._left.pt(0)))
         self._is_right = is_right
-        self._direction = is_right * 2 - 1
-        self._pts = ShapeParams(self._biases.x + self._direction * dx)
-
-    @property
-    def dx(self):
-        return self._dx
+        # self._direction = is_right * 2 - 1
+        # self._pts = ShapeParams(self._biases.x + self._direction * dx)
 
     @property
     def m(self):
@@ -332,11 +410,11 @@ class RightLogisticTrapezoid(Logistic):
             typing.Tuple[torch.Tensor, torch.Tensor]: Multipliers for whether the value is contained
         """
         if self._is_right:
-            square_contains = (x >= self._biases.pt(0)) & (x <= self._pts.pt(0))
-            logistic_contains = x >= self._pts.pt(0)
+            square_contains = (x >= self._biases.pt(0)) & (x <= self._right.pt(0))
+            logistic_contains = x >= self._right.pt(0)
         else:
-            square_contains = (x <= self._biases.pt(0)) & (x >= self._pts[0])
-            logistic_contains = x <= self._pts.pt(0)
+            square_contains = (x <= self._biases.pt(0)) & (x >= self._left.pt(0))
+            logistic_contains = x <= self._left.pt(0)
         return square_contains.float(), logistic_contains.float()
 
     def join(self, x: torch.Tensor) -> 'torch.Tensor':
@@ -352,10 +430,13 @@ class RightLogisticTrapezoid(Logistic):
         x = unsqueeze(x)
         
         square_contains, logistic_contains = self._contains(x)
-        
-        m1 = calc_m_logistic(
-            x, self._biases.pt(0), self._scales.pt(0), self._m
+
+        m1 = logistic(
+            x, self._m, self._biases.pt(0), self.sigma
         ) * logistic_contains
+        # m1 = calc_m_logistic(
+        #     x, self._biases.pt(0), self._scales.pt(0), self._m
+        # ) * logistic_contains
         m2 = self._m * square_contains
         return torch.max(m1, m2)
 
@@ -365,18 +446,27 @@ class RightLogisticTrapezoid(Logistic):
         Returns:
             torch.Tensor: The area of the trapezoid
         """
-        a1 = self._resize_to_m(calc_area_logistic_one_side(
-            self._pts.pt(0), self._biases.pt(0), self._scales.pt(0), 
-            self._m), self._m)
-        a2 = 0.5 * (self._biases.pt(0) + self._pts.pt(0)) * self._m
-        return self._resize_to_m(a1 + a2, self._m)
+        a1 = logistic_area_up_to_a(
+            self._left.pt(0), self._m, self._biases.pt(0),
+            self.sigma
+        )
+        a2 = (self._biases.pt(0) - self._left.pt(0)) * self._m
+        return self._resize_to_m(
+            a1 + a2, self._m
+        )
+
+        # a1 = self._resize_to_m(calc_area_logistic_one_side(
+        #     self._pts.pt(0), self._biases.pt(0), self._scales.pt(0), 
+        #     self._m), self._m)
+        # a2 = 0.5 * (self._biases.pt(0) + self._pts.pt(0)) * self._m
+        # return self._resize_to_m(a1 + a2, self._m)
 
     def _calc_mean_cores(self):
         """
         Returns:
             torch.Tensor: the mean value of the top of the Trapezoid
         """
-        return self._resize_to_m(0.5 * (self._biases.pt(0) + self._pts.pt(0)), self._m) 
+        return self._resize_to_m(0.5 * (self._biases.pt(0) + self._left.pt(0)), self._m) 
 
     def _calc_centroids(self):
         """
@@ -384,14 +474,34 @@ class RightLogisticTrapezoid(Logistic):
             torch.Tensor: The center of mass for the three sections of the trapezoid
         """
         # area up to "dx"
-        p = torch.sigmoid(self._scales.pt(0) * (-self._dx.pt(0)))
-        centroid_logistic = self._biases.pt(0) + torch.logit(p / 2) / self._scales.pt(0)
-        centroid_square = self._biases.pt(0) - self._dx.pt(0) / 2
 
-        centroid = (centroid_logistic * p + centroid_square * self._dx.pt(0)) / (p + self._dx.pt(0))
+        a1 = logistic_area_up_to_a(
+            self._left.pt(0), self._m, self._biases.pt(0),
+            self.sigma
+        )
+        a2 = (self._biases.pt(0) - self._left.pt(0)) * self._m
+        x1 = logistic_area_up_to_a_inv(
+            a1 / 2, self._m, self._biases.pt(0), self.sigma
+        )
+        x2 = (self._biases.pt(0) + self._left.pt(0)) / 2.0
+
+        centroid = (
+            a1 * x1 + a2 * x2
+        ) / (a1 + a2)
         if self._is_right:
-            return self._biases.pt(0) + self._biases.pt(0) - centroid
-        return self._resize_to_m(centroid, self._m)
+            centroid = 2 * self._biases.pt(0) - centroid
+        return self._resize_to_m(
+            centroid, self._m
+        )
+
+        # p = torch.sigmoid(self._scales.pt(0) * (-self._dx.pt(0)))
+        # centroid_logistic = self._biases.pt(0) + torch.logit(p / 2) / self._scales.pt(0)
+        # centroid_square = self._biases.pt(0) - self._dx.pt(0) / 2
+
+        # centroid = (centroid_logistic * p + centroid_square * self._dx.pt(0)) / (p + self._dx.pt(0))
+        # if self._is_right:
+        #     return self._biases.pt(0) + self._biases.pt(0) - centroid
+        # return self._resize_to_m(centroid, self._m)
 
     def scale(self, m: torch.Tensor) -> 'RightLogisticTrapezoid':
         """Update the vertical scale of the logistic
