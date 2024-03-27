@@ -8,7 +8,7 @@ import torch.nn as nn
 # local
 from .. import _functional
 from ..utils import EnumFactory
-from .._functional import _set_ops as set_ops
+from .._functional import _set_ops as set_ops, G
 
 
 class JunctionOn(nn.Module):
@@ -37,7 +37,7 @@ class JunctionOn(nn.Module):
         return self._f(m, dim=self.dim, keepdim=self.keepdim)
 
 
-class IntersectionOn(JunctionOn):
+class InterOnBase(JunctionOn):
     """Intersect sets that comprise a fuzzy set on a dimension
     """
 
@@ -50,7 +50,7 @@ class IntersectionOn(JunctionOn):
     )
 
 
-class UnionOn(JunctionOn):
+class UnionOnBase(JunctionOn):
     """Union on a specific dimension
     """
     F = EnumFactory(
@@ -73,6 +73,219 @@ class UnionOn(JunctionOn):
             ValueError: If the union function is invalid
         """
         super().__init__(f, dim, keepdim)
+
+
+class UnionOn(UnionOnBase):
+    """Union on a specific dimension
+    """
+
+    def __init__(self, dim: int=-1, keepdim: bool=False, g: G=None):
+        """Union sets that comprise a fuzzy set on a specified dimension
+
+        Args:
+            f (str, optional): The function to use for union. Defaults to 'min'.
+            dim (int, optional): Dimension to union on. Defaults to -1.
+            keepdim (bool, optional): Whether to keep the dim or not. Defaults to False.
+
+        Raises:
+            ValueError: If the union function is invalid
+        """
+        super().__init__(_functional.union_on, dim, keepdim)
+        self.g = g
+
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        return self._f(m, g=self.g)
+
+
+class ProbUnionOn(UnionOnBase):
+    """Union on a specific dimension
+    """
+
+    def __init__(self, dim: int=-1, keepdim: bool=False):
+        """Union sets that comprise a fuzzy set on a specified dimension
+
+        Args:
+            f (str, optional): The function to use for union. Defaults to 'min'.
+            dim (int, optional): Dimension to union on. Defaults to -1.
+            keepdim (bool, optional): Whether to keep the dim or not. Defaults to False.
+
+        Raises:
+            ValueError: If the union function is invalid
+        """
+        super().__init__(_functional.prob_union_on, dim, keepdim)
+
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        return self._f(m)
+
+
+class SmoothUnionOn(UnionOnBase):
+    """Union on a specific dimension
+    """
+
+    def __init__(self, dim: int=-1, keepdim: bool=False, a: float=None):
+        """Union sets that comprise a fuzzy set on a specified dimension
+
+        Args:
+            f (str, optional): The function to use for union. Defaults to 'min'.
+            dim (int, optional): Dimension to union on. Defaults to -1.
+            keepdim (bool, optional): Whether to keep the dim or not. Defaults to False.
+
+        Raises:
+            ValueError: If the union function is invalid
+        """
+        super().__init__(_functional.smooth_union_on, dim, keepdim)
+        self.a = a
+
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        return self._f(m, a=self.a)
+
+
+class BoundedUnionOn(UnionOnBase):
+    """Union on a specific dimension
+    """
+
+    def __init__(self, dim: int=-1, keepdim: bool=False, g: G=None):
+        """Union sets that comprise a fuzzy set on a specified dimension
+
+        Args:
+            f (str, optional): The function to use for union. Defaults to 'min'.
+            dim (int, optional): Dimension to union on. Defaults to -1.
+            keepdim (bool, optional): Whether to keep the dim or not. Defaults to False.
+
+        Raises:
+            ValueError: If the union function is invalid
+        """
+        super().__init__(_functional.bounded_union_on, dim, keepdim)
+        self.g = g
+
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        return self._f(m, g=self.g)
+
+
+
+class InterOn(InterOnBase):
+    """Union on a specific dimension
+    """
+
+    def __init__(self, dim: int=-1, keepdim: bool=False, g: G=None):
+        """Union sets that comprise a fuzzy set on a specified dimension
+
+        Args:
+            f (str, optional): The function to use for union. Defaults to 'min'.
+            dim (int, optional): Dimension to union on. Defaults to -1.
+            keepdim (bool, optional): Whether to keep the dim or not. Defaults to False.
+
+        Raises:
+            ValueError: If the union function is invalid
+        """
+        super().__init__(_functional.inter_on, dim, keepdim)
+        self.g = g
+
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        return self._f(m, g=self.g)
+
+
+class ProbInterOn(InterOnBase):
+    """Union on a specific dimension
+    """
+
+    def __init__(self, dim: int=-1, keepdim: bool=False):
+        """Union sets that comprise a fuzzy set on a specified dimension
+
+        Args:
+            f (str, optional): The function to use for union. Defaults to 'min'.
+            dim (int, optional): Dimension to union on. Defaults to -1.
+            keepdim (bool, optional): Whether to keep the dim or not. Defaults to False.
+
+        Raises:
+            ValueError: If the union function is invalid
+        """
+        super().__init__(_functional.prob_inter_on, dim, keepdim)
+
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        return self._f(m)
+
+
+class SmoothInterOn(InterOnBase):
+    """Union on a specific dimension
+    """
+
+    def __init__(self, dim: int=-1, keepdim: bool=False, a: float=None):
+        """Union sets that comprise a fuzzy set on a specified dimension
+
+        Args:
+            f (str, optional): The function to use for union. Defaults to 'min'.
+            dim (int, optional): Dimension to union on. Defaults to -1.
+            keepdim (bool, optional): Whether to keep the dim or not. Defaults to False.
+
+        Raises:
+            ValueError: If the union function is invalid
+        """
+        super().__init__(_functional.smooth_inter_on, dim, keepdim)
+        self.a = a
+
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        return self._f(m, a=self.a)
+
+
+class BoundedInterOn(InterOnBase):
+    """Union on a specific dimension
+    """
+
+    def __init__(self, dim: int=-1, keepdim: bool=False, g: G=None):
+        """Union sets that comprise a fuzzy set on a specified dimension
+
+        Args:
+            f (str, optional): The function to use for union. Defaults to 'min'.
+            dim (int, optional): Dimension to union on. Defaults to -1.
+            keepdim (bool, optional): Whether to keep the dim or not. Defaults to False.
+
+        Raises:
+            ValueError: If the union function is invalid
+        """
+        super().__init__(_functional.bounded_inter_on, dim, keepdim)
+        self.g = g
+
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        return self._f(m, g=self.g)
+
+
+class Junction(nn.Module):
+
+    def __init__(self, f: typing.Callable[[torch.Tensor, torch.Tensor], torch.Tensor]) -> torch.Tensor:
+
+        super().__init__()
+        self._f = f
+
+    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+        
+        return self._f(m1, m2)
+
+
+class InterBase(Junction):
+
+    def __init__(self, f: typing.Callable[[torch.Tensor, torch.Tensor], torch.Tensor]) -> torch.Tensor:
+
+        super().__init__()
+        self._f = f
+
+    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+        
+        return self._f(m1, m2)
+
+
+class UnionBase(Junction):
+
+    def __init__(self, f: typing.Callable[[torch.Tensor, torch.Tensor], torch.Tensor]) -> torch.Tensor:
+
+        super().__init__()
+        self._f = f
+
+    def forward(self, m1: torch.Tensor, m2: torch.Tensor) -> torch.Tensor:
+        
+        return self._f(m1, m2)
+
+
 
 
 class Else(nn.Module):
