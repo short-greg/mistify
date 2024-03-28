@@ -15,6 +15,10 @@ class ShapeHypothesis(nn.Module):
     """A hypothesizer generates candidates for defuzzification.
     """
 
+    def __init__(self, truncate: bool=False) -> None:
+        super().__init__()
+        self.truncate = truncate
+
     @abstractmethod
     def forward(self, *shapes: Shape) -> torch.Tensor:
         pass
@@ -24,10 +28,10 @@ class AreaHypothesis(ShapeHypothesis):
     """Use the area under the fuzzy set
     """
 
-    def forward(self, *shapes: typing.List[Shape]) -> torch.Tensor:
+    def forward(self, *shapes: Nonmonotonic, m: torch.Tensor) -> torch.Tensor:
         
         return torch.cat(
-            [shape.areas for shape in shapes], dim=2
+            [shape.areas(m, self.truncate) for shape in shapes], dim=2
         )
 
 
@@ -35,13 +39,13 @@ class MeanCoreHypothesis(ShapeHypothesis):
     """Use the mean value of the 'core' of the fuzzy set for the hypothesis
     """
 
-    def forward(self, *shapes: typing.List[Nonmonotonic]):
+    def forward(self, *shapes: Nonmonotonic, m: torch.Tensor):
 
         cores = []
         for shape in shapes:
-            if shape.mean_cores is None:
-                raise ValueError('Cannot calculate mean core if None')
-            cores.append(shape.mean_cores)
+            # if shape.mean_cores is None:
+            #     raise ValueError('Cannot calculate mean core if None')
+            cores.append(shape.mean_cores(m, self.truncate))
         return torch.cat(
             cores, dim=2
         )
@@ -51,13 +55,13 @@ class MinCoreHypothesis(ShapeHypothesis):
     """Use the min value of the 'core' of the fuzzy set for the hypothesis. Use for 'Monotonic'
     """
 
-    def forward(self, *shapes: typing.List[Monotonic]):
+    def forward(self, *shapes: Monotonic, m: torch.Tensor):
 
         cores = []
         for shape in shapes:
-            if shape.min_cores is None:
-                raise ValueError('Cannot calculate mean core if None')
-            cores.append(shape.min_cores)
+            # if shape.min_cores is None:
+            #     raise ValueError('Cannot calculate mean core if None')
+            cores.append(shape.min_cores(m))
         return torch.cat(
             cores, dim=2
         )
@@ -67,9 +71,9 @@ class CentroidHypothesis(ShapeHypothesis):
     """Use the centroid of the fuzzy set for the hypothesis
     """
 
-    def forward(self, *shapes: typing.List[Nonmonotonic]):
+    def forward(self, *shapes: Nonmonotonic, m: torch.Tensor):
         return torch.cat(
-            [shape.centroids for shape in shapes], dim=2
+            [shape.centroids(m, self.truncate) for shape in shapes], dim=2
         )
 
 

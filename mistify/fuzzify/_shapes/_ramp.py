@@ -14,7 +14,7 @@ class Ramp(Monotonic):
     """
 
     def __init__(
-        self, coords: ShapeParams, m: torch.Tensor=None# , scale_m: torch.Tensor=None
+        self, coords: ShapeParams
     ):
         """Create a ramp function that has a lower bound and an upper bound
 
@@ -29,7 +29,6 @@ class Ramp(Monotonic):
             coords.n_terms
         )
         self._coords = coords
-        self._m = self._init_m(m, coords.device)
 
     @property
     def coords(self) -> 'ShapeParams':
@@ -40,10 +39,10 @@ class Ramp(Monotonic):
         return self._coords
 
     @classmethod
-    def from_combined(cls, params: ShapeParams, m: torch.Tensor=None):
+    def from_combined(cls, params: ShapeParams):
 
         return cls(
-            params.sub((0, 1)), m
+            params.sub((0, 1))
         )
 
     def join(self, x: torch.Tensor) -> torch.Tensor:
@@ -60,27 +59,31 @@ class Ramp(Monotonic):
         # min_ = torch.tensor(0, dtype=x.dtype, device=x.device)
         # m = (unsqueeze(x) * ((self._m / (self._coords.pt(1) - self._coords.pt(0))) - self._coords.pt(0)))
         # return torch.clamp(torch.clamp(m, max=self._m), 0.0)
-        return functional.ramp(x, self._coords.pt(0), self._coords.pt(1)) * self._m
-    
-    def _calc_min_cores(self):
-        """
-        Returns:
-            torch.Tensor: the minimum value of the start of the core of the set
-        """
-        return self._resize_to_m(self._coords.pt(1), self._m)
+        return functional.ramp(x, self._coords.pt(0), self._coords.pt(1))
 
-    def truncate(self, m: torch.Tensor) -> 'Ramp':
-        """Truncate the Ramp function. This results in changing the m value as well
-        as the point for the upper bound
+    def min_cores(self, m: torch.Tensor) -> torch.Tensor:
+        
+        return self._coords.pt(0) * (1 - m) - self._coords.pt(0) * m
 
-        Args:
-            m (torch.Tensor): The value to truncate by
+    # def _calc_min_cores(self):
+    #     """
+    #     Returns:
+    #         torch.Tensor: the minimum value of the start of the core of the set
+    #     """
+    #     return self._resize_to_m(self._coords.pt(1), self._m)
 
-        Returns:
-            Ramp: The truncated ramp
-        """
-        truncate_m = functional.inter(self._m, m)
-        pt = (truncate_m + self._coords.pt(0)) * (self._coords.pt(1) - self._coords.pt(0)) / self._m
-        coords = self._coords.replace(pt, 1, True, truncate_m)
+    # def truncate(self, m: torch.Tensor) -> 'Ramp':
+    #     """Truncate the Ramp function. This results in changing the m value as well
+    #     as the point for the upper bound
 
-        return Ramp(coords, m)
+    #     Args:
+    #         m (torch.Tensor): The value to truncate by
+
+    #     Returns:
+    #         Ramp: The truncated ramp
+    #     """
+    #     truncate_m = functional.inter(self._m, m)
+    #     pt = (truncate_m + self._coords.pt(0)) * (self._coords.pt(1) - self._coords.pt(0)) / self._m
+    #     coords = self._coords.replace(pt, 1, True, truncate_m)
+
+    #     return Ramp(coords, m)

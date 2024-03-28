@@ -14,7 +14,7 @@ class Step(Monotonic):
     """
 
     def __init__(
-        self, threshold: ShapeParams, m: torch.Tensor=None
+        self, threshold: ShapeParams
     ):
         """Create a step function
 
@@ -27,7 +27,6 @@ class Step(Monotonic):
             threshold.n_terms
         )
         self._threshold = threshold
-        self._m = self._init_m(m, threshold.device)
 
     @property
     def thresholds(self) -> ShapeParams:
@@ -48,24 +47,27 @@ class Step(Monotonic):
         x = unsqueeze(x)
         # return self._m * functional.binarize(x - self._threshold.pt(0))
         # return intersect(self._m, (unsqueeze(x) >= self._threshold.pt(0)).type_as(x))
-        return functional.threshold(x, self._threshold.pt(0)) * self._m
+        return functional.threshold(x, self._threshold.pt(0))
+    
+    def min_cores(self, m: torch.Tensor) -> torch.Tensor:
+        return self._resize_to_m(self._threshold.pt(0), m)
 
-    def _calc_min_cores(self):
-        # NOTE: not correct if m is 0
-        return self._threshold.pt(0) * torch.ones_like(self._m)
-
-    # def _calc_area(self):
+    # def _calc_min_cores(self):
     #     # NOTE: not correct if m is 0
-    #     return self._threshold.pt(0) * torch.zeros_like(self._m)
+    #     return self._threshold.pt(0) * torch.ones_like(self._m)
 
-    def truncate(self, m: torch.Tensor) -> 'Step':
-        """Reduce the height of teh step function
+    # # def _calc_area(self):
+    # #     # NOTE: not correct if m is 0
+    # #     return self._threshold.pt(0) * torch.zeros_like(self._m)
 
-        Args:
-            m (torch.Tensor): The value to reduce the height by
+    # def truncate(self, m: torch.Tensor) -> 'Step':
+    #     """Reduce the height of teh step function
 
-        Returns:
-            Step: The updated step function
-        """
-        m = functional.inter(self._m, m)
-        return Step(self._threshold, m)
+    #     Args:
+    #         m (torch.Tensor): The value to reduce the height by
+
+    #     Returns:
+    #         Step: The updated step function
+    #     """
+    #     m = functional.inter(self._m, m)
+    #     return Step(self._threshold, m)

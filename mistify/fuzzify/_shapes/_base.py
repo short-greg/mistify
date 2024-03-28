@@ -27,35 +27,6 @@ class Shape(nn.Module):
         self._n_terms = n_terms
         self._areas = None
 
-    def _init_m(self, m: torch.Tensor=None, device='cpu') -> torch.Tensor:
-        """Set m to 1 if m is None
-
-        Args:
-            m (torch.Tensor, optional): the membership. Defaults to None.
-            device (str, optional): the device for the membership. Defaults to 'cpu'.
-
-        Returns:
-            torch.Tensor: the output membership
-        """
-        if m is None:
-            return torch.tensor(1., device=device)
-        return m.to(device)
-
-    @abstractmethod
-    def _calc_areas(self):
-        """Method to override to calculate the area of the shape
-        """
-        pass
-
-    @property
-    def areas(self) -> torch.Tensor:
-        """
-        Returns:
-            torch.Tensor: The area for the shape
-        """
-        if self._areas is None:
-            self._areas = self._calc_areas()
-        return self._areas
 
     @property
     def n_terms(self) -> int:
@@ -85,25 +56,10 @@ class Shape(nn.Module):
         """
         pass
 
-    @abstractproperty
-    def m(self):
-        """
-        Returns:
-            torch.Tensor: The max membership for the set
-        """
-        pass
-    
-    @abstractmethod
-    def truncate(self, m: torch.Tensor) -> 'Shape':
-        """Truncate the shape by a membership tensor
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
 
-        Args:
-            m (torch.Tensor): Membership tensor to truncate by
+        return self.join(x)
 
-        Returns:
-            Shape: Scaled shape
-        """
-        pass
 
     def _resize_to_m(self, x: torch.Tensor, m: torch.Tensor) -> torch.Tensor:
         """Convenience method to resize x to ahve the same batch size
@@ -120,10 +76,46 @@ class Shape(nn.Module):
             return x.repeat(m.size(0), *[1] * (m.dim() - 1))
         return x
     
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
 
-        return self.join(x)
+    # def _init_m(self, m: torch.Tensor=None, device='cpu') -> torch.Tensor:
+    #     """Set m to 1 if m is None
 
+    #     Args:
+    #         m (torch.Tensor, optional): the membership. Defaults to None.
+    #         device (str, optional): the device for the membership. Defaults to 'cpu'.
+
+    #     Returns:
+    #         torch.Tensor: the output membership
+    #     """
+    #     if m is None:
+    #         return torch.tensor(1., device=device)
+    #     return m.to(device)
+
+    # @abstractproperty
+    # def m(self):
+    #     """
+    #     Returns:
+    #         torch.Tensor: The max membership for the set
+    #     """
+    #     pass
+    
+    # @abstractmethod
+    # def truncate(self, m: torch.Tensor) -> 'Shape':
+    #     """Truncate the shape by a membership tensor
+
+    #     Args:
+    #         m (torch.Tensor): Membership tensor to truncate by
+
+    #     Returns:
+    #         Shape: Scaled shape
+    #     """
+    #     pass
+
+    # @abstractmethod
+    # def _calc_areas(self):
+    #     """Method to override to calculate the area of the shape
+    #     """
+    #     pass
 
 class Monotonic(Shape):
     """A nondecreasing or nonincreasing shape
@@ -138,24 +130,28 @@ class Monotonic(Shape):
         """
         super().__init__(n_variables, n_terms)
         self._min_cores = None
-    
+
     @abstractmethod
-    def _calc_min_cores(self) -> torch.Tensor:
-        """
-        Returns:
-            torch.Tensor: The minimum of the "core" of the shape
-        """
+    def min_cores(self, m: torch.Tensor) -> torch.Tensor:
         pass
 
-    @property
-    def min_cores(self) -> torch.Tensor:
-        """
-        Returns:
-            torch.Tensor: The mean of the core of the shape
-        """
-        if self._min_cores is None:
-            self._min_cores = self._calc_min_cores()
-        return self._min_cores
+    # @abstractmethod
+    # def _calc_min_cores(self) -> torch.Tensor:
+    #     """
+    #     Returns:
+    #         torch.Tensor: The minimum of the "core" of the shape
+    #     """
+    #     pass
+
+    # @property
+    # def min_cores(self) -> torch.Tensor:
+    #     """
+    #     Returns:
+    #         torch.Tensor: The mean of the core of the shape
+    #     """
+    #     if self._min_cores is None:
+    #         self._min_cores = self._calc_min_cores()
+    #     return self._min_cores
 
 
 class Nonmonotonic(Shape):
@@ -173,53 +169,64 @@ class Nonmonotonic(Shape):
         self._mean_cores = None
         self._centroids = None
 
+
     @abstractmethod
-    def _calc_mean_cores(self) -> torch.Tensor:
+    def mean_cores(self, m: torch.Tensor, truncate: bool=False) -> torch.Tensor:
         """
         Returns:
             torch.Tensor: The mean of the core of the shape
         """
         pass
-
-    @property
-    def mean_cores(self) -> torch.Tensor:
-        """
-        Returns:
-            torch.Tensor: The mean of the core of the shape
-        """
-        if self._mean_cores is None:
-            self._mean_cores = self._calc_mean_cores()
-        return self._mean_cores
+        # if self._mean_cores is None:
+        #     self._mean_cores = self._calc_mean_cores()
+        # return self._mean_cores
 
     @abstractmethod
-    def _calc_centroids(self) -> torch.Tensor:
-        """
-        Returns:
-            torch.Tensor: The centroid of the shape
-        """
-        pass
-
-    @property
-    def centroids(self) -> torch.Tensor:
+    def areas(self, m: torch.Tensor, truncate: bool=False) -> torch.Tensor:
         """
         Returns:
             torch.Tensor: Centroid for the 
         """
-        if self._centroids is None:
-            self._centroids = self._calc_centroids()
-        return self._centroids
+        pass
 
     @abstractmethod
-    def scale(self, m: torch.Tensor) -> 'Shape':
-        """Scale the shape by a membership tensor
-
-        Args:
-            m (torch.Tensor): Membership tensor to scale by
-
+    def centroids(self, m: torch.Tensor, truncate: bool=False) -> torch.Tensor:
+        """
         Returns:
-            Shape: Scaled shape
+            torch.Tensor: Centroid for the 
         """
         pass
+        # if self._centroids is None:
+        #     self._centroids = self._calc_centroids()
+        # return self._centroids
+
+    # @abstractmethod
+    # def scale(self, m: torch.Tensor) -> 'Shape':
+    #     """Scale the shape by a membership tensor
+
+    #     Args:
+    #         m (torch.Tensor): Membership tensor to scale by
+
+    #     Returns:
+    #         Shape: Scaled shape
+    #     """
+    #     pass
+
+    # @abstractmethod
+    # def _calc_centroids(self) -> torch.Tensor:
+    #     """
+    #     Returns:
+    #         torch.Tensor: The centroid of the shape
+    #     """
+    #     pass
+
+    # @abstractmethod
+    # def _calc_mean_cores(self) -> torch.Tensor:
+    #     """
+    #     Returns:
+    #         torch.Tensor: The mean of the core of the shape
+    #     """
+    #     pass
 
 
 class ShapeParams(nn.Module):
@@ -239,15 +246,6 @@ class ShapeParams(nn.Module):
             self._x = nn.parameter.Parameter(x.detach())
         self._tunable = tunable
         self._descending = descending
-
-    # @property
-    # def is_tunable(self) -> bool:
-    #     return self._x.requires_grad
-    
-    # def tunable(self, tunable: bool=True) -> bool:
-
-    #     self._x.requires_grad_(tunable)
-    #     return tunable
 
     def sub(self, index: typing.Union[int, typing.Tuple[int, int]]) -> 'ShapeParams':
         """Extract a subset of the parameters
@@ -446,7 +444,7 @@ class Polygon(Nonmonotonic):
     """
     PT = None
 
-    def __init__(self, params: ShapeParams, m: typing.Optional[torch.Tensor]=None):
+    def __init__(self, params: ShapeParams):
         """Create a polygon consisting of Nonmonotonic shapes
 
         Args:
@@ -460,9 +458,8 @@ class Polygon(Nonmonotonic):
             raise ValueError(f'Number of points must be {self.PT} not {params.x.size(3)}')
         
         super().__init__(params.set_size, params.n_terms)
-        self._m = self._init_m(m, params.device)
         self._params = params
 
     @property
     def params(self) -> ShapeParams:
-        return self._params
+        return self._params()

@@ -49,88 +49,109 @@ class Composite(Nonmonotonic, Monotonic):
         return torch.cat(
             [shape.join(x) for shape in self._shapes], dim=2
         )
+
+    def areas(self, m: torch.Tensor, truncate: bool = False) -> torch.Tensor:
+        return torch.cat(
+            [shape.areas(m, truncate) for shape in self._shapes], dim=-1
+        )
     
-    def _calc_areas(self):
-        """Calculate the area for each of the shapes and concatenate
-
-        Returns:
-            torch.Tensor: The areas
-        """
+    def min_cores(self, m: torch.Tensor, truncate: bool = False) -> torch.Tensor:
         return torch.cat(
-            [shape.areas for shape in self._shapes], dim=2
+            [shape.min_cores(m, truncate) for shape in self._shapes], dim=-1
+        )
+    
+    def mean_cores(self, m: torch.Tensor, truncate: bool = False) -> torch.Tensor:
+        return torch.cat(
+            [shape.mean_cores(m, truncate) for shape in self._shapes], dim=-1
+        )
+    
+    def centroids(self, m: torch.Tensor, truncate: bool = False) -> torch.Tensor:
+        return torch.cat(
+            [shape.centroids(m, truncate) for shape in self._shapes], dim=-1
         )
 
-    def _calc_centroids(self) -> torch.Tensor:
-        """Calculate the centroids for each of the shapes and concatenate
+
+    # def _calc_areas(self):
+    #     """Calculate the area for each of the shapes and concatenate
+
+    #     Returns:
+    #         torch.Tensor: The areas
+    #     """
+    #     return torch.cat(
+    #         [shape.areas for shape in self._shapes], dim=2
+    #     )
+
+    # def _calc_centroids(self) -> torch.Tensor:
+    #     """Calculate the centroids for each of the shapes and concatenate
         
-        Returns:
-            torch.Tensor: The centroids
-        """
-        return torch.cat(
-            [shape.centroids for shape in self._shapes], dim=2
-        )
+    #     Returns:
+    #         torch.Tensor: The centroids
+    #     """
+    #     return torch.cat(
+    #         [shape.centroids for shape in self._shapes], dim=2
+    #     )
 
-    def _calc_mean_cores(self) -> torch.Tensor:
-        """Calculate the mean_cores for each of the shapes and concatenate
+    # def _calc_mean_cores(self) -> torch.Tensor:
+    #     """Calculate the mean_cores for each of the shapes and concatenate
         
-        Returns:
-            torch.Tensor: The mean_cores
-        """
-        return torch.cat(
-            [shape.mean_cores for shape in self._shapes], dim=2
-        )
+    #     Returns:
+    #         torch.Tensor: The mean_cores
+    #     """
+    #     return torch.cat(
+    #         [shape.mean_cores for shape in self._shapes], dim=2
+    #     )
 
-    def _calc_min_cores(self) -> torch.Tensor:
-        """Calculate the min_cores for each of the shapes and concatenate
+    # def _calc_min_cores(self) -> torch.Tensor:
+    #     """Calculate the min_cores for each of the shapes and concatenate
         
-        Returns:
-            torch.Tensor: The min_cores
-        """
-        return torch.cat(
-            [shape.min_cores for shape in self._shapes], dim=2
-        )
+    #     Returns:
+    #         torch.Tensor: The min_cores
+    #     """
+    #     return torch.cat(
+    #         [shape.min_cores for shape in self._shapes], dim=2
+    #     )
 
-    def truncate(self, m: torch.Tensor) -> Shape:
-        """Truncate each of the shapes
+    # def truncate(self, m: torch.Tensor) -> Shape:
+    #     """Truncate each of the shapes
 
-        Args:
-            m (torch.Tensor): The membership value to truncate by
+    #     Args:
+    #         m (torch.Tensor): The membership value to truncate by
 
-        Returns:
-            CompositeNonmonotonic: Composite with all shapes scaled 
-        """
-        truncated = []
-        start = 0
-        last = None
-        for shape in self._shapes:
+    #     Returns:
+    #         CompositeNonmonotonic: Composite with all shapes scaled 
+    #     """
+    #     truncated = []
+    #     start = 0
+    #     last = None
+    #     for shape in self._shapes:
             
-            # (batch, n_variables, n_terms, )
-            last = shape.n_terms + start
-            m_cur = m[:,:,start:last]
-            truncated.append(shape.truncate(m_cur))
-            start = last
+    #         # (batch, n_variables, n_terms, )
+    #         last = shape.n_terms + start
+    #         m_cur = m[:,:,start:last]
+    #         truncated.append(shape.truncate(m_cur))
+    #         start = last
     
-        return Composite(truncated)
+    #     return Composite(truncated)
 
-    def scale(self, m: torch.Tensor) -> 'Composite':
-        """Scale each of the shapes
+    # def scale(self, m: torch.Tensor) -> 'Composite':
+    #     """Scale each of the shapes
 
-        Args:
-            m (torch.Tensor): The membership value to truncate by
+    #     Args:
+    #         m (torch.Tensor): The membership value to truncate by
 
-        Returns:
-            CompositeNonmonotonic: Composite with all shapes scaled 
-        """
-        scaled = []
-        start = 0
-        last = None
-        for shape in self._shapes:
-            if isinstance(shape, Monotonic):
-                raise RuntimeError(f'Scale is not implemented for monotonic shapes')
+    #     Returns:
+    #         CompositeNonmonotonic: Composite with all shapes scaled 
+    #     """
+    #     scaled = []
+    #     start = 0
+    #     last = None
+    #     for shape in self._shapes:
+    #         if isinstance(shape, Monotonic):
+    #             raise RuntimeError(f'Scale is not implemented for monotonic shapes')
             
-            last = shape.n_terms + start
-            m_cur = m[:,:,start:last]
-            scaled.append(shape.scale(m_cur))
-            start = last
+    #         last = shape.n_terms + start
+    #         m_cur = m[:,:,start:last]
+    #         scaled.append(shape.scale(m_cur))
+    #         start = last
     
-        return Composite(scaled)
+    #     return Composite(scaled)

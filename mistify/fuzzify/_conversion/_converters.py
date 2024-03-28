@@ -236,8 +236,8 @@ class IsoscelesFuzzyConverter(CompositeFuzzyConverter):
     """
 
     def __init__(
-        self, left: typing.Union[shape.DecreasingRightTrapezoid, shape.DecreasingRightTriangle],
-        right: typing.Union[shape.IncreasingRightTrapezoid, shape.IncreasingRightTriangle],
+        self, left: typing.Union[shape.RightTrapezoid, shape.RightTriangle],
+        right: typing.Union[shape.RightTrapezoid, shape.RightTriangle],
         middle: shape.IsoscelesTriangle=None, 
         hypothesis: typing.Union[ShapeHypothesis, str]="area", 
         conclusion: typing.Union[Conclusion, str]="max", 
@@ -246,8 +246,8 @@ class IsoscelesFuzzyConverter(CompositeFuzzyConverter):
         """
 
         Args:
-            left (typing.Union[shape.DecreasingRightTrapezoid, shape.DecreasingRightTriangle]): The shape on the left
-            right (typing.Union[shape.IncreasingRightTrapezoid, shape.IncreasingRightTriangle]): The shape on the right
+            left (typing.Union[shape.RightTrapezoid, shape.RightTriangle]): The shape on the left
+            right (typing.Union[shape.RightTrapezoid, shape.RightTriangle]): The shape on the right
             middle (shape.IsoscelesTriangle, optional): The middle shape. Defaults to None.
             hypothesis (typing.Union[ShapeHypothesis, str], optional): The hypothesis fucntion. Defaults to "area".
             conclusion (typing.Union[Conclusion, str], optional): The conclusion function. Defaults to "max".
@@ -267,10 +267,10 @@ class IsoscelesFuzzyConverter(CompositeFuzzyConverter):
         left, right, middle = validate_terms(left, right, middle)
         validate_n_points(middle, n_points=2)
         validate_right_trapezoid(left, right)
-        left_shape = shape.DecreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
-        right_shape = shape.IncreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
-        left_shape = left_shape(ShapeParams(left, tunable))
-        right_shape = right_shape(ShapeParams(right, tunable))
+        left_shape = shape.RightTrapezoid if flat_edges(left, 2) else shape.RightTriangle
+        right_shape = shape.RightTrapezoid if flat_edges(left, 2) else shape.RightTriangle
+        left_shape = left_shape(ShapeParams(left, tunable), False)
+        right_shape = right_shape(ShapeParams(right, tunable), True)
         if middle is not None:
             middle = shape.IsoscelesTriangle(ShapeParams(middle, tunable))
         return IsoscelesFuzzyConverter(
@@ -300,16 +300,16 @@ class IsoscelesFuzzyConverter(CompositeFuzzyConverter):
         """
         middle = None
         if flat_edges:
-            left = shape.DecreasingRightTrapezoid(ShapeParams(coords[:,:,None,:3]))
+            left = shape.RightTrapezoid(ShapeParams(coords[:,:,None,:3]), False)
             if n_terms > 2:
                 middle = shape.IsoscelesTriangle(ShapeParams(stride_coordinates(coords[:,:,1:-1], n_terms - 2, 1, 2)))
-            right = shape.IncreasingRightTrapezoid(ShapeParams(coords[:,:,None,-3:]))
+            right = shape.RightTrapezoid(ShapeParams(coords[:,:,None,-3:]), True)
 
         else:
-            left = shape.DecreasingRightTriangle(ShapeParams(coords[:,:,None,:2]))
+            left = shape.RightTriangle(ShapeParams(coords[:,:,None,:2]), False)
             if n_terms > 2:
                 middle = shape.IsoscelesTriangle(ShapeParams(stride_coordinates(coords, n_terms - 2, 1, 2)))
-            right = shape.IncreasingRightTriangle(ShapeParams(coords[:,:,None,-2:]))
+            right = shape.RightTriangle(ShapeParams(coords[:,:,None,-2:]), True)
         return IsoscelesFuzzyConverter(left, right, middle, hypothesis, conclusion, truncate )
 
     @classmethod
@@ -343,8 +343,8 @@ class IsoscelesFuzzyConverter(CompositeFuzzyConverter):
 class IsoscelesTrapezoidFuzzyConverter(CompositeFuzzyConverter):
 
     def __init__(
-        self, left: typing.Union[shape.DecreasingRightTrapezoid, shape.DecreasingRightTriangle],
-        right: typing.Union[shape.IncreasingRightTrapezoid, shape.IncreasingRightTriangle],
+        self, left: typing.Union[shape.RightTrapezoid, shape.RightTriangle],
+        right: typing.Union[shape.RightTrapezoid, shape.RightTriangle],
         middle: shape.IsoscelesTrapezoid=None, 
         hypothesis: typing.Union[ShapeHypothesis, str]="area", 
         conclusion: typing.Union[Conclusion, str]="max", 
@@ -374,10 +374,10 @@ class IsoscelesTrapezoidFuzzyConverter(CompositeFuzzyConverter):
         left, right, middle = validate_terms(left, right, middle)
         validate_n_points(middle, n_points=3)
         validate_right_trapezoid(left, right)
-        left_shape = shape.DecreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
-        right_shape = shape.IncreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
-        left_shape = left_shape(ShapeParams(left, tunable))
-        right_shape = right_shape(ShapeParams(right, tunable))
+        left_shape = shape.RightTrapezoid if flat_edges(left, 2) else shape.RightTriangle
+        right_shape = shape.RightTrapezoid if flat_edges(left, 2) else shape.RightTriangle
+        left_shape = left_shape(ShapeParams(left, tunable), False)
+        right_shape = right_shape(ShapeParams(right, tunable), True)
         if middle is not None:
             middle = shape.IsoscelesTrapezoid(ShapeParams(middle, tunable=tunable))
         return IsoscelesTrapezoidFuzzyConverter(
@@ -407,15 +407,15 @@ class IsoscelesTrapezoidFuzzyConverter(CompositeFuzzyConverter):
         """
         middle = None
         if flat_edges:
-            left = shape.DecreasingRightTrapezoid(ShapeParams(coords[:,:,None,:3]))
+            left = shape.RightTrapezoid(ShapeParams(coords[:,:,None,:3]), False)
             if n_terms > 2:
                 middle = shape.IsoscelesTrapezoid(ShapeParams(stride_coordinates(coords[:,:,1:-1], n_terms - 2, 2, 3)))
-            right = shape.IncreasingRightTrapezoid(ShapeParams(coords[:,:,None,-3:]))
+            right = shape.RightTrapezoid(ShapeParams(coords[:,:,None,-3:]), True)
         else:
-            left = shape.DecreasingRightTriangle(ShapeParams(coords[:,:,None,:2]))
+            left = shape.RightTriangle(ShapeParams(coords[:,:,None,:2]), False)
             if n_terms > 2:
                 middle = shape.IsoscelesTrapezoid(ShapeParams(stride_coordinates(coords, n_terms - 2, 2, 3)))
-            right = shape.IncreasingRightTriangle(ShapeParams(coords[:,:,None,-2:]))
+            right = shape.RightTriangle(ShapeParams(coords[:,:,None,-2:]), True)
 
         return IsoscelesTrapezoidFuzzyConverter(left, right, middle, hypothesis, conclusion, truncate )
 
@@ -450,8 +450,8 @@ class IsoscelesTrapezoidFuzzyConverter(CompositeFuzzyConverter):
 class TrapezoidFuzzyConverter(CompositeFuzzyConverter):
 
     def __init__(
-        self, left: typing.Union[shape.DecreasingRightTrapezoid, shape.DecreasingRightTriangle],
-        right: typing.Union[shape.IncreasingRightTrapezoid, shape.IncreasingRightTriangle],
+        self, left: typing.Union[shape.RightTrapezoid, shape.RightTriangle],
+        right: typing.Union[shape.RightTrapezoid, shape.RightTriangle],
         middle: shape.Trapezoid=None, 
         hypothesis: typing.Union[ShapeHypothesis, str]="area", 
         conclusion: typing.Union[Conclusion, str]="max", 
@@ -460,8 +460,8 @@ class TrapezoidFuzzyConverter(CompositeFuzzyConverter):
         """
 
         Args:
-            left (typing.Union[shape.DecreasingRightTrapezoid, shape.DecreasingRightTriangle]): The shape on the left
-            right (typing.Union[shape.IncreasingRightTrapezoid, shape.IncreasingRightTriangle]): The shape on the right
+            left (typing.Union[shape.RightTrapezoid, shape.RightTriangle]): The shape on the left
+            right (typing.Union[shape.RightTrapezoid, shape.RightTriangle]): The shape on the right
             middle (shape.Trapezoid, optional): The middle shape. Defaults to None.
             hypothesis (typing.Union[ShapeHypothesis, str], optional): The hypothesis fucntion. Defaults to "area".
             conclusion (typing.Union[Conclusion, str], optional): The conclusion function. Defaults to "max".
@@ -481,10 +481,10 @@ class TrapezoidFuzzyConverter(CompositeFuzzyConverter):
         left, right, middle = validate_terms(left, right, middle)
         validate_n_points(middle, n_points=4)
         validate_right_trapezoid(left, right)
-        left_shape = shape.DecreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
-        right_shape = shape.IncreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
-        left_shape = left_shape(ShapeParams(left))
-        right_shape = right_shape(ShapeParams(right))
+        left_shape = shape.RightTrapezoid if flat_edges(left, 2) else shape.RightTriangle
+        right_shape = shape.RightTrapezoid if flat_edges(left, 2) else shape.RightTriangle
+        left_shape = left_shape(ShapeParams(left), False)
+        right_shape = right_shape(ShapeParams(right), True)
         if middle is not None:
             middle = shape.Trapezoid(ShapeParams(middle))
         return TrapezoidFuzzyConverter(
@@ -514,15 +514,15 @@ class TrapezoidFuzzyConverter(CompositeFuzzyConverter):
         """
         middle = None
         if flat_edges:
-            left = shape.DecreasingRightTrapezoid(ShapeParams(coords[:,:,None,:3]))
+            left = shape.RightTrapezoid(ShapeParams(coords[:,:,None,:3]), False)
             if n_terms > 2:
                 middle = shape.Trapezoid(ShapeParams(stride_coordinates(coords[:,:,1:-1], n_terms - 2, 2, 4)))
-            right = shape.IncreasingRightTrapezoid(ShapeParams(coords[:,:,None,-3:]))
+            right = shape.RightTrapezoid(ShapeParams(coords[:,:,None,-3:]), True)
         else:
-            left = shape.DecreasingRightTriangle(ShapeParams(coords[:,:,None,:2]))
+            left = shape.RightTriangle(ShapeParams(coords[:,:,None,:2]), False)
             if n_terms > 2:
                 middle = shape.Trapezoid(ShapeParams(stride_coordinates(coords, n_terms - 2, 2, 4)))
-            right = shape.IncreasingRightTriangle(ShapeParams(coords[:,:,None,-2:]))
+            right = shape.RightTriangle(ShapeParams(coords[:,:,None,-2:]), True)
 
         return TrapezoidFuzzyConverter(left, right, middle, hypothesis, conclusion, truncate )
 
@@ -557,8 +557,8 @@ class TrapezoidFuzzyConverter(CompositeFuzzyConverter):
 class TriangleFuzzyConverter(CompositeFuzzyConverter):
 
     def __init__(
-        self, left: typing.Union[shape.DecreasingRightTrapezoid, shape.DecreasingRightTriangle],
-        right: typing.Union[shape.IncreasingRightTrapezoid, shape.IncreasingRightTriangle],
+        self, left: typing.Union[shape.RightTrapezoid, shape.RightTriangle],
+        right: typing.Union[shape.RightTrapezoid, shape.RightTriangle],
         middle: shape.IsoscelesTriangle=None, 
         hypothesis: typing.Union[ShapeHypothesis, str]="area", 
         conclusion: typing.Union[Conclusion, str]="max", 
@@ -567,8 +567,8 @@ class TriangleFuzzyConverter(CompositeFuzzyConverter):
         """
 
         Args:
-            left (typing.Union[shape.DecreasingRightTrapezoid, shape.DecreasingRightTriangle]): The shape on the left
-            right (typing.Union[shape.IncreasingRightTrapezoid, shape.IncreasingRightTriangle]): The shape on the right
+            left (typing.Union[shape.RightTrapezoid, shape.RightTriangle]): The shape on the left
+            right (typing.Union[shape.RightTrapezoid, shape.RightTriangle]): The shape on the right
             middle (shape.Triangle, optional): The middle shape. Defaults to None.
             hypothesis (typing.Union[ShapeHypothesis, str], optional): The hypothesis fucntion. Defaults to "area".
             conclusion (typing.Union[Conclusion, str], optional): The conclusion function. Defaults to "max".
@@ -588,10 +588,10 @@ class TriangleFuzzyConverter(CompositeFuzzyConverter):
         left, right, middle = validate_terms(left, right, middle)
         validate_n_points(middle, n_points=3)
         validate_right_trapezoid(left, right)
-        left_shape = shape.DecreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
-        right_shape = shape.IncreasingRightTrapezoid if flat_edges(left, 2) else shape.DecreasingRightTriangle
-        left_shape = left_shape(ShapeParams(left))
-        right_shape = right_shape(ShapeParams(right))
+        left_shape = shape.RightTrapezoid if flat_edges(left, 2) else shape.RightTriangle
+        right_shape = shape.RightTrapezoid if flat_edges(left, 2) else shape.RightTriangle
+        left_shape = left_shape(ShapeParams(left), False)
+        right_shape = right_shape(ShapeParams(right), True)
         if middle is not None:
             middle = shape.Triangle(ShapeParams(middle))
         return TriangleFuzzyConverter(
@@ -621,16 +621,16 @@ class TriangleFuzzyConverter(CompositeFuzzyConverter):
         """
         middle = None
         if flat_edges:
-            left = shape.DecreasingRightTrapezoid(ShapeParams(coords[:,:,None,:3]))
+            left = shape.RightTrapezoid(ShapeParams(coords[:,:,None,:3]), False)
             if n_terms > 2:
                 middle = shape.Triangle(ShapeParams(stride_coordinates(coords[:,:,1:-1], n_terms - 2, 1, 3)))
-            right = shape.IncreasingRightTrapezoid(ShapeParams(coords[:,:,None,-3:]))
+            right = shape.RightTrapezoid(ShapeParams(coords[:,:,None,-3:]), True)
 
         else:
-            left = shape.DecreasingRightTriangle(ShapeParams(coords[:,:,None,:2]))
+            left = shape.RightTriangle(ShapeParams(coords[:,:,None,:2]), False)
             if n_terms > 2:
                 middle = shape.Triangle(ShapeParams(stride_coordinates(coords, n_terms - 2, 1, 3)))
-            right = shape.IncreasingRightTriangle(ShapeParams(coords[:,:,None,-2:]))
+            right = shape.RightTriangle(ShapeParams(coords[:,:,None,-2:]), True)
         return TriangleFuzzyConverter(left, right, middle, hypothesis, conclusion, truncate )
 
     @classmethod
@@ -723,8 +723,8 @@ class SquareFuzzyConverter(CompositeFuzzyConverter):
 class LogisticFuzzyConverter(CompositeFuzzyConverter):
 
     def __init__(
-        self, left: shape.RightLogistic,
-        right: shape.RightLogistic,
+        self, left: shape.HalfLogisticBell,
+        right: shape.HalfLogisticBell,
         middle: shape.LogisticBell=None, 
         hypothesis: typing.Union[ShapeHypothesis, str]="area", 
         conclusion: typing.Union[Conclusion, str]="max", 
@@ -733,8 +733,8 @@ class LogisticFuzzyConverter(CompositeFuzzyConverter):
         """Create a fuzzy converter based on the logistic distribution
 
         Args:
-            left (shape.RightLogistic): The left logistic
-            right (shape.RightLogistic): The right logistic
+            left (shape.HalfLogisticBell): The left logistic
+            right (shape.HalfLogisticBell): The right logistic
             middle (shape.LogisticBell, optional): The middle logistics . Defaults to None.
             hypothesis (typing.Union[ShapeHypothesis, str], optional): The hypothesis function to use. Defaults to "area".
             conclusion (typing.Union[Conclusion, str], optional): The conclusion function to use. Defaults to "max".
@@ -755,8 +755,8 @@ class LogisticFuzzyConverter(CompositeFuzzyConverter):
     ):
         left, right, middle = validate_terms(left_scales, right_scales, left_scales, left_biases, middle_scales, middle_biases)
         validate_n_points(left, middle, right, n_points=1)
-        left = shape.RightLogistic(ShapeParams(left_biases, tunable), ShapeParams(left_scales, tunable), True)
-        right = shape.RightLogistic(ShapeParams(right_biases, tunable), ShapeParams(right_scales, tunable), False)
+        left = shape.HalfLogisticBell(ShapeParams(left_biases, tunable), ShapeParams(left_scales, tunable), True)
+        right = shape.HalfLogisticBell(ShapeParams(right_biases, tunable), ShapeParams(right_scales, tunable), False)
 
         if middle is not None:
             middle = shape.Logistic(middle_biases, middle_scales)
@@ -772,7 +772,7 @@ class LogisticFuzzyConverter(CompositeFuzzyConverter):
         truncate: bool=True
     ):
         middle = None
-        left = shape.RightLogistic(
+        left = shape.HalfLogisticBell(
             ShapeParams(bias_coords[:,:,None,0:1]), 
             ShapeParams(scale_coords[:,:,None,0:1]), 
             False
@@ -781,7 +781,7 @@ class LogisticFuzzyConverter(CompositeFuzzyConverter):
             middle = shape.LogisticBell(
                 ShapeParams(bias_coords[:,:,1:-1,None]), ShapeParams(scale_coords[:,:,1:-1,None])
             )
-        right = shape.RightLogistic(ShapeParams(bias_coords[:,:,-1:,None]), ShapeParams(scale_coords[:,:,-1:,None]))
+        right = shape.HalfLogisticBell(ShapeParams(bias_coords[:,:,-1:,None]), ShapeParams(scale_coords[:,:,-1:,None]), True)
 
         return LogisticFuzzyConverter(left, right, middle, hypothesis, conclusion, truncate)
 
