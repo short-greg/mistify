@@ -58,6 +58,18 @@ class Gaussian(Nonmonotonic):
         """
         return self._scales
 
+    @classmethod
+    def from_combined(cls, params: ShapeParams) -> 'Gaussian':
+        """Create the shape from 
+
+        Returns:
+            Logistic: The logistic distribution function 
+        """
+        return cls(
+            params.sub((0, 1)), 
+            params.sub((1, 2))
+        )
+
 
 def gaussian_area(scale):
     
@@ -106,7 +118,7 @@ def truncated_gaussian_area(bias: torch.Tensor, std: torch.Tensor, height: torch
 
 def truncated_gaussian_mean_core(bias: torch.Tensor, std: torch.Tensor, height: torch.Tensor) -> torch.Tensor:
     pts = gaussian_invert(height, bias, std)
-    return (pts[1] + pts[2]) / 2.0
+    return (pts[0] + pts[1]) / 2.0
 
 
 def half_gaussian_area(bias: torch.Tensor, std: torch.Tensor, height: torch.Tensor) -> torch.Tensor:
@@ -168,7 +180,7 @@ class GaussianBell(Gaussian):
         
         if truncate:
             return self._resize_to_m(
-                truncated_gaussian_mean_core(self._biases.pt(0), self._scales.pt(0)), m
+                truncated_gaussian_mean_core(self._biases.pt(0), self._scales.pt(0), m), m
             )
         return self._resize_to_m(self._biases.pt(0), m)
     

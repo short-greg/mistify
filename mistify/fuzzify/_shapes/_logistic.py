@@ -140,7 +140,7 @@ class Logistic(Nonmonotonic):
         return self._scales
     
     @classmethod
-    def from_combined(cls, params: ShapeParams, m: torch.Tensor=None) -> 'Logistic':
+    def from_combined(cls, params: ShapeParams) -> 'Logistic':
         """Create the shape from 
 
         Returns:
@@ -148,7 +148,7 @@ class Logistic(Nonmonotonic):
         """
         return cls(
             params.sub((0, 1)), 
-            params.sub((1, 2)), m
+            params.sub((1, 2))
         )
 
 

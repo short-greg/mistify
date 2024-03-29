@@ -177,6 +177,7 @@ class TestBasicCrispSystem2:
             m = m.reshape(m.shape[0], -1)
             m = self.hypothesis.forward(m)
             m = m.reshape(m.shape[0], self._out_features, -1)
+            print(m.shape)
             x = self.out_converter.defuzzify(m)
             return x
 

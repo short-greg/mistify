@@ -50,7 +50,7 @@ class FuzzyConverter(nn.Module):
             m (torch.Tensor): The fuzzy set
 
         Returns:
-            HypoWeight: The hypothesis and their weights
+            HypoM: The hypothesis and their weights
         """
         pass
 
@@ -59,7 +59,7 @@ class FuzzyConverter(nn.Module):
         """Make a conclusion about how to defuzzify from the hypotheses
 
         Args:
-            hypo_weight (HypoWeight): The hypotheses to use in the conclusion
+            hypo_weight (HypoM): The hypotheses to use in the conclusion
 
         Returns:
             torch.Tensor: The defuzzified tensor
@@ -148,7 +148,7 @@ class CompositeFuzzyConverter(FuzzyConverter):
         """Draw a conclusion from the input
 
         Args:
-            hypo_weight (HypoWeight): The hypotheses and their weights
+            hypo_weight (HypoM): The hypotheses and their weights
 
         Returns:
             torch.Tensor: The consequent of the fuzzy system
@@ -156,11 +156,7 @@ class CompositeFuzzyConverter(FuzzyConverter):
         return self._conclusion.forward(hypo_weight)
 
     def hypo(self, m: torch.Tensor) -> HypoM:
-        if self._truncate:
-            shapes = self._composite.truncate(m).shapes
-        else:
-            shapes = self._composite.scale(m).shapes
-        return HypoM(self._hypothesis(*shapes), m)
+        return self._hypothesis(self._composite.shapes, m)
 
 
 def polygon_set(left: shape.Shape, middle: shape.Shape, right: shape.Shape) -> typing.List[Shape]:

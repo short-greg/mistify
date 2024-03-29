@@ -2,28 +2,14 @@
 
 
 """
-from dataclasses import dataclass
 from abc import abstractmethod
 from enum import Enum
 
 import typing
 
+from ._hypo import HypoM
 import torch
 import torch.nn as nn
-
-
-@dataclass
-class HypoM:
-    """Structure that defines a hypothesis and its weight
-    """
-
-    hypo: torch.Tensor
-    m: torch.Tensor
-
-    def __iter__(self) -> typing.Iterator[torch.Tensor]:
-
-        yield self.hypo
-        yield self.m
 
 
 class Conclusion(nn.Module):
@@ -41,7 +27,7 @@ class MaxValueConc(Conclusion):
     def forward(self, hypo_weight: HypoM) -> torch.Tensor:
         """
         Args:
-            hypo_weight (HypoWeight): The hypotheses and their weights
+            hypo_weight (HypoM): The hypotheses and their weights
 
         Returns:
             torch.Tensor: The conclusion
@@ -56,11 +42,12 @@ class MaxConc(Conclusion):
     def forward(self, hypo_weight: HypoM) -> torch.Tensor:
         """
         Args:
-            hypo_weight (HypoWeight): The hypotheses and weights
+            hypo_weight (HypoM): The hypotheses and weights
 
         Returns:
             torch.Tensor: the hypothesis with the maximum weight
         """
+        print(hypo_weight.m.shape, hypo_weight.hypo.shape)
         indices = torch.max(hypo_weight.m, dim=-1, keepdim=True)[1]
         return torch.gather(hypo_weight.hypo, -1, indices).squeeze(dim=-1)
 
@@ -72,7 +59,7 @@ class WeightedAverageConc(Conclusion):
     def forward(self, hypo_weight: HypoM) -> torch.Tensor:
         """
         Args:
-            hypo_weight (HypoWeight): The hypotheses and weights
+            hypo_weight (HypoM): The hypotheses and weights
 
         Returns:
             torch.Tensor: the weighted average of the hypotheses
@@ -90,7 +77,7 @@ class AverageConc(Conclusion):
     def forward(self, hypo_weight: HypoM) -> torch.Tensor:
         """
         Args:
-            hypo_weight (HypoWeight): The hypotheses and weights
+            hypo_weight (HypoM): The hypotheses and weights
 
         Returns:
             torch.Tensor: the weighted average of the hypotheses

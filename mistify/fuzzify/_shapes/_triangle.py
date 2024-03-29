@@ -457,7 +457,6 @@ class IsoscelesTriangle(Polygon):
 
         if truncate:
             params = self.truncate(m)
-            print(params.x.shape)
             a = params.pt(2) - params.pt(1)
             b = 2 * params.pt(2) - params.pt(1) - params.pt(0)
             return trapezoid_area(a, b, m)
@@ -472,7 +471,8 @@ class IsoscelesTriangle(Polygon):
         if truncate:
             params = self.truncate(m)
             
-            return 0.5 * (params.pt(2) + params.pt(1))
+            return self._resize_to_m(
+                0.5 * (params.pt(2) + params.pt(1)), m)
 
         params = self._params()
         return self._resize_to_m(
