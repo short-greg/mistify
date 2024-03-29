@@ -4,6 +4,7 @@ from mistify.fuzzify import ShapeParams
 from mistify.fuzzify._shapes import _logistic
 from pprint import pprint
 
+
 class TestLogistic(object):
 
     def test_join_returns_fuzzy_set_with_correct_size(self):
@@ -17,16 +18,27 @@ class TestLogistic(object):
         m = logistic.join(x)
         assert m.data.size() == torch.Size([2, 3, 4])
 
-    # def test_scale_returns_shape_with_correct_size(self):
+    def test_areas_returns_shape_with_correct_size(self):
 
-    #     b = ShapeParams(torch.rand(3, 4, 1))
-    #     s = ShapeParams(torch.rand(3, 4, 1))
-    #     m = torch.rand(2, 3, 4)
-    #     logistic = _logistic.LogisticBell(
-    #         b, s
-    #     )
-    #     # shape = logistic.scale(m)
-    #     assert isinstance(shape, _logistic.LogisticBell)
+        b = ShapeParams(torch.rand(3, 4, 1))
+        s = ShapeParams(torch.rand(3, 4, 1))
+        m = torch.rand(2, 3, 4)
+        logistic = _logistic.LogisticBell(
+            b, s
+        )
+        areas = logistic.areas(m)
+        assert areas.shape == torch.Size([2, 3, 4])
+
+    def test_areas_returns_shape_with_correct_size_with_truncate(self):
+
+        b = ShapeParams(torch.rand(3, 4, 1))
+        s = ShapeParams(torch.rand(3, 4, 1))
+        m = torch.rand(2, 3, 4)
+        logistic = _logistic.LogisticBell(
+            b, s
+        )
+        areas = logistic.areas(m, True)
+        assert areas.shape == torch.Size([2, 3, 4])
 
     def test_mean_core_returns_tensor_with_correct_size(self):
 
@@ -36,8 +48,18 @@ class TestLogistic(object):
         logistic = _logistic.LogisticBell(
             b, s
         )
-        mean_cores = logistic.mean_cores(m, False)
-        # shape = logistic.scale(m)
+        mean_cores = logistic.mean_cores(m)
+        assert mean_cores.shape == torch.Size([2, 3, 4])
+
+    def test_mean_core_returns_tensor_with_correct_size_truncate(self):
+
+        b = ShapeParams(torch.rand(3, 4, 1))
+        s = ShapeParams(torch.rand(3, 4, 1))
+        m = torch.ones(2, 3, 4)
+        logistic = _logistic.LogisticBell(
+            b, s
+        )
+        mean_cores = logistic.mean_cores(m, True)
         assert mean_cores.shape == torch.Size([2, 3, 4])
 
     def test_centroids_returns_tensor_with_correct_size(self):
@@ -47,109 +69,21 @@ class TestLogistic(object):
         logistic = _logistic.LogisticBell(
             b, s
         )
-        # shape = logistic.scale(m)
+        centroids = logistic.centroids(m)
+        assert centroids.shape == torch.Size([2, 3, 4])
+
+    def test_centroids_returns_tensor_with_correct_size_with_truncate(self):
+        b = ShapeParams(torch.rand(3, 4, 1))
+        s = ShapeParams(torch.rand(3, 4, 1))
+        m = torch.rand(2, 3, 4)
+        logistic = _logistic.LogisticBell(
+            b, s
+        )
         centroids = logistic.centroids(m, True)
         assert centroids.shape == torch.Size([2, 3, 4])
 
-    def test_areas_returns_tensor_with_correct_size(self):
-        b = ShapeParams(torch.rand(3, 4, 1))
-        s = ShapeParams(torch.rand(3, 4, 1))
-        m = torch.rand(2, 3, 4)
-        logistic = _logistic.LogisticBell(
-            b, s
-        )
-        # shape = logistic.scale(m)
-        areas = logistic.areas(m, False)
-        assert areas.shape == torch.Size([2, 3, 4])
 
-    def test_truncate_returns_trapezoid(self):
-        b = ShapeParams(torch.rand(3, 4, 1))
-        s = ShapeParams(torch.rand(3, 4, 1))
-        m = torch.rand(2, 3, 4)
-        logistic = _logistic.LogisticBell(
-            b, s
-        )
-        # shape = logistic.truncate(m)
-        areas = logistic.areas(m, True)
-        assert areas.shape == torch.Size([2, 3, 4])
-        # assert isinstance(shape, _logistic.LogisticTrapezoid)
-
-
-# class TestLogisticTrapezoid(object):
-
-#     def test_join_returns_fuzzy_set_with_correct_size(self):
-
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         truncated_m = torch.rand(2, 3, 4)
-#         x = torch.rand(2, 3)
-#         logistic = _logistic.LogisticTrapezoid(
-#             b, s, truncated_m
-#         )
-#         # m = logistic.join(x)
-#         assert m.data.size() == torch.Size([2, 3, 4])
-
-#     def test_scale_returns_shape_with_correct_size(self):
-
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         truncated_m = torch.rand(2, 3, 4)
-#         m = torch.rand(2, 3, 4)
-#         logistic = _logistic.LogisticTrapezoid(
-#             b, s, truncated_m
-#         )
-#         # shape = logistic.scale(m)
-#         assert isinstance(shape, _logistic.LogisticTrapezoid)
-
-#     def test_mean_core_returns_tensor_with_correct_size(self):
-
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         m = torch.rand(2, 3, 4)
-#         truncated_m = torch.rand(2, 3, 4)
-
-#         logistic = _logistic.LogisticTrapezoid(
-#             b, s, truncated_m
-#         )
-#         shape = logistic.scale(m)
-#         assert shape.mean_cores.shape == torch.Size([2, 3, 4])
-
-#     def test_centroids_returns_tensor_with_correct_size(self):
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         truncated_m = torch.rand(2, 3, 4)
-#         m = torch.rand(2, 3, 4)
-#         logistic = _logistic.LogisticTrapezoid(
-#             b, s, truncated_m
-#         )
-#         shape = logistic.scale(m)
-#         assert shape.centroids.shape == torch.Size([2, 3, 4])
-
-#     def test_areas_returns_tensor_with_correct_size(self):
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         truncated_m = torch.rand(2, 3, 4)
-#         m = torch.rand(2, 3, 4)
-#         logistic = _logistic.LogisticTrapezoid(
-#             b, s, truncated_m
-#         )
-#         shape = logistic.scale(m)
-#         assert shape.areas.shape == torch.Size([2, 3, 4])
-
-#     def test_truncate_returns_trapezoid(self):
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         m = torch.rand(2, 3, 4)
-#         truncated_m = torch.rand(2, 3, 4)
-
-#         logistic = _logistic.LogisticTrapezoid(
-#             b, s, truncated_m
-#         )
-#         shape = logistic.truncate(m)
-#         assert isinstance(shape, _logistic.LogisticTrapezoid)
-
-
-class TestHalfLogistic(object):
+class TestRightLogistic(object):
 
     def test_join_returns_fuzzy_set_with_correct_size(self):
 
@@ -162,173 +96,395 @@ class TestHalfLogistic(object):
         m = logistic.join(x)
         assert m.data.size() == torch.Size([2, 3, 4])
 
-    # def test_scale_returns_shape_with_correct_size(self):
+    def test_join_returns_fuzzy_set_with_correct_size_with_decreasing(self):
 
-    #     b = ShapeParams(torch.rand(3, 4, 1))
-    #     s = ShapeParams(torch.rand(3, 4, 1))
-    #     m = torch.rand(2, 3, 4)
-    #     logistic = _logistic.HalfLogisticBell(
-    #         b, s, True
-    #     )
-    #     areas = logistic.areas(m)
-    #     assert isinstance(areas, _logistic.RightLogistic)
+        b = ShapeParams(torch.rand(3, 4, 1))
+        s = ShapeParams(torch.rand(3, 4, 1))
+        x = torch.rand(2, 3)
+        logistic = _logistic.HalfLogisticBell(
+            b, s, False
+        )
+        m = logistic.join(x)
+        assert m.data.size() == torch.Size([2, 3, 4])
 
     def test_mean_core_returns_tensor_with_correct_size(self):
 
         b = ShapeParams(torch.rand(3, 4, 1))
         s = ShapeParams(torch.rand(3, 4, 1))
         m = torch.rand(2, 3, 4)
-        truncated_m = torch.rand(2, 3, 4)
 
         logistic = _logistic.HalfLogisticBell(
             b, s, True
         )
-        # shape = logistic.scale(m)
-
-        mean_cores = logistic.mean_cores(m, False)
+        mean_cores = logistic.mean_cores(m)
         assert mean_cores.shape == torch.Size([2, 3, 4])
 
-    def test_centroids_returns_tensor_with_correct_size_scaled(self):
+    def test_centroids_returns_tensor_with_correct_size(self):
         b = ShapeParams(torch.rand(3, 4, 1))
         s = ShapeParams(torch.rand(3, 4, 1))
-        truncated_m = torch.rand(2, 3, 4)
         m = torch.rand(2, 3, 4)
         logistic = _logistic.HalfLogisticBell(
-            b, s, True
+            b, s, False
         )
-        centroids = logistic.centroids(m, False)
-        # shape = logistic.scale(m)
+        centroids = logistic.centroids(m)
         assert centroids.shape == torch.Size([2, 3, 4])
-
+    
     def test_centroids_returns_tensor_with_correct_size_truncated(self):
         b = ShapeParams(torch.rand(3, 4, 1))
         s = ShapeParams(torch.rand(3, 4, 1))
-        truncated_m = torch.rand(2, 3, 4)
+        m = torch.rand(2, 3, 4)
+        logistic = _logistic.HalfLogisticBell(
+            b, s, False
+        )
+        centroids = logistic.centroids(m, True)
+        assert centroids.shape == torch.Size([2, 3, 4])
+
+    def test_areas_returns_tensor_with_correct_size(self):
+        b = ShapeParams(torch.rand(3, 4, 1))
+        s = ShapeParams(torch.rand(3, 4, 1))
         m = torch.rand(2, 3, 4)
         logistic = _logistic.HalfLogisticBell(
             b, s, True
         )
-        centroids = logistic.centroids(m, True)
-        # shape = logistic.scale(m)
-        assert centroids.shape == torch.Size([2, 3, 4])
+        areas = logistic.areas(m)
+        assert areas.shape == torch.Size([2, 3, 4])
 
     def test_areas_returns_tensor_with_correct_size_truncated(self):
         b = ShapeParams(torch.rand(3, 4, 1))
         s = ShapeParams(torch.rand(3, 4, 1))
-        truncated_m = torch.rand(2, 3, 4)
         m = torch.rand(2, 3, 4)
         logistic = _logistic.HalfLogisticBell(
             b, s, True
         )
-        # shape = logistic.scale(m)
         areas = logistic.areas(m, True)
         assert areas.shape == torch.Size([2, 3, 4])
 
-    def test_areas_returns_tensor_with_correct_size_scaled(self):
-        b = ShapeParams(torch.rand(3, 4, 1))
-        s = ShapeParams(torch.rand(3, 4, 1))
-        truncated_m = torch.rand(2, 3, 4)
-        m = torch.rand(2, 3, 4)
-        logistic = _logistic.HalfLogisticBell(
-            b, s, True
-        )
-        # shape = logistic.scale(m)
-        areas = logistic.areas(m, False)
-        assert areas.shape == torch.Size([2, 3, 4])
-#     def test_truncate_returns_trapezoid(self):
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         m = torch.rand(2, 3, 4)
-#         truncated_m = torch.rand(2, 3, 4)
 
-#         logistic = _logistic.RightLogistic(
-#             b, s, True, truncated_m
-#         )
-#         shape = logistic.truncate(m)
-#         assert isinstance(shape, _logistic.RightLogisticTrapezoid)
-
-
-# class TestRightLogisticTrapezoid(object):
+# class TestLogistic(object):
 
 #     def test_join_returns_fuzzy_set_with_correct_size(self):
 
 #         b = ShapeParams(torch.rand(3, 4, 1))
 #         s = ShapeParams(torch.rand(3, 4, 1))
-#         truncated_m = torch.rand(2, 3, 4)
 #         x = torch.rand(2, 3)
-#         logistic = _logistic.RightLogisticTrapezoid(
-#             b, s, True, truncated_m
+#         logistic = _logistic.LogisticBell(
+#             b, s
 #         )
 #         m = logistic.join(x)
 #         assert m.data.size() == torch.Size([2, 3, 4])
 
-#     def test_scale_returns_shape_with_correct_size(self):
+    # def test_scale_returns_shape_with_correct_size(self):
 
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         truncated_m = torch.rand(2, 3, 4)
-#         m = torch.rand(2, 3, 4)
-#         logistic = _logistic.RightLogisticTrapezoid(
-#             b, s, True, truncated_m
-#         )
-#         shape = logistic.scale(m)
-#         assert isinstance(shape, _logistic.RightLogisticTrapezoid)
+    #     b = ShapeParams(torch.rand(3, 4, 1))
+    #     s = ShapeParams(torch.rand(3, 4, 1))
+    #     m = torch.rand(2, 3, 4)
+    #     logistic = _logistic.LogisticBell(
+    #         b, s
+    #     )
+    #     # shape = logistic.scale(m)
+    #     assert isinstance(shape, _logistic.LogisticBell)
 
 #     def test_mean_core_returns_tensor_with_correct_size(self):
 
-#         # b = ShapeParams(torch.rand(3, 4, 1))
-#         # s = ShapeParams(torch.rand(3, 4, 1))
-#         # m = torch.rand(2, 3, 4)
-#         # truncated_m = torch.rand(2, 3, 4)
-
-#         # logistic = _logistic.RightLogisticTrapezoid(
-#         #     b, s, True, truncated_m
-#         # )
-#         # pprint(type(logistic))
-#         # shape = logistic.scale(m)
-#         # assert shape.mean_cores.shape == torch.Size([2, 3, 4])
-
 #         b = ShapeParams(torch.rand(3, 4, 1))
 #         s = ShapeParams(torch.rand(3, 4, 1))
-#         truncated_m = torch.rand(2, 3, 4)
-#         m = torch.rand(2, 3, 4)
-#         logistic = _logistic.RightLogisticTrapezoid(
-#             b, s, True, truncated_m
+#         m = torch.ones(2, 3, 4)
+#         logistic = _logistic.LogisticBell(
+#             b, s
 #         )
-#         shape = logistic.scale(m)
-#         assert shape.mean_cores.shape == torch.Size([2, 3, 4])
-
+#         mean_cores = logistic.mean_cores(m, False)
+#         # shape = logistic.scale(m)
+#         assert mean_cores.shape == torch.Size([2, 3, 4])
 
 #     def test_centroids_returns_tensor_with_correct_size(self):
 #         b = ShapeParams(torch.rand(3, 4, 1))
 #         s = ShapeParams(torch.rand(3, 4, 1))
-#         truncated_m = torch.rand(2, 3, 4)
 #         m = torch.rand(2, 3, 4)
-#         logistic = _logistic.RightLogisticTrapezoid(
-#             b, s, True, truncated_m
+#         logistic = _logistic.LogisticBell(
+#             b, s
 #         )
-#         shape = logistic.scale(m)
-#         assert shape.centroids.shape == torch.Size([2, 3, 4])
+#         # shape = logistic.scale(m)
+#         centroids = logistic.centroids(m, True)
+#         assert centroids.shape == torch.Size([2, 3, 4])
 
 #     def test_areas_returns_tensor_with_correct_size(self):
 #         b = ShapeParams(torch.rand(3, 4, 1))
 #         s = ShapeParams(torch.rand(3, 4, 1))
-#         truncated_m = torch.rand(2, 3, 4)
 #         m = torch.rand(2, 3, 4)
-#         logistic = _logistic.RightLogisticTrapezoid(
-#             b, s, True, truncated_m
+#         logistic = _logistic.LogisticBell(
+#             b, s
 #         )
-#         shape = logistic.scale(m)
-#         assert shape.areas.shape == torch.Size([2, 3, 4])
+#         # shape = logistic.scale(m)
+#         areas = logistic.areas(m, False)
+#         assert areas.shape == torch.Size([2, 3, 4])
 
 #     def test_truncate_returns_trapezoid(self):
 #         b = ShapeParams(torch.rand(3, 4, 1))
 #         s = ShapeParams(torch.rand(3, 4, 1))
 #         m = torch.rand(2, 3, 4)
+#         logistic = _logistic.LogisticBell(
+#             b, s
+#         )
+#         # shape = logistic.truncate(m)
+#         areas = logistic.areas(m, True)
+#         assert areas.shape == torch.Size([2, 3, 4])
+#         # assert isinstance(shape, _logistic.LogisticTrapezoid)
+
+
+# # class TestLogisticTrapezoid(object):
+
+# #     def test_join_returns_fuzzy_set_with_correct_size(self):
+
+# #         b = ShapeParams(torch.rand(3, 4, 1))
+# #         s = ShapeParams(torch.rand(3, 4, 1))
+# #         truncated_m = torch.rand(2, 3, 4)
+# #         x = torch.rand(2, 3)
+# #         logistic = _logistic.LogisticTrapezoid(
+# #             b, s, truncated_m
+# #         )
+# #         # m = logistic.join(x)
+# #         assert m.data.size() == torch.Size([2, 3, 4])
+
+# #     def test_scale_returns_shape_with_correct_size(self):
+
+# #         b = ShapeParams(torch.rand(3, 4, 1))
+# #         s = ShapeParams(torch.rand(3, 4, 1))
+# #         truncated_m = torch.rand(2, 3, 4)
+# #         m = torch.rand(2, 3, 4)
+# #         logistic = _logistic.LogisticTrapezoid(
+# #             b, s, truncated_m
+# #         )
+# #         # shape = logistic.scale(m)
+# #         assert isinstance(shape, _logistic.LogisticTrapezoid)
+
+# #     def test_mean_core_returns_tensor_with_correct_size(self):
+
+# #         b = ShapeParams(torch.rand(3, 4, 1))
+# #         s = ShapeParams(torch.rand(3, 4, 1))
+# #         m = torch.rand(2, 3, 4)
+# #         truncated_m = torch.rand(2, 3, 4)
+
+# #         logistic = _logistic.LogisticTrapezoid(
+# #             b, s, truncated_m
+# #         )
+# #         shape = logistic.scale(m)
+# #         assert shape.mean_cores.shape == torch.Size([2, 3, 4])
+
+# #     def test_centroids_returns_tensor_with_correct_size(self):
+# #         b = ShapeParams(torch.rand(3, 4, 1))
+# #         s = ShapeParams(torch.rand(3, 4, 1))
+# #         truncated_m = torch.rand(2, 3, 4)
+# #         m = torch.rand(2, 3, 4)
+# #         logistic = _logistic.LogisticTrapezoid(
+# #             b, s, truncated_m
+# #         )
+# #         shape = logistic.scale(m)
+# #         assert shape.centroids.shape == torch.Size([2, 3, 4])
+
+# #     def test_areas_returns_tensor_with_correct_size(self):
+# #         b = ShapeParams(torch.rand(3, 4, 1))
+# #         s = ShapeParams(torch.rand(3, 4, 1))
+# #         truncated_m = torch.rand(2, 3, 4)
+# #         m = torch.rand(2, 3, 4)
+# #         logistic = _logistic.LogisticTrapezoid(
+# #             b, s, truncated_m
+# #         )
+# #         shape = logistic.scale(m)
+# #         assert shape.areas.shape == torch.Size([2, 3, 4])
+
+# #     def test_truncate_returns_trapezoid(self):
+# #         b = ShapeParams(torch.rand(3, 4, 1))
+# #         s = ShapeParams(torch.rand(3, 4, 1))
+# #         m = torch.rand(2, 3, 4)
+# #         truncated_m = torch.rand(2, 3, 4)
+
+# #         logistic = _logistic.LogisticTrapezoid(
+# #             b, s, truncated_m
+# #         )
+# #         shape = logistic.truncate(m)
+# #         assert isinstance(shape, _logistic.LogisticTrapezoid)
+
+
+# class TestHalfLogistic(object):
+
+#     def test_join_returns_fuzzy_set_with_correct_size(self):
+
+#         b = ShapeParams(torch.rand(3, 4, 1))
+#         s = ShapeParams(torch.rand(3, 4, 1))
+#         x = torch.rand(2, 3)
+#         logistic = _logistic.HalfLogisticBell(
+#             b, s, True
+#         )
+#         m = logistic.join(x)
+#         assert m.data.size() == torch.Size([2, 3, 4])
+
+#     # def test_scale_returns_shape_with_correct_size(self):
+
+#     #     b = ShapeParams(torch.rand(3, 4, 1))
+#     #     s = ShapeParams(torch.rand(3, 4, 1))
+#     #     m = torch.rand(2, 3, 4)
+#     #     logistic = _logistic.HalfLogisticBell(
+#     #         b, s, True
+#     #     )
+#     #     areas = logistic.areas(m)
+#     #     assert isinstance(areas, _logistic.RightLogistic)
+
+#     def test_mean_core_returns_tensor_with_correct_size(self):
+
+#         b = ShapeParams(torch.rand(3, 4, 1))
+#         s = ShapeParams(torch.rand(3, 4, 1))
+#         m = torch.rand(2, 3, 4)
 #         truncated_m = torch.rand(2, 3, 4)
 
-#         logistic = _logistic.RightLogisticTrapezoid(
-#             b, s, True, truncated_m
+#         logistic = _logistic.HalfLogisticBell(
+#             b, s, True
 #         )
-#         shape = logistic.truncate(m)
-#         assert isinstance(shape, _logistic.RightLogisticTrapezoid)
+#         # shape = logistic.scale(m)
+
+#         mean_cores = logistic.mean_cores(m, False)
+#         assert mean_cores.shape == torch.Size([2, 3, 4])
+
+#     def test_centroids_returns_tensor_with_correct_size_scaled(self):
+#         b = ShapeParams(torch.rand(3, 4, 1))
+#         s = ShapeParams(torch.rand(3, 4, 1))
+#         truncated_m = torch.rand(2, 3, 4)
+#         m = torch.rand(2, 3, 4)
+#         logistic = _logistic.HalfLogisticBell(
+#             b, s, True
+#         )
+#         centroids = logistic.centroids(m, False)
+#         # shape = logistic.scale(m)
+#         assert centroids.shape == torch.Size([2, 3, 4])
+
+#     def test_centroids_returns_tensor_with_correct_size_truncated(self):
+#         b = ShapeParams(torch.rand(3, 4, 1))
+#         s = ShapeParams(torch.rand(3, 4, 1))
+#         truncated_m = torch.rand(2, 3, 4)
+#         m = torch.rand(2, 3, 4)
+#         logistic = _logistic.HalfLogisticBell(
+#             b, s, True
+#         )
+#         centroids = logistic.centroids(m, True)
+#         # shape = logistic.scale(m)
+#         assert centroids.shape == torch.Size([2, 3, 4])
+
+#     def test_areas_returns_tensor_with_correct_size_truncated(self):
+#         b = ShapeParams(torch.rand(3, 4, 1))
+#         s = ShapeParams(torch.rand(3, 4, 1))
+#         truncated_m = torch.rand(2, 3, 4)
+#         m = torch.rand(2, 3, 4)
+#         logistic = _logistic.HalfLogisticBell(
+#             b, s, True
+#         )
+#         # shape = logistic.scale(m)
+#         areas = logistic.areas(m, True)
+#         assert areas.shape == torch.Size([2, 3, 4])
+
+#     def test_areas_returns_tensor_with_correct_size_scaled(self):
+#         b = ShapeParams(torch.rand(3, 4, 1))
+#         s = ShapeParams(torch.rand(3, 4, 1))
+#         truncated_m = torch.rand(2, 3, 4)
+#         m = torch.rand(2, 3, 4)
+#         logistic = _logistic.HalfLogisticBell(
+#             b, s, True
+#         )
+#         # shape = logistic.scale(m)
+#         areas = logistic.areas(m, False)
+#         assert areas.shape == torch.Size([2, 3, 4])
+# #     def test_truncate_returns_trapezoid(self):
+# #         b = ShapeParams(torch.rand(3, 4, 1))
+# #         s = ShapeParams(torch.rand(3, 4, 1))
+# #         m = torch.rand(2, 3, 4)
+# #         truncated_m = torch.rand(2, 3, 4)
+
+# #         logistic = _logistic.RightLogistic(
+# #             b, s, True, truncated_m
+# #         )
+# #         shape = logistic.truncate(m)
+# #         assert isinstance(shape, _logistic.RightLogisticTrapezoid)
+
+
+# # class TestRightLogisticTrapezoid(object):
+
+# #     def test_join_returns_fuzzy_set_with_correct_size(self):
+
+# #         b = ShapeParams(torch.rand(3, 4, 1))
+# #         s = ShapeParams(torch.rand(3, 4, 1))
+# #         truncated_m = torch.rand(2, 3, 4)
+# #         x = torch.rand(2, 3)
+# #         logistic = _logistic.RightLogisticTrapezoid(
+# #             b, s, True, truncated_m
+# #         )
+# #         m = logistic.join(x)
+# #         assert m.data.size() == torch.Size([2, 3, 4])
+
+# #     def test_scale_returns_shape_with_correct_size(self):
+
+# #         b = ShapeParams(torch.rand(3, 4, 1))
+# #         s = ShapeParams(torch.rand(3, 4, 1))
+# #         truncated_m = torch.rand(2, 3, 4)
+# #         m = torch.rand(2, 3, 4)
+# #         logistic = _logistic.RightLogisticTrapezoid(
+# #             b, s, True, truncated_m
+# #         )
+# #         shape = logistic.scale(m)
+# #         assert isinstance(shape, _logistic.RightLogisticTrapezoid)
+
+# #     def test_mean_core_returns_tensor_with_correct_size(self):
+
+# #         # b = ShapeParams(torch.rand(3, 4, 1))
+# #         # s = ShapeParams(torch.rand(3, 4, 1))
+# #         # m = torch.rand(2, 3, 4)
+# #         # truncated_m = torch.rand(2, 3, 4)
+
+# #         # logistic = _logistic.RightLogisticTrapezoid(
+# #         #     b, s, True, truncated_m
+# #         # )
+# #         # pprint(type(logistic))
+# #         # shape = logistic.scale(m)
+# #         # assert shape.mean_cores.shape == torch.Size([2, 3, 4])
+
+# #         b = ShapeParams(torch.rand(3, 4, 1))
+# #         s = ShapeParams(torch.rand(3, 4, 1))
+# #         truncated_m = torch.rand(2, 3, 4)
+# #         m = torch.rand(2, 3, 4)
+# #         logistic = _logistic.RightLogisticTrapezoid(
+# #             b, s, True, truncated_m
+# #         )
+# #         shape = logistic.scale(m)
+# #         assert shape.mean_cores.shape == torch.Size([2, 3, 4])
+
+
+# #     def test_centroids_returns_tensor_with_correct_size(self):
+# #         b = ShapeParams(torch.rand(3, 4, 1))
+# #         s = ShapeParams(torch.rand(3, 4, 1))
+# #         truncated_m = torch.rand(2, 3, 4)
+# #         m = torch.rand(2, 3, 4)
+# #         logistic = _logistic.RightLogisticTrapezoid(
+# #             b, s, True, truncated_m
+# #         )
+# #         shape = logistic.scale(m)
+# #         assert shape.centroids.shape == torch.Size([2, 3, 4])
+
+# #     def test_areas_returns_tensor_with_correct_size(self):
+# #         b = ShapeParams(torch.rand(3, 4, 1))
+# #         s = ShapeParams(torch.rand(3, 4, 1))
+# #         truncated_m = torch.rand(2, 3, 4)
+# #         m = torch.rand(2, 3, 4)
+# #         logistic = _logistic.RightLogisticTrapezoid(
+# #             b, s, True, truncated_m
+# #         )
+# #         shape = logistic.scale(m)
+# #         assert shape.areas.shape == torch.Size([2, 3, 4])
+
+# #     def test_truncate_returns_trapezoid(self):
+# #         b = ShapeParams(torch.rand(3, 4, 1))
+# #         s = ShapeParams(torch.rand(3, 4, 1))
+# #         m = torch.rand(2, 3, 4)
+# #         truncated_m = torch.rand(2, 3, 4)
+
+# #         logistic = _logistic.RightLogisticTrapezoid(
+# #             b, s, True, truncated_m
+# #         )
+# #         shape = logistic.truncate(m)
+# #         assert isinstance(shape, _logistic.RightLogisticTrapezoid)

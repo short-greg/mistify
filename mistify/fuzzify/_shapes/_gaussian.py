@@ -59,9 +59,9 @@ class Gaussian(Nonmonotonic):
         return self._scales
 
 
-def gaussian_area(m, scale):
+def gaussian_area(scale):
     
-    return m * math.sqrt(2 * torch.pi) * scale
+    return math.sqrt(2 * torch.pi) * scale
 
 
 def gaussian_invert(y, bias, scale):
@@ -157,18 +157,24 @@ class GaussianBell(Gaussian):
     def areas(self, m: Tensor, truncate: bool = False) -> Tensor:
         
         if truncate:
-            return truncated_gaussian_area(m, self._scales.pt(0))
-        return gaussian_area(m, self._scales.pt(0))
+            return self._resize_to_m(
+                truncated_gaussian_area(self._biases.pt(0), self._scales.pt(0), m),
+                m)
+        return self._resize_to_m(
+            gaussian_area(self._scales.pt(0)), m
+        )
     
     def mean_cores(self, m: Tensor, truncate: bool = False) -> Tensor:
         
         if truncate:
-            return truncated_gaussian_mean_core(self._biases.pt(0), self._scales.pt(0))
-        return self._biases.pt(0)
+            return self._resize_to_m(
+                truncated_gaussian_mean_core(self._biases.pt(0), self._scales.pt(0)), m
+            )
+        return self._resize_to_m(self._biases.pt(0), m)
     
     def centroids(self, m: Tensor, truncate: bool = False) -> Tensor:
         
-        return self._biases.pt(0)
+        return self._resize_to_m(self._biases.pt(0), m)
     
 
 class HalfGaussianBell(Gaussian):
@@ -180,13 +186,14 @@ class HalfGaussianBell(Gaussian):
 
     def join(self, x: Tensor) -> Tensor:
 
+        x = unsqueeze(x)
         if self.increasing:
             contains = (x <= self._biases.pt(0))
         else:
             contains = (x >= self._biases.pt(0))
 
         return gaussian(
-            unsqueeze(x), self._biases.pt(0), self.sigma
+            x, self._biases.pt(0), self.sigma
         ) * contains
     
     def areas(self, m: Tensor, truncate: bool = False) -> Tensor:
@@ -198,8 +205,11 @@ class HalfGaussianBell(Gaussian):
     def mean_cores(self, m: Tensor, truncate: bool = False) -> Tensor:
         
         if truncate:
-            return truncated_half_gaussian_mean_core(self._biases.pt(0), self.sigma, m, self.increasing)
-        return self._biases.pt(0)
+            return self._resize_to_m(
+                truncated_half_gaussian_mean_core(
+                    self._biases.pt(0), self.sigma, m, self.increasing
+                ), m)
+        return self._resize_to_m(self._biases.pt(0), m)
     
     def centroids(self, m: Tensor, truncate: bool = False) -> Tensor:
         

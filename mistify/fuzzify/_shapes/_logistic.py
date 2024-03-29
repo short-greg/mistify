@@ -13,9 +13,9 @@ from ._utils import calc_dx_logistic, calc_area_logistic_one_side, calc_m_logist
 from ... import _functional as functional
 
 
-def logistic_area(m, scale):
+def logistic_area(scale):
     
-    return 4 * m * scale
+    return 4 * scale
 
 
 def logistic_invert(y, bias, scale):
@@ -56,7 +56,7 @@ def truncated_logistic_area(bias: torch.Tensor, std: torch.Tensor, height: torch
 
 def truncated_logistic_mean_core(bias: torch.Tensor, std: torch.Tensor, height: torch.Tensor) -> torch.Tensor:
     pts = logistic_invert(height, bias, std)
-    return (pts[1] + pts[2]) / 2.0
+    return (pts[0] + pts[1]) / 2.0
 
 
 def half_logistic_area(bias: torch.Tensor, std: torch.Tensor, height: torch.Tensor) -> torch.Tensor:
@@ -163,18 +163,20 @@ class LogisticBell(Logistic):
     def areas(self, m: Tensor, truncate: bool = False) -> Tensor:
         
         if truncate:
-            return truncated_logistic_area(m, self.sigma)
-        return logistic_area(m, self.sigma)
+            return truncated_logistic_area(self._biases.pt(0), self.sigma, m)
+        return self._resize_to_m(logistic_area(self.sigma), m)
     
     def mean_cores(self, m: Tensor, truncate: bool = False) -> Tensor:
         
         if truncate:
-            return truncated_logistic_mean_core(self._biases.pt(0), self.sigma)
-        return self._biases.pt(0)
+            return self._resize_to_m(
+                truncated_logistic_mean_core(self._biases.pt(0), self.sigma, m), m
+            )
+        return self._resize_to_m(self._biases.pt(0), m)
     
     def centroids(self, m: Tensor, truncate: bool = False) -> Tensor:
         
-        return self._biases.pt(0)
+        return self._resize_to_m(self._biases.pt(0), m)
     
 
 class HalfLogisticBell(Logistic):
@@ -185,14 +187,14 @@ class HalfLogisticBell(Logistic):
         self.increasing = increasing
 
     def join(self, x: Tensor) -> Tensor:
-
+        x = unsqueeze(x)
         if self.increasing:
             contains = (x <= self._biases.pt(0))
         else:
             contains = (x >= self._biases.pt(0))
 
         return logistic(
-            unsqueeze(x), self._biases.pt(0), self.sigma
+            x, self._biases.pt(0), self.sigma
         ) * contains
     
     def areas(self, m: Tensor, truncate: bool = False) -> Tensor:
@@ -205,7 +207,7 @@ class HalfLogisticBell(Logistic):
         
         if truncate:
             return truncated_half_logistic_mean_core(self._biases.pt(0), self.sigma, m, self.increasing)
-        return self._biases.pt(0)
+        return self._resize_to_m(self._biases.pt(0), m)
     
     def centroids(self, m: Tensor, truncate: bool = False) -> Tensor:
         
