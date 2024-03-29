@@ -453,7 +453,6 @@ class IsoscelesTriangle(Polygon):
 
         params = self._params()
         
-
     
     def mean_cores(self, m: torch.Tensor, truncate: bool = False) -> torch.Tensor:
         
