@@ -262,6 +262,8 @@ class ShapeParams(nn.Module):
         """
         if isinstance(index, int):
             index = slice(index, index + 1)
+        elif isinstance(index, typing.List):
+            index = index
         else:
             index = slice(*index)
         return ShapeParams(self._x[:, :, :, index], False, self._descending)
