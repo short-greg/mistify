@@ -74,6 +74,10 @@ class Shape(nn.Module):
         """
         if x.size(0) == 1 and m.size(0) != 1:
             return x.repeat(m.size(0), *[1] * (m.dim() - 1))
+        elif x.size(0) != m.size(0):
+            raise ValueError(
+                'Cannot resize to m since xs dimension '
+                f'is {x.size(0)} not 1')
         return x
     
 
