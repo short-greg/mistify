@@ -64,26 +64,3 @@ class Ramp(Monotonic):
     def min_cores(self, m: torch.Tensor) -> torch.Tensor:
         
         return self._coords.pt(0) * (1 - m) - self._coords.pt(0) * m
-
-    # def _calc_min_cores(self):
-    #     """
-    #     Returns:
-    #         torch.Tensor: the minimum value of the start of the core of the set
-    #     """
-    #     return self._resize_to_m(self._coords.pt(1), self._m)
-
-    # def truncate(self, m: torch.Tensor) -> 'Ramp':
-    #     """Truncate the Ramp function. This results in changing the m value as well
-    #     as the point for the upper bound
-
-    #     Args:
-    #         m (torch.Tensor): The value to truncate by
-
-    #     Returns:
-    #         Ramp: The truncated ramp
-    #     """
-    #     truncate_m = functional.inter(self._m, m)
-    #     pt = (truncate_m + self._coords.pt(0)) * (self._coords.pt(1) - self._coords.pt(0)) / self._m
-    #     coords = self._coords.replace(pt, 1, True, truncate_m)
-
-    #     return Ramp(coords, m)
