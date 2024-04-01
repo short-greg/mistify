@@ -161,234 +161,107 @@ class TestRightGaussian(object):
         assert areas.shape == torch.Size([2, 3, 4])
 
 
-# class TestGaussianTrapezoid(object):
 
-#     def test_join_returns_fuzzy_set_with_correct_size(self):
+class TestGaussianFunctions:
 
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         truncated_m = torch.rand(2, 3, 4)
-#         x = torch.rand(2, 3)
-#         gaussian = _gaussian.GaussianTrapezoid(
-#             b, s, truncated_m
-#         )
-#         m = gaussian.join(x)
-#         assert m.data.size() == torch.Size([2, 3, 4])
+    def test_gaussian_area_gives_correct_value(self):
 
-#     def test_scale_returns_shape_with_correct_size(self):
+        areas = _gaussian.gaussian_area(torch.tensor([2, 0.5]))
+        assert torch.isclose(areas[0], torch.tensor(5.01325654), atol=1e-4)
+        assert torch.isclose(areas[1], torch.tensor(1.2533), atol=1e-4)
 
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         truncated_m = torch.rand(2, 3, 4)
-#         m = torch.rand(2, 3, 4)
-#         gaussian = _gaussian.GaussianTrapezoid(
-#             b, s, truncated_m
-#         )
-#         shape = gaussian.scale(m)
-#         assert isinstance(shape, _gaussian.GaussianTrapezoid)
+    def test_gaussian_invert_inverts_the_value(self):
 
-#     def test_mean_core_returns_tensor_with_correct_size(self):
+        x = torch.tensor([-1., 0.1])
+        bias = torch.tensor([0.0, 0.0])
+        scale = torch.tensor([1.0, 1.0])
+        y = _gaussian.gaussian(x, bias, scale)
+        lhs, rhs = _gaussian.gaussian_invert(y, bias, scale)
+        assert torch.isclose(lhs[0], x[0], 1e-4).all()
+        assert torch.isclose(rhs[1], x[1], 1e-4).all()
 
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         m = torch.rand(2, 3, 4)
-#         truncated_m = torch.rand(2, 3, 4)
+    def test_gaussian_invert_inverts_the_value_with_scale_and_bias(self):
 
-#         gaussian = _gaussian.GaussianTrapezoid(
-#             b, s, truncated_m
-#         )
-#         shape = gaussian.scale(m)
-#         assert shape.mean_cores.shape == torch.Size([2, 3, 4])
+        x = torch.tensor([0.1, 0.1])
+        bias = torch.tensor([0.2, -0.1])
+        scale = torch.tensor([2.0, 0.5])
+        y = _gaussian.gaussian(x, bias, scale)
+        lhs, rhs = _gaussian.gaussian_invert(y, bias, scale)
+        assert torch.isclose(lhs[0], x[0], 1e-4).all()
+        assert torch.isclose(rhs[1], x[1], 1e-4).all()
 
-#     def test_centroids_returns_tensor_with_correct_size(self):
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         truncated_m = torch.rand(2, 3, 4)
-#         m = torch.rand(2, 3, 4)
-#         gaussian = _gaussian.GaussianTrapezoid(
-#             b, s, truncated_m
-#         )
-#         shape = gaussian.scale(m)
-#         assert shape.centroids.shape == torch.Size([2, 3, 4])
+    def test_gaussian_gives_value_at_one(self):
 
-#     def test_areas_returns_tensor_with_correct_size(self):
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         truncated_m = torch.rand(2, 3, 4)
-#         m = torch.rand(2, 3, 4)
-#         gaussian = _gaussian.GaussianTrapezoid(
-#             b, s, truncated_m
-#         )
-#         shape = gaussian.scale(m)
-#         assert shape.areas.shape == torch.Size([2, 3, 4])
+        x = torch.tensor([0.2, 4.0])
+        bias = torch.tensor([0.2, 0.0])
+        scale = torch.tensor([1.0, 2.0])
 
-#     def test_truncate_returns_trapezoid(self):
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         m = torch.rand(2, 3, 4)
-#         truncated_m = torch.rand(2, 3, 4)
+        m = _gaussian.gaussian(x, bias, scale)
+        assert torch.isclose(m[0], torch.tensor(1.0), atol=1e-4).all()
+        assert torch.isclose(m[1], torch.tensor(0.1353), atol=1e-4).all()
 
-#         gaussian = _gaussian.GaussianTrapezoid(
-#             b, s, truncated_m
-#         )
-#         shape = gaussian.truncate(m)
-#         assert isinstance(shape, _gaussian.GaussianTrapezoid)
+    def test_gaussian_area_up_to(self):
 
+        x = torch.tensor([0.2, -2.0])
+        bias = torch.tensor([0.2, 0.0])
+        scale = torch.tensor([1.0, 2.0])
 
-# class TestRightLogistic(object):
+        full = _gaussian.gaussian_area(scale)
+        t2 = (0.5 - 0.6826895 / 2.0) * full[1]
+        # print(full[1] * 0.16)
+        m = _gaussian.gaussian_area_up_to(x, bias, scale)
+        assert torch.isclose(m[0], full[0] / 2., atol=1e-2).all()
+        assert torch.isclose(m[1], t2, atol=1e-4).all()
 
-#     def test_join_returns_fuzzy_set_with_correct_size(self):
+    def test_gaussian_area_up_to_inv(self):
 
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         truncated_m = torch.rand(2, 3, 4)
-#         x = torch.rand(2, 3)
-#         gaussian = _gaussian.RightGaussian(
-#             b, s, True, truncated_m
-#         )
-#         m = gaussian.join(x)
-#         assert m.data.size() == torch.Size([2, 3, 4])
+        bias = torch.tensor([0.2, 0.0])
+        scale = torch.tensor([1.0, 2.0])
+        area = _gaussian.gaussian_area(scale)
+        area[0] *= 0.5
+        area[1] *= (0.5 - 0.6826895 / 2.0)
 
-#     def test_scale_returns_shape_with_correct_size(self):
+        m = _gaussian.gaussian_area_up_to_inv(area, bias, scale)
+        assert torch.isclose(m[0], torch.tensor(0.2), 1e-4).all()
+        assert torch.isclose(m[1], torch.tensor(-2.0), 1e-4).all()
 
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         truncated_m = torch.rand(2, 3, 4)
-#         m = torch.rand(2, 3, 4)
-#         gaussian = _gaussian.RightGaussian(
-#             b, s, True, truncated_m
-#         )
-#         shape = gaussian.scale(m)
-#         assert isinstance(shape, _gaussian.RightGaussian)
+    # def test_truncated_gaussian_area(self):
 
-#     def test_mean_core_returns_tensor_with_correct_size(self):
+    #     height = torch.tensor([0.0, 1.0])
+    #     bias = torch.tensor([0.2, 0.0])
+    #     scale = torch.tensor([1.0, 2.0])
 
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         m = torch.rand(2, 3, 4)
-#         truncated_m = torch.rand(2, 3, 4)
+    #     m = _gaussian.truncated_gaussian_area(bias, scale, height)
+    #     assert torch.isclose(m[0], torch.tensor(0.0), atol=1e-5).all()
+    #     assert torch.isclose(m[1], torch.tensor(8.0), atol=1e-4).all()
 
-#         gaussian = _gaussian.RightGaussian(
-#             b, s, True, truncated_m
-#         )
-#         shape = gaussian.scale(m)
-#         assert shape.mean_cores.shape == torch.Size([2, 3, 4])
+    # def test_truncated_logistic_mean_core(self):
 
-#     def test_centroids_returns_tensor_with_correct_size(self):
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         truncated_m = torch.rand(2, 3, 4)
-#         m = torch.rand(2, 3, 4)
-#         gaussian = _gaussian.RightGaussian(
-#             b, s, True, truncated_m
-#         )
-#         shape = gaussian.scale(m)
-#         assert shape.centroids.shape == torch.Size([2, 3, 4])
+    #     height = torch.tensor([0.0, 1.0])
+    #     bias = torch.tensor([0.2, 0.0])
+    #     scale = torch.tensor([1.0, 2.0])
 
-#     def test_areas_returns_tensor_with_correct_size(self):
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         truncated_m = torch.rand(2, 3, 4)
-#         m = torch.rand(2, 3, 4)
-#         gaussian = _gaussian.RightGaussian(
-#             b, s, True, truncated_m
-#         )
-#         shape = gaussian.scale(m)
-#         assert shape.areas.shape == torch.Size([2, 3, 4])
+    #     m = _logistic.truncated_logistic_mean_core(bias, scale, height)
+    #     assert torch.isclose(m[0], torch.tensor(0.2), atol=1e-5).all()
+    #     assert torch.isclose(m[1], torch.tensor(0.0), atol=1e-4).all()
 
-#     def test_truncate_returns_trapezoid(self):
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         m = torch.rand(2, 3, 4)
-#         truncated_m = torch.rand(2, 3, 4)
+    # def test_half_logistic_area(self):
 
-#         gaussian = _gaussian.RightGaussian(
-#             b, s, True, truncated_m
-#         )
-#         shape = gaussian.truncate(m)
-#         assert isinstance(shape, _gaussian.RightGaussianTrapezoid)
+    #     scale = torch.tensor([1.0, 2.0])
+
+    #     m = _logistic.half_logistic_area(scale)
+    #     assert torch.isclose(m[0], torch.tensor(2.0), atol=1e-4).all()
+    #     assert torch.isclose(m[1], torch.tensor(4.0), atol=1e-4).all()
+
+    # def test_truncated_half_logistic_area(self):
+
+    #     height = torch.tensor([0.0, 1.0])
+    #     bias = torch.tensor([0.2, 0.0])
+    #     scale = torch.tensor([1.0, 2.0])
+
+    #     m = _logistic.truncated_half_logistic_area(bias, scale, height)
+    #     assert torch.isclose(m[0], torch.tensor(0.0), atol=1e-4).all()
+    #     assert torch.isclose(m[1], torch.tensor(4.0), atol=1e-4).all()
 
 
-# class TestRightLogisticTrapezoid(object):
 
-#     def test_join_returns_fuzzy_set_with_correct_size(self):
-
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         truncated_m = torch.rand(2, 3, 4)
-#         x = torch.rand(2, 3)
-#         gaussian = _gaussian.RightGaussianTrapezoid(
-#             b, s, True, truncated_m
-#         )
-#         m = gaussian.join(x)
-#         assert m.data.size() == torch.Size([2, 3, 4])
-
-#     def test_scale_returns_shape_with_correct_size(self):
-
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         truncated_m = torch.rand(2, 3, 4)
-#         m = torch.rand(2, 3, 4)
-#         gaussian = _gaussian.RightGaussianTrapezoid(
-#             b, s, True, truncated_m
-#         )
-#         shape = gaussian.scale(m)
-#         assert isinstance(shape, _gaussian.RightGaussianTrapezoid)
-
-#     def test_mean_core_returns_tensor_with_correct_size(self):
-
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         m = torch.rand(2, 3, 4)
-#         truncated_m = torch.rand(2, 3, 4)
-
-#         gaussian = _gaussian.RightGaussianTrapezoid(
-#             b, s, True, truncated_m
-#         )
-#         shape = gaussian.scale(m)
-#         assert shape.mean_cores.shape == torch.Size([2, 3, 4])
-
-# #         b = ShapeParams(torch.rand(3, 4, 1))
-# #         s = ShapeParams(torch.rand(3, 4, 1))
-# #         truncated_m = torch.rand(2, 3, 4)
-# #         m = torch.rand(2, 3, 4)
-# #         logistic = _logistic.RightLogisticTrapezoid(
-# #             b, s, True, truncated_m
-# #         )
-# #         shape = logistic.scale(m)
-# #         assert shape.mean_cores.shape == torch.Size([2, 3, 4])
-
-
-#     def test_centroids_returns_tensor_with_correct_size(self):
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         truncated_m = torch.rand(2, 3, 4)
-#         m = torch.rand(2, 3, 4)
-#         gaussian = _gaussian.RightGaussianTrapezoid(
-#             b, s, True, truncated_m
-#         )
-#         shape = gaussian.scale(m)
-#         assert shape.centroids.shape == torch.Size([2, 3, 4])
-
-#     def test_areas_returns_tensor_with_correct_size(self):
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         truncated_m = torch.rand(2, 3, 4)
-#         m = torch.rand(2, 3, 4)
-#         gaussian = _gaussian.RightGaussianTrapezoid(
-#             b, s, True, truncated_m
-#         )
-#         shape = gaussian.scale(m)
-#         assert shape.areas.shape == torch.Size([2, 3, 4])
-
-#     def test_truncate_returns_trapezoid(self):
-#         b = ShapeParams(torch.rand(3, 4, 1))
-#         s = ShapeParams(torch.rand(3, 4, 1))
-#         m = torch.rand(2, 3, 4)
-#         truncated_m = torch.rand(2, 3, 4)
-
-#         gaussian = _gaussian.RightGaussianTrapezoid(
-#             b, s, True, truncated_m
-#         )
-#         shape = gaussian.truncate(m)
-#         assert isinstance(shape, _gaussian.RightGaussianTrapezoid)

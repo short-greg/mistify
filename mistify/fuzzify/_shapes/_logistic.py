@@ -53,10 +53,8 @@ def truncated_logistic_area(bias: torch.Tensor, std: torch.Tensor, height: torch
     
     pts = logistic_invert(height, bias, std)
     rec_area = (pts[1] - pts[0]) * height
-    print(rec_area.shape)
-    gauss_area = logistic_area_up_to(pts[0], bias, std)
-    print(gauss_area.shape)
-    return rec_area + 2 * gauss_area
+    logistic_area = logistic_area_up_to(pts[0], bias, std)
+    return rec_area + 2 * logistic_area
 
 
 def truncated_logistic_mean_core(bias: torch.Tensor, std: torch.Tensor, height: torch.Tensor) -> torch.Tensor:
