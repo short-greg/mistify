@@ -22,8 +22,8 @@ def triangle_centroid(x1: torch.Tensor, x2: torch.Tensor, x3: torch.Tensor) -> t
 def triangle_right_centroid(x1: torch.Tensor, x2: torch.Tensor, increasing: bool=True) -> torch.Tensor:
 
     if increasing:
-        return x1 / 3. + 2 * x2 / 3.0
-    return 2 * x1 / 3.0 + x2 / 3.0
+        return 1. / 3. * x1 + 2. / 3. * x2
+    return 2. / 3. * x1 + 1. / 3. * x2
 
 
 class RightTriangle(Polygon):
@@ -265,73 +265,3 @@ class IsoscelesTriangle(Polygon):
         return self._resize_to_m(
             params.pt(1), m
         )
-
-
-    # def _calc_areas(self):
-    #     """
-    #     Returns:
-    #         torch.Tensor: the area of the triangle
-    #     """
-    #     params = self._params()
-    #     return self._resize_to_m(
-    #         0.5 * (params.pt(0)
-    #         - params.pt(1)) * self._m, self._m
-    #     )
-
-    # def _calc_mean_cores(self) -> torch.Tensor:
-    #     """
-    #     Returns:
-    #         torch.Tensor: the maximum value for the triangle
-    #     """
-    #     params = self._params()
-    #     return self._resize_to_m(params.pt(1), self._m)
-
-    # def _calc_centroids(self) -> torch.Tensor:
-    #     """
-    #     Returns:
-    #         torch.Tensor: the center of mass for the triangle
-    #     """
-    #     params = self._params()
-    #     return self._resize_to_m(params.pt(1), self._m)
-
-    # def scale(self, m: torch.Tensor) -> 'IsoscelesTriangle':
-    #     """Update the vertical scale of the triangle
-
-    #     Args:
-    #         m (torch.Tensor): The new vertical scale
-
-    #     Returns:
-    #         IsoscelesTriangle: The updated vertical scale if the scale is greater
-    #     """
-    #     params = self._params()
-    #     updated_m = functional.inter(self._m, m)
-    #     return IsoscelesTriangle(
-    #         params, updated_m
-    #     )
-
-    # def truncate(self, m: torch.Tensor) -> 'IsoscelesTrapezoid':
-    #     """
-    #     Args:
-    #         m (torch.Tensor): The new maximum value
-
-    #     Returns:
-    #         IsoscelesTrapezoid: The triangle truncated into an IsoscelesTrapezoid
-    #     """
-    #     params = self._params()
-    #     updated_m = functional.inter(self._m, m)
-    #     pt1 = calc_x_linear_increasing(updated_m, params.pt(0), params.pt(1), self._m)
-    #     pt2 = calc_x_linear_decreasing(
-    #         updated_m, params.pt(1), params.pt(1) + params.pt(1) - params.pt(0), self._m)
-
-    #     to_replace = torch.cat(
-    #         [pt1.unsqueeze(3), pt2.unsqueeze(3)], dim=3
-    #     )
-
-    #     # This will not work right
-
-    #     params = self._params.replace(
-    #         to_replace, 1, False, updated_m
-    #     )
-    #     return IsoscelesTrapezoid(
-    #         params, updated_m
-    #     )

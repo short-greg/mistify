@@ -1,11 +1,6 @@
 from ._base import Polygon, ShapeParams
 from ...utils import unsqueeze
 import torch
-from ._utils import (
-    calc_m_flat, calc_m_linear_decreasing, calc_m_linear_increasing,
-    calc_x_linear_decreasing,
-    calc_x_linear_increasing
-)
 from ... import _functional as functional
 
 

@@ -57,19 +57,6 @@ class TestRightTriangle(object):
         areas = right_triangle.areas(m, True)
         assert areas.shape == torch.Size([2, 3, 4])
 
-    # def test_truncate_returns_right_trapezoid(self):
-
-    #     p = torch.rand(3, 4, 2).cumsum(2)
-    #     m = torch.rand(2, 3, 4)
-    #     right_triangle = _triangle.RightTriangle(
-    #         ShapeParams(p)
-    #     )
-    #     # shape = right_triangle.truncate(m)
-    #     assert isinstance(shape, _triangle.IncreasingRightTrapezoid)
-
-
-
-
     def test_scale_returns_shape_with_correct_size_with_decreasing(self):
 
         p = torch.rand(3, 4, 2).cumsum(2)
@@ -164,16 +151,6 @@ class TestTriangle(object):
         assert (triangle._params.x[:,:,:,:-1] >= triangle._params.x[:,:,:,1:]).any()
         assert (p.x[:,:,:,:-1] < p.x[:,:,:,1:]).all()
 
-#     def test_scale_returns_shape_with_correct_size(self):
-
-#         p = torch.rand(3, 4, 3).cumsum(2)
-#         m = torch.rand(2, 3, 4)
-#         triangle = _triangle.Triangle(
-#             ShapeParams(p)
-#         )
-#         shape = triangle.scale(m)
-#         assert isinstance(shape, _triangle.Triangle)
-
     def test_mean_core_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 3).cumsum(2)
@@ -246,16 +223,6 @@ class TestIsocelesTriangle(object):
         m = right_trapezoid.join(x)
         assert m.data.size() == torch.Size([2, 3, 4])
 
-    # def test_scale_returns_shape_with_correct_size(self):
-
-    #     p = torch.rand(3, 4, 2).cumsum(2)
-    #     m = torch.rand(2, 3, 4)
-    #     triangle = _triangle.IsoscelesTriangle(
-    #         ShapeParams(p)
-    #     )
-    #     shape = triangle.scale(m)
-    #     assert isinstance(shape, _triangle.IsoscelesTriangle)
-
     def test_mean_core_returns_tensor_with_correct_size(self):
 
         p = torch.rand(3, 4, 2).cumsum(2)
@@ -305,3 +272,70 @@ class TestIsocelesTriangle(object):
         )
         mean_cores = triangle.mean_cores(m, True)
         assert mean_cores.shape == torch.Size([2, 3, 4])
+
+
+class TestTriangleFunctions:
+
+    def test_triangle_area(self):
+
+        base1 = torch.tensor([0.0, 1.0])
+        base2 = torch.tensor([1.0, 3.0])
+        height = torch.tensor([0.5, 1.0])
+        
+        areas = _triangle.triangle_area(
+            base1, base2, height
+        )
+        assert torch.isclose(
+            areas[0], torch.tensor(0.25)
+        ).all()
+        assert torch.isclose(
+            areas[1], torch.tensor(1.0)
+        )
+
+    def test_triangle_centroid(self):
+
+        x1 = torch.tensor([0.0, 1.0])
+        x2 = torch.tensor([1.0, 4.0])
+        x3 = torch.tensor([2.0, 4.0])
+        
+        areas = _triangle.triangle_centroid(
+            x1, x2, x3
+        )
+        assert torch.isclose(
+            areas[0], torch.tensor(1.0)
+        ).all()
+        assert torch.isclose(
+            areas[1], torch.tensor(3.0)
+        ).all()
+
+    def test_triangle_right_centroid_increasing(self):
+
+        x1 = torch.tensor([0.0, 1.0])
+        x2 = torch.tensor([1.0, 4.0])
+        
+        areas = _triangle.triangle_right_centroid(
+            x1, x2, True
+        )
+        assert torch.isclose(
+            areas[0], torch.tensor(2 / 3.)
+        ).all()
+        assert torch.isclose(
+            areas[1], torch.tensor(3.0)
+        ).all()
+
+    def test_triangle_right_centroid_decreasing(self):
+
+        x1 = torch.tensor([0.0, 1.0])
+        x2 = torch.tensor([1.0, 4.0])
+        
+        areas = _triangle.triangle_right_centroid(
+            x1, x2, False
+        )
+        assert torch.isclose(
+            areas[0], torch.tensor(1 / 3.)
+        ).all()
+        assert torch.isclose(
+            areas[1], torch.tensor(2.0)
+        ).all()
+
+
