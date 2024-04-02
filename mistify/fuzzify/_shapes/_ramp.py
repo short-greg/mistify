@@ -56,9 +56,6 @@ class Ramp(Monotonic):
             torch.Tensor: The membership
         """
         x = unsqueeze(x)
-        # min_ = torch.tensor(0, dtype=x.dtype, device=x.device)
-        # m = (unsqueeze(x) * ((self._m / (self._coords.pt(1) - self._coords.pt(0))) - self._coords.pt(0)))
-        # return torch.clamp(torch.clamp(m, max=self._m), 0.0)
         return functional.ramp(x, self._coords.pt(0), self._coords.pt(1))
 
     def min_cores(self, m: torch.Tensor) -> torch.Tensor:

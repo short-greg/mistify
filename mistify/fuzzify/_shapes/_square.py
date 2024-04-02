@@ -21,10 +21,6 @@ class Square(Polygon):
         """
         params = self._params()
         x = unsqueeze(x)
-        # return (
-        #     (x[:,:,None] >= params.pt(0)) 
-        #     & (x[:,:,None] <= params.pt(1))
-        # ).type_as(x) * self._m
         return functional.shape.square(
             x, params.pt(0), params.pt(1)
         )

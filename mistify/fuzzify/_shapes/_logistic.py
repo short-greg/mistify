@@ -11,15 +11,28 @@ from ._base import ShapeParams, Nonmonotonic
 from ...utils import unsqueeze
 
 
-def logistic_area(scale):
-    
+def logistic_area(scale: torch.Tensor) -> torch.Tensor:
+    """
+    Args:
+        scale (torch.Tensor): The scale of the logistic
+
+    Returns:
+        torch.Tensor: The area
+    """
     return scale * 4
 
 
-def logistic_invert(y, bias, scale) -> typing.Tuple[torch.Tensor, torch.Tensor]:
-    
-    # base = torch.sqrt(-2 * torch.log(y + 1e-7) / (scale ** 2))
-    # 1 / 
+def logistic_invert(y: torch.Tensor, bias: torch.Tensor, scale: torch.Tensor) -> typing.Tuple[torch.Tensor, torch.Tensor]:
+    """
+
+    Args:
+        y (torch.Tensor): The output
+        bias (torch.Tensor): The bias
+        scale (torch.Tensor): The scale 
+
+    Returns:
+        typing.Tuple[torch.Tensor, torch.Tensor]: Both values from invert
+    """
     y = torch.clamp(y, 1e-7, 1.0)
     s = 2 * torch.sqrt(1 - y) + 2
     print(y, s)
@@ -27,15 +40,32 @@ def logistic_invert(y, bias, scale) -> typing.Tuple[torch.Tensor, torch.Tensor]:
     return bias - scale * x2, bias + scale * x2
 
 
-def logistic_area_up_to(x, bias, scale) -> torch.Tensor:
+def logistic_area_up_to(x: torch.Tensor, bias: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+    """
+    Args:
+        x (torch.Tensor): The value to calculate the area up to
+        bias (torch.Tensor): The bias for the logistic
+        scale (torch.Tensor): The scale
 
+    Returns:
+        torch.Tensor: 
+    """
     # TODO: presently incro
     z = (x - bias) / scale
     return torch.sigmoid(z) * scale * 4
 
 
-def logistic_area_up_to_inv(y, bias, scale, increasing: bool=True):
-    
+def logistic_area_up_to_inv(y: torch.Tensor, bias: torch.Tensor, scale: torch.Tensor, increasing: bool=True) -> torch.Tensor:
+    """
+    Args:
+        y (torch.Tensor): The area to calculate the x for
+        bias (torch.Tensor): The bias
+        scale (torch.Tensor): The scale of the logistic distribution
+        increasing (bool, optional): Whether increasing or decreasing. Defaults to True.
+
+    Returns:
+        torch.Tensor: The x value outputting that area
+    """
     dx = torch.logit(y / scale) * scale
     
     if increasing:
@@ -43,8 +73,16 @@ def logistic_area_up_to_inv(y, bias, scale, increasing: bool=True):
     return bias + dx
 
 
-def logistic(x: torch.Tensor,  bias: torch.Tensor, scale: torch.Tensor):
-    
+def logistic(x: torch.Tensor,  bias: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+    """
+    Args:
+        x (torch.Tensor): The x value
+        bias (torch.Tensor): The bias of the logistic
+        scale (torch.Tensor): The scale of the logistic
+
+    Returns:
+        torch.Tensor: the output fo the logistic
+    """
     sig = torch.sigmoid(-(x - bias) / scale)
     return 4  * (1 - sig) * sig
 
@@ -63,10 +101,6 @@ def truncated_logistic_mean_core(bias: torch.Tensor, std: torch.Tensor, height: 
 
 
 def half_logistic_area(scale: torch.Tensor) -> torch.Tensor:
-    # pts = logistic_invert(height, bias, scale)
-    # rec_area = (bias - pts[0]) * height
-    # gauss_area = logistic_area_up_to(pts[0], bias, scale)
-    # return gauss_area + rec_area
     return scale * 2
 
 
@@ -218,5 +252,3 @@ class HalfLogisticBell(Logistic):
         if truncate:
             return truncated_half_logistic_centroid(self._biases.pt(0), self.sigma, m, self.increasing)
         return half_logistic_centroid(self._biases.pt(0), self.sigma, m, self.increasing)
-
-

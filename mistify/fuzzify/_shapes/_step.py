@@ -44,10 +44,7 @@ class Step(Monotonic):
 
     def join(self, x: torch.Tensor) -> torch.Tensor:
         x = unsqueeze(x)
-        # return self._m * functional.binarize(x - self._threshold.pt(0))
-        # return intersect(self._m, (unsqueeze(x) >= self._threshold.pt(0)).type_as(x))
         return functional.threshold(x, self._threshold.pt(0))
     
     def min_cores(self, m: torch.Tensor) -> torch.Tensor:
         return self._resize_to_m(self._threshold.pt(0), m)
-

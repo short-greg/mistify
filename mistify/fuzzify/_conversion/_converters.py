@@ -946,6 +946,7 @@ class StepFuzzyConverter(CompositeFuzzyConverter):
             hypothesis (typing.Union[ShapeHypothesis, str], optional): The hypothesizer to use. Defaults to "min_core".
             conclusion (typing.Union[Conclusion, str], optional): The conclusion to use. Defaults to "max".
         """
+        
         super().__init__(
             [step], hypothesis, conclusion, True
         )

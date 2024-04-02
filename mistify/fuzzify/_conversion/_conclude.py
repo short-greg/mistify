@@ -47,7 +47,6 @@ class MaxConc(Conclusion):
         Returns:
             torch.Tensor: the hypothesis with the maximum weight
         """
-        print(hypo_weight.m.shape, hypo_weight.hypo.shape)
         indices = torch.max(hypo_weight.m, dim=-1, keepdim=True)[1]
         return torch.gather(hypo_weight.hypo, -1, indices).squeeze(dim=-1)
 

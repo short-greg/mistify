@@ -10,17 +10,41 @@ from ... import _functional as functional
 
 
 def triangle_area(base1: torch.Tensor, base2: torch.Tensor, height: torch.Tensor) -> torch.Tensor:
+    """
+    Args:
+        base1 (torch.Tensor): The first point at the base of the triangle
+        base2 (torch.Tensor): The second point at the base of the triangle
+        height (torch.Tensor): The height of the triangle
 
+    Returns:
+        torch.Tensor: The area of the triangle
+    """
     return (base2 - base1) * height / 2.0
 
 
 def triangle_centroid(x1: torch.Tensor, x2: torch.Tensor, x3: torch.Tensor) -> torch.Tensor:
+    """
+    Args:
+        x1 (torch.Tensor): The first point of the triangle
+        x2 (torch.Tensor): The second point of the triangle
+        x3 (torch.Tensor): The third point of the triangle
 
+    Returns:
+        torch.Tensor: The centroid of the triangle
+    """
     return (x1 + x2 + x3) / 3.0
 
 
 def triangle_right_centroid(x1: torch.Tensor, x2: torch.Tensor, increasing: bool=True) -> torch.Tensor:
+    """
+    Args:
+        x1 (torch.Tensor): The first point
+        x2 (torch.Tensor): The second point
+        increasing (bool, optional): whether it is increasing or decreasing. Defaults to True.
 
+    Returns:
+        torch.Tensor: The centroid
+    """
     if increasing:
         return 1. / 3. * x1 + 2. / 3. * x2
     return 2. / 3. * x1 + 1. / 3. * x2
