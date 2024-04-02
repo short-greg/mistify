@@ -19,7 +19,6 @@ def trapezoid_mean_core(upper1: torch.Tensor, upper2: torch.Tensor) -> torch.Ten
         return (upper1 + upper2) / 2.0
 
 
-
 class Trapezoid(Polygon):
     """A general trapezoid consisting of four points
     """
