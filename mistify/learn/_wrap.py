@@ -34,7 +34,7 @@ class MaxMinRelOut(nn.Module):
 
         chosen_x = inner_x.gather(-2, ind_x)
         chosen_w = inner_w.gather(-2, ind_w)
-        return chosen_x, chosen_w
+        return chosen_x.squeeze(-2), chosen_w.squeeze(-2)
 
 
 class MaxProdRelOut(nn.Module):
@@ -44,13 +44,14 @@ class MaxProdRelOut(nn.Module):
         x = x.unsqueeze(-1)
         t = t.unsqueeze(-2)
         w = w.unsqueeze(0)
+        comp = torch.tensor(1.0, dtype=x.dtype, device=x.device)
 
         rel_x = torch.min(
-            t / (x + 1e-7),  1.0
+            t / (x + 1e-7),  comp
         ).sum(dim=0, keepdim=True) / torch.sum(x, dim=0, keepdim=True)
 
         rel_w = torch.min(
-            t / (w + 1e-7), 1.0
+            t / (w + 1e-7), comp
         ).sum(dim=-2, keepdim=True) / torch.sum(x, dim=-2, keepdim=True)
 
         # for max prod use this for the inner
@@ -63,7 +64,7 @@ class MaxProdRelOut(nn.Module):
 
         chosen_x = inner_x.gather(-2, ind_x)
         chosen_w = inner_w.gather(-2, ind_w)
-        return chosen_x, chosen_w
+        return chosen_x.squeeze(-2), chosen_w.squeeze(-2)
 
 
 class MinMaxRelOut(nn.Module):
@@ -96,7 +97,7 @@ class MinMaxRelOut(nn.Module):
 
         chosen_x = inner_x.gather(-2, ind_x)
         chosen_w = inner_w.gather(-2, ind_w)
-        return chosen_x, chosen_w
+        return chosen_x.squeeze(-2), chosen_w.squeeze(-2)
 
 
 class MinSumRelOut(nn.Module):
@@ -111,12 +112,14 @@ class MinSumRelOut(nn.Module):
         t_comp = 1 - t
         w_comp = 1 - w
 
+        comp = torch.tensor(1.0, dtype=x_comp.dtype, device=x_comp.device)
+
         rel_x = 1 - torch.min(
-            (t_comp - x_comp) / (1 - x_comp), 1.0
+            (t_comp - x_comp) / (1 - x_comp), comp
         ).sum(dim=0, keepdim=True) / torch.sum(x_comp, dim=0, keepdim=True)
 
         rel_w = 1 - torch.min(
-            (t_comp - w_comp) / (1 - w_comp), 1.0
+            (t_comp - w_comp) / (1 - w_comp), comp
         ).sum(dim=-2, keepdim=True) / torch.sum(w_comp, dim=-2, keepdim=True)
 
 #         # for max prod use this for the inner
@@ -129,7 +132,7 @@ class MinSumRelOut(nn.Module):
 
         chosen_x = inner_x.gather(-2, ind_x)
         chosen_w = inner_w.gather(-2, ind_w)
-        return chosen_x, chosen_w
+        return chosen_x.squeeze(-2), chosen_w.squeeze(-2)
 
 
 #  var, operation, context,  x = op.constrain(x)
