@@ -4,6 +4,8 @@ import torch
 import typing
 from functools import partial
 from abc import abstractmethod
+from zenkai.kikai import WrapNN, WrapState
+from typing_extensions import Self
 
 
 # Later simplify these
@@ -137,45 +139,90 @@ class MinSumRelOut(nn.Module):
 
 #  var, operation, context,  x = op.constrain(x)
 
+class WrapNeuron(WrapNN):
 
-class WrapNeuron(nn.Module):
+    def __init__(self, f, rel: nn.Module):
+        super().__init__(
+            [self.x_hook, self.weight_hook], [self.out_hook]
+        )
+        self.f = f
+        self.rel = rel
+        self.loss = nn.MSELoss()
 
-    def __init__(self, neuronf: typing.Callable[[torch.Tensor, torch.Tensor], torch.Tensor]):
-        super().__init__()
+    def out_hook(self, grad: torch.Tensor, state: WrapState, idx: int):
         
-        self.neuronf = neuronf
-        self.enabled = True
+        print('Out hook')
+        state.set_grad(grad, state, idx)
+        x = state.x[0].detach().clone()
+        w = state.x[1].detach().clone()
+        t = state.t.detach()
+        with torch.enable_grad():
+            x.requires_grad_()
+            x.retain_grad()
+            w.requires_grad_()
+            w.retain_grad()
+            chosen_x, chosen_w = self.rel(
+                x, w, t
+            )
+            loss1 = self.loss(chosen_x, t)
+            loss2 = self.loss(chosen_w, t)
+            (loss1 + loss2).backward()
+            state.state['x_grad'] = x.grad
+            state.state['w_grad'] = w.grad
+        return grad
 
-    def disable(self):
-        self.enabled = False
+    def weight_hook(self, grad: torch.Tensor, state: WrapState, idx: int):
+        
+        return grad + state.state['w_grad']
+        
+    def x_hook(self, grad: torch.Tensor, state: WrapState, idx: int):
+        return grad + state.state['x_grad']
 
-    def enable(self):
-        self.enabled = True
+    def __call__(self, x: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
 
-    def x_update(
-        self, grad: torch.Tensor, x: torch.Tensor, weight: torch.Tensor, state: typing.Dict
-    ) -> typing.Tuple[torch.Tensor, torch.Tensor]:
-        pass
+        return self.wrap(
+            self.f, x, w
+        )
 
-    @abstractmethod
-    def weight_update(
-        self, grad: torch.Tensor, x: torch.Tensor, weight: torch.Tensor, state: typing.Dict
-    ) -> typing.Tuple[torch.Tensor, torch.Tensor]:
-        pass
 
-    def store(self, grad, y, state):
+# class WrapNeuron(nn.Module):
 
-        state[grad] = grad
-        state[y] = y
+#     def __init__(self, neuronf: typing.Callable[[torch.Tensor, torch.Tensor], torch.Tensor]):
+#         super().__init__()
+        
+#         self.neuronf = neuronf
+#         self.enabled = True
 
-    def forward(self, x: torch.Tensor, weight: torch.Tensor):
+#     def disable(self):
+#         self.enabled = False
 
-        if self.enabled:
-            state = {}
-            x.register_hook(partial(self.x_update, x=x, weight=weight, state=state))
-            weight.register_hook(partial(self.weight_update, x=x, weight=weight, state=state))
-            y = self.neuronf(x, weight)
-            y.register_hook(partial(self.store, y=y, state=state))
-            return y
-        return self.neuronf(x, weight)
+#     def enable(self):
+#         self.enabled = True
+
+#     def x_update(
+#         self, grad: torch.Tensor, x: torch.Tensor, weight: torch.Tensor, state: typing.Dict
+#     ) -> typing.Tuple[torch.Tensor, torch.Tensor]:
+#         pass
+
+#     @abstractmethod
+#     def weight_update(
+#         self, grad: torch.Tensor, x: torch.Tensor, weight: torch.Tensor, state: typing.Dict
+#     ) -> typing.Tuple[torch.Tensor, torch.Tensor]:
+#         pass
+
+#     def store(self, grad, y, state):
+
+#         state[grad] = grad
+#         state[y] = y
+
+#     def forward(self, x: torch.Tensor, weight: torch.Tensor):
+
+#         if self.enabled:
+#             state = {}
+#             x.register_hook(partial(self.x_update, x=x, weight=weight, state=state))
+#             weight.register_hook(partial(self.weight_update, x=x, weight=weight, state=state))
+#             y = self.neuronf(x, weight)
+#             y.register_hook(partial(self.store, y=y, state=state))
+#             return y
+#         return self.neuronf(x, weight)
 
