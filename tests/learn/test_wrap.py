@@ -1,4 +1,4 @@
-from mistify.learn import _wrap as wrap
+from mistify.learn import _neurons as wrap
 import torch
 
 

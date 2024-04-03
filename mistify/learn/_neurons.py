@@ -178,3 +178,6 @@ class WrapNeuron(nn.Module):
             y.register_hook(partial(self.store, y=y, state=state))
             return y
         return self.neuronf(x, weight)
+
+
+

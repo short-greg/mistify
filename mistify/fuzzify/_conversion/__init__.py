@@ -8,8 +8,7 @@ from ._conclude import (
 )
 from ._fuzzifiers import (
     Fuzzifier, 
-    EmbeddingFuzzifier,
-    GaussianFuzzifier
+    EmbeddingFuzzifier
 )
 from ._hypo import (
     HypothesisEnum, 

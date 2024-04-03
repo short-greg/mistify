@@ -7,6 +7,7 @@ import math
 # 3rd party
 import torch
 from torch import Tensor
+from zenkai.kikai import WrapNN
 
 # local
 from ._base import ShapeParams, Nonmonotonic
@@ -217,7 +218,7 @@ class GaussianBell(Gaussian):
     """Use the GaussianBell function as the membership function
     """
 
-    def __init__(self, biases: ShapeParams, scales: ShapeParams, hookf=None):
+    def __init__(self, biases: ShapeParams, scales: ShapeParams):
         """Use a Gaussian as the membership function
 
         Args:
@@ -226,10 +227,9 @@ class GaussianBell(Gaussian):
             hookf (_type_, optional): The GradHook for the join function. Defaults to None.
         """
         super().__init__(biases, scales)
-        self.joinf = gaussian if hookf is None else hookf.f(gaussian)
 
     def join(self, x: Tensor) -> Tensor:
-        return self.joinf(
+        return gaussian(
             unsqueeze(x), self._biases.pt(0), self.sigma
         )
     
@@ -260,20 +260,42 @@ class HalfGaussianBell(Gaussian):
     """Use the GaussianBell function as the membership function
     """
     def __init__(self, biases: ShapeParams, scales: ShapeParams, increasing: torch.Tensor):
+        """Create a membership that comprises half of a Gaussian function either increasing or decreasing
+
+        Args:
+            biases (ShapeParams): The bias for the half bell
+            scales (ShapeParams): The scales for the half bell
+            increasing (torch.Tensor): Whether the function is increasing or decreasing
+        """
         super().__init__(biases, scales)
         self.increasing = increasing
+
+    def half_gaussian(self, x: torch.Tensor, biases: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+        """Function for joining the Half-Gaussian
+
+        Args:
+            x (torch.Tensor): The x value
+            biases (torch.Tensor): The bias
+            scale (torch.Tensor): The scale
+
+        Returns:
+            torch.Tensor: The membership values
+        """
+        if self.increasing:
+            contains = (x <= biases)
+        else:
+            contains = (x >= biases)
+
+        return gaussian(
+            x, biases, scale
+        ) * contains
 
     def join(self, x: Tensor) -> Tensor:
 
         x = unsqueeze(x)
-        if self.increasing:
-            contains = (x <= self._biases.pt(0))
-        else:
-            contains = (x >= self._biases.pt(0))
-
-        return gaussian(
+        return self.half_gaussian(
             x, self._biases.pt(0), self.sigma
-        ) * contains
+        )
     
     def areas(self, m: Tensor, truncate: bool = False) -> Tensor:
         
