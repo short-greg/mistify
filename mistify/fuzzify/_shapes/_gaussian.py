@@ -59,10 +59,6 @@ def gaussian_area_up_to(x: torch.Tensor, bias: torch.Tensor, scale: torch.Tensor
             (bias - x) / (math.sqrt(2) * scale)
         )
     )
-    # return (0.5 + 0.5 * torch.erf((x - bias) / (math.sqrt(2) * scale))) * math.sqrt(2 * math.pi) * scale
-    # return scale * math.sqrt(torch.pi) / math.sqrt(2.0) * torch.erf(
-    #     (x - bias) / (math.sqrt(2.) * scale)
-    # ) + torch.erf(bias / (scale * math.sqrt(2.0)))
 
 
 def gaussian_area_up_to_inv(area: torch.Tensor, bias: torch.Tensor, scale: torch.Tensor, increasing: bool=True) -> torch.Tensor:
@@ -77,21 +73,11 @@ def gaussian_area_up_to_inv(area: torch.Tensor, bias: torch.Tensor, scale: torch
     Returns:
         torch.Tensor: The x value
     """
-    # area = m
-    # c = scale
-    # b = bias
-    # a = weight
-    
-    # left = math.sqrt(2.0) * area / (scale * math.sqrt(math.pi))
-    # right = torch.erf(
-    #     bias / (scale * math.sqrt(2.))
-    # )
     left = -area * math.sqrt(2 * math.pi)
     right = math.pi / torch.sqrt(scale ** -2)
     dx = math.sqrt(2.) * scale * torch.erfinv(
         (left + right) / (math.pi * scale)
     )
-    # dx = scale * math.sqrt(2.) * torch.erfinv(left - right)
     return bias - dx if increasing else bias + dx
 
 
@@ -141,9 +127,6 @@ def truncated_gaussian_mean_core(bias: torch.Tensor, scale: torch.Tensor, height
 
 
 def half_gaussian_area(scale: torch.Tensor) -> torch.Tensor:
-    # pts = gaussian_invert(height, bias, std)
-    # rec_area = (bias - pts[0]) * height
-    # gauss_area = gaussian_area_up_to(pts[0], bias, std)
     return gaussian_area(scale) / 2.0
 
 
