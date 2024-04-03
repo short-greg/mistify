@@ -179,5 +179,3 @@ class WrapNeuron(nn.Module):
             return y
         return self.neuronf(x, weight)
 
-
-
