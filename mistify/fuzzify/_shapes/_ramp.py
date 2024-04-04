@@ -1,4 +1,5 @@
 # 1st party
+from typing_extensions import Self
 
 # 3rd party
 import torch
@@ -39,8 +40,15 @@ class Ramp(Monotonic):
         return self._coords
 
     @classmethod
-    def from_combined(cls, params: ShapeParams):
+    def from_combined(cls, params: ShapeParams) -> Self:
+        """Create the ramp from 
 
+        Args:
+            params (ShapeParams): Shape params with first and second point combined
+
+        Returns:
+            Ramp: A ramp function
+        """
         return cls(
             params.sub((0, 1))
         )
@@ -59,5 +67,12 @@ class Ramp(Monotonic):
         return functional.ramp(x, self._coords.pt(0), self._coords.pt(1))
 
     def min_cores(self, m: torch.Tensor) -> torch.Tensor:
-        
+        """Calculate the minimum x for which m is a maximum
+
+        Args:
+            m (torch.Tensor): The membership
+
+        Returns:
+            torch.Tensor: The "min core"
+        """
         return self._coords.pt(0) * (1 - m) - self._coords.pt(0) * m

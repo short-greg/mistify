@@ -1,4 +1,5 @@
 # 1st party
+from typing_extensions import Self
 
 # 3rd party
 import torch
@@ -36,15 +37,37 @@ class Step(Monotonic):
         return self._threshold
     
     @classmethod
-    def from_combined(cls, params: ShapeParams, m: torch.Tensor=None):
+    def from_combined(cls, params: ShapeParams, m: torch.Tensor=None) -> Self:
+        """Create Step from combined parameters
 
+        Args:
+            params (ShapeParams): The parameters (with a threshold point)
+            m (torch.Tensor, optional): The. Defaults to None.
+
+        Returns:
+            Step: The Step shape
+        """
         return cls(
             params.sub((0, 1)), m
         )
 
     def join(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x (torch.Tensor): The value to calculate the membership for 
+
+        Returns:
+            torch.Tensor: The membership value of x
+        """
         x = unsqueeze(x)
         return functional.threshold(x, self._threshold.pt(0))
     
     def min_cores(self, m: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            m (torch.Tensor): The membershp
+
+        Returns:
+            torch.Tensor: The value of the threshold
+        """
         return self._resize_to_m(self._threshold.pt(0), m)

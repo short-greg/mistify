@@ -220,11 +220,27 @@ class LogisticBell(Logistic):
 class HalfLogisticBell(Logistic):
     """Use the Half Logistic Bell function as the membership function
     """
+
     def __init__(self, biases: ShapeParams, scales: ShapeParams, increasing: bool=True):
+        """Create a "half logistic bell" that is either decreasing or increasing
+
+        Args:
+            biases (ShapeParams): The biases for the logistic
+            scales (ShapeParams): The scales for the logistic
+            increasing (bool, optional): Whether increasing or decreasing (use the lhs or rhssl). Defaults to True.
+        """
         super().__init__(biases, scales)
         self.increasing = increasing
 
     def join(self, x: Tensor) -> Tensor:
+        """Convert x to a membership value
+
+        Args:
+            x (Tensor): The value to convert
+
+        Returns:
+            Tensor: The membership
+        """
         x = unsqueeze(x)
         if self.increasing:
             contains = (x <= self._biases.pt(0))
@@ -236,19 +252,43 @@ class HalfLogisticBell(Logistic):
         ) * contains
     
     def areas(self, m: Tensor, truncate: bool = False) -> Tensor:
-        
+        """Calculate the area of the logistic for a membership
+
+        Args:
+            m (Tensor): The membership to calculate the area for
+            truncate (bool, optional): Whether to truncate the Gaussian (or scale). Defaults to False.
+
+        Returns:
+            Tensor: The area
+        """
         if truncate:
             return truncated_half_logistic_area(self._biases.pt(0), self.sigma, m)
         return self._resize_to_m(half_logistic_area(self.sigma), m)
     
     def mean_cores(self, m: Tensor, truncate: bool = False) -> Tensor:
-        
+        """Calculate the 'mean core' of the logistic for a membership
+
+        Args:
+            m (Tensor): The membership to calculate the area for
+            truncate (bool, optional): Whether to truncate the logistic (or scale). Defaults to False.
+
+        Returns:
+            Tensor: The mean of the "core" of the logistic
+        """
         if truncate:
             return truncated_half_logistic_mean_core(self._biases.pt(0), self.sigma, m, self.increasing)
         return self._resize_to_m(self._biases.pt(0), m)
     
     def centroids(self, m: Tensor, truncate: bool = False) -> Tensor:
-        
+        """Calculate the 'centroid' of the half logistic for a membership
+
+        Args:
+            m (Tensor): The membership to calculate the area for
+            truncate (bool, optional): Whether to truncate the logistic (or scale). Defaults to False.
+
+        Returns:
+            Tensor: The centroid of the logistic
+        """
         if truncate:
             return truncated_half_logistic_centroid(self._biases.pt(0), self.sigma, m, self.increasing)
         return half_logistic_centroid(self._biases.pt(0), self.sigma, m, self.increasing)

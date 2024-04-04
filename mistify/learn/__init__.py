@@ -14,6 +14,9 @@ from ._infer import (
     MinMaxLoss, MinMaxPredictorLoss, MinMaxSortedPredictorLoss,
     IntersectionOnLoss, UnionOnLoss
 )
-from ._learn import (
+from .depracated._learn import (
     PreFit, PostFit
+)
+from ._neurons import (
+    WrapNeuron, MaxMinRelOut, MinMaxRelOut, MinSumRelOut, MaxProdRelOut
 )

@@ -6,7 +6,7 @@ from zenkai.kaku import IO
 
 from zenkai.kikai import GradLearner
 from zenkai import OptimFactory, ThLoss, utils
-from ..infer import Or, And, WEIGHT_FACTORY
+from ...infer import Or, And, WEIGHT_FACTORY
 from ._fuzzy_assess import MaxMinLoss3, MinMaxLoss3, NeuronMSELoss
 
 

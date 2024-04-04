@@ -26,10 +26,37 @@ class Square(Polygon):
         )
 
     def areas(self, m: torch.Tensor, truncate: bool = False) -> torch.Tensor:
+        """
+        Args:
+            m (torch.Tensor): The membership
+            truncate (bool, optional): Whether to truncate or scale. 
+              Note that for square they are the same. Defaults to False.
+
+        Returns:
+            torch.Tensor: The area of the square
+        """
         return (self._params.pt(1) - self._params.pt(0)) * m
     
     def mean_cores(self, m: torch.Tensor, truncate: bool = False) -> torch.Tensor:
+        """
+        Args:
+            m (torch.Tensor): The membership
+            truncate (bool, optional): Whether to truncate or scale. 
+              Note that for square they are the same. Defaults to False.
+
+        Returns:
+            torch.Tensor: The mean of the core
+        """
         return self._resize_to_m((self._params.pt(1) + self._params.pt(0)) / 2.0, m)
     
     def centroids(self, m: torch.Tensor, truncate: bool = False) -> torch.Tensor:
+        """
+        Args:
+            m (torch.Tensor): The membership
+            truncate (bool, optional): Whether to truncate or scale. 
+              Note that for square they are the same. Defaults to False.
+
+        Returns:
+            torch.Tensor: The centroid of the square
+        """
         return self._resize_to_m((self._params.pt(1) + self._params.pt(0)) / 2.0, m)

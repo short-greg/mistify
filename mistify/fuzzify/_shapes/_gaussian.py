@@ -8,14 +8,11 @@ import math
 import torch
 from torch import Tensor
 from zenkai.kikai import WrapNN
+import torch.nn.functional
 
 # local
 from ._base import ShapeParams, Nonmonotonic
 from ...utils import unsqueeze
-import torch.nn.functional
-
-# TODO: Review and update
-# Try to get simpler functions
 
 
 def gaussian_area(scale: torch.Tensor) -> torch.Tensor:
@@ -229,12 +226,28 @@ class GaussianBell(Gaussian):
         super().__init__(biases, scales)
 
     def join(self, x: Tensor) -> Tensor:
+        """Convert x to a membership value
+
+        Args:
+            x (Tensor): The value to convert
+
+        Returns:
+            Tensor: The membership
+        """
         return gaussian(
             unsqueeze(x), self._biases.pt(0), self.sigma
         )
     
     def areas(self, m: Tensor, truncate: bool = False) -> Tensor:
-        
+        """Calculate the area of the Gaussian for a membership
+
+        Args:
+            m (Tensor): The membership to calculate the area for
+            truncate (bool, optional): Whether to truncate the Gaussian (or scale). Defaults to False.
+
+        Returns:
+            Tensor: The area
+        """
         if truncate:
             return self._resize_to_m(
                 truncated_gaussian_area(self._biases.pt(0), self._scales.pt(0), m),
@@ -244,7 +257,15 @@ class GaussianBell(Gaussian):
         )
     
     def mean_cores(self, m: Tensor, truncate: bool = False) -> Tensor:
-        
+        """Calculate the 'mean core' of the Gaussian for a membership
+
+        Args:
+            m (Tensor): The membership to calculate the area for
+            truncate (bool, optional): Whether to truncate the Gaussian (or scale). Defaults to False.
+
+        Returns:
+            Tensor: The mean of the "core" of the Gaussian
+        """
         if truncate:
             return self._resize_to_m(
                 truncated_gaussian_mean_core(self._biases.pt(0), self._scales.pt(0), m), m
@@ -252,7 +273,15 @@ class GaussianBell(Gaussian):
         return self._resize_to_m(self._biases.pt(0), m)
     
     def centroids(self, m: Tensor, truncate: bool = False) -> Tensor:
-        
+        """Calculate the 'centroid' of the Gaussian for a membership
+
+        Args:
+            m (Tensor): The membership to calculate the area for
+            truncate (bool, optional): Whether to truncate the Gaussian (or scale). Defaults to False.
+
+        Returns:
+            Tensor: The centroid of the Gaussian
+        """
         return self._resize_to_m(self._biases.pt(0), m)
     
 
@@ -291,20 +320,43 @@ class HalfGaussianBell(Gaussian):
         ) * contains
 
     def join(self, x: Tensor) -> Tensor:
+        """Convert x to a membership value
 
+        Args:
+            x (Tensor): The value to convert
+
+        Returns:
+            Tensor: The membership
+        """
         x = unsqueeze(x)
         return self.half_gaussian(
             x, self._biases.pt(0), self.sigma
         )
     
     def areas(self, m: Tensor, truncate: bool = False) -> Tensor:
-        
+        """Calculate the area of the Gaussian for a membership
+
+        Args:
+            m (Tensor): The membership to calculate the area for
+            truncate (bool, optional): Whether to truncate the Gaussian (or scale). Defaults to False.
+
+        Returns:
+            Tensor: The area
+        """   
         if truncate:
             return truncated_half_gaussian_area(self._biases.pt(0), self.sigma, m)
         return self._resize_to_m(half_gaussian_area(self.sigma), m)
     
     def mean_cores(self, m: Tensor, truncate: bool = False) -> Tensor:
-        
+        """Calculate the 'mean core' of the Gaussian for a membership
+
+        Args:
+            m (Tensor): The membership to calculate the area for
+            truncate (bool, optional): Whether to truncate the Gaussian (or scale). Defaults to False.
+
+        Returns:
+            Tensor: The mean of the "core" of the Gaussian
+        """
         if truncate:
             return self._resize_to_m(
                 truncated_half_gaussian_mean_core(
@@ -313,7 +365,15 @@ class HalfGaussianBell(Gaussian):
         return self._resize_to_m(self._biases.pt(0), m)
     
     def centroids(self, m: Tensor, truncate: bool = False) -> Tensor:
-        
+        """Calculate the 'centroid' of the Gaussian for a membership
+
+        Args:
+            m (Tensor): The membership to calculate the area for
+            truncate (bool, optional): Whether to truncate the Gaussian (or scale). Defaults to False.
+
+        Returns:
+            Tensor: The centroid of the Gaussian
+        """
         if truncate:
             return truncated_half_gaussian_centroid(self._biases.pt(0), self.sigma, m, self.increasing)
         return half_gaussian_centroid(self._biases.pt(0), self.sigma, m, self.increasing)

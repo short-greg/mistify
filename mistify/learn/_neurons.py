@@ -18,19 +18,20 @@ class MaxMinRelOut(nn.Module):
         t = t.unsqueeze(-2)
         w = w.unsqueeze(0)
 
-        rel_x = torch.min(
-            x, t
-        ).sum(dim=0, keepdim=True) / torch.sum(x, dim=0, keepdim=True)
+        with torch.no_grad():
+            rel_x = torch.min(
+                x, t
+            ).sum(dim=0, keepdim=True) / torch.sum(x, dim=0, keepdim=True)
 
-        rel_w = torch.min(
-            w, t
-        ).sum(dim=-2, keepdim=True) / torch.sum(x, dim=-2, keepdim=True)
+            rel_w = torch.min(
+                w, t
+            ).sum(dim=-2, keepdim=True) / torch.sum(w, dim=-2, keepdim=True)
 
-        # for max prod use this for the inner
-        # t = 0.2, x=0.4 => min(t / x, 1.0)
+            # for max prod use this for the inner
+            # t = 0.2, x=0.4 => min(t / x, 1.0)
 
-        ind_x = torch.max(torch.min(x, rel_x), keepdim=True, dim=-2)[1]
-        ind_w = torch.max(torch.min(rel_w, w), keepdim=True, dim=-2)[1]
+            ind_w = torch.max(torch.min(x, rel_x), keepdim=True, dim=-2)[1]
+            ind_x = torch.max(torch.min(rel_w, w), keepdim=True, dim=-2)[1]
         inner_x = torch.min(x, w.detach())
         inner_w = torch.min(x.detach(), w)
 
@@ -137,8 +138,6 @@ class MinSumRelOut(nn.Module):
         return chosen_x.squeeze(-2), chosen_w.squeeze(-2)
 
 
-#  var, operation, context,  x = op.constrain(x)
-
 class WrapNeuron(WrapNN):
 
     def __init__(self, f, rel: nn.Module):
@@ -148,14 +147,17 @@ class WrapNeuron(WrapNN):
         self.f = f
         self.rel = rel
         self.loss = nn.MSELoss()
+        self.x_weight = 1.0
+        self.w_weight = 1.0
 
     def out_hook(self, grad: torch.Tensor, state: WrapState, idx: int):
         
-        print('Out hook')
         state.set_grad(grad, state, idx)
         x = state.x[0].detach().clone()
         w = state.x[1].detach().clone()
         t = state.t.detach()
+        # diff = (state.y - t).abs()
+        # print(t.min(), t.max(), diff.min(), diff.max())
         with torch.enable_grad():
             x.requires_grad_()
             x.retain_grad()
@@ -173,56 +175,13 @@ class WrapNeuron(WrapNN):
 
     def weight_hook(self, grad: torch.Tensor, state: WrapState, idx: int):
         
-        return grad + state.state['w_grad']
+        return grad + self.w_weight * state.state['w_grad']
         
     def x_hook(self, grad: torch.Tensor, state: WrapState, idx: int):
-        return grad + state.state['x_grad']
+        return grad + self.x_weight * state.state['x_grad']
 
     def __call__(self, x: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
 
         return self.wrap(
             self.f, x, w
         )
-
-
-# class WrapNeuron(nn.Module):
-
-#     def __init__(self, neuronf: typing.Callable[[torch.Tensor, torch.Tensor], torch.Tensor]):
-#         super().__init__()
-        
-#         self.neuronf = neuronf
-#         self.enabled = True
-
-#     def disable(self):
-#         self.enabled = False
-
-#     def enable(self):
-#         self.enabled = True
-
-#     def x_update(
-#         self, grad: torch.Tensor, x: torch.Tensor, weight: torch.Tensor, state: typing.Dict
-#     ) -> typing.Tuple[torch.Tensor, torch.Tensor]:
-#         pass
-
-#     @abstractmethod
-#     def weight_update(
-#         self, grad: torch.Tensor, x: torch.Tensor, weight: torch.Tensor, state: typing.Dict
-#     ) -> typing.Tuple[torch.Tensor, torch.Tensor]:
-#         pass
-
-#     def store(self, grad, y, state):
-
-#         state[grad] = grad
-#         state[y] = y
-
-#     def forward(self, x: torch.Tensor, weight: torch.Tensor):
-
-#         if self.enabled:
-#             state = {}
-#             x.register_hook(partial(self.x_update, x=x, weight=weight, state=state))
-#             weight.register_hook(partial(self.weight_update, x=x, weight=weight, state=state))
-#             y = self.neuronf(x, weight)
-#             y.register_hook(partial(self.store, y=y, state=state))
-#             return y
-#         return self.neuronf(x, weight)
-
