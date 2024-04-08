@@ -3,6 +3,8 @@ import torch
 from ...utils import check_contains
 
 
+# TODO: Delete?
+
 def calc_m_linear_increasing(x: torch.Tensor, pt1: torch.Tensor, pt2: torch.Tensor, m: torch.Tensor):
     m_result = (x - pt1) * (m / (pt2 - pt1)) * check_contains(x, pt1, pt2).float() 
     return m_result
@@ -18,9 +20,7 @@ def calc_x_linear_increasing(m0: torch.Tensor, pt1: torch.Tensor, pt2: torch.Ten
     # NOTE: To save on computational costs do not perform checks to see
     # if m0 is greater than m
 
-    # TODO: use intersect function
     m0 = torch.min(m0, m)
-    # m0 = m0.intersect(m)
     x = m0 * (pt2 - pt1) / m + pt1
     torch.nan_to_num_(x, 0.0, 0.0)
     return x
@@ -28,7 +28,6 @@ def calc_x_linear_increasing(m0: torch.Tensor, pt1: torch.Tensor, pt2: torch.Ten
 
 def calc_x_linear_decreasing(m0: torch.Tensor, pt1, pt2, m: torch.Tensor):
 
-    # m0 = m0.intersect(m)
     m0 = torch.min(m0, m)
     x = -(m0 - 1) * (pt2 - pt1) / m + pt1
     torch.nan_to_num_(x, 0.0, 0.0)
