@@ -1,4 +1,5 @@
 # 1st party
+from typing_extensions import Self
 
 # 3rd party
 import torch
@@ -39,8 +40,15 @@ class Ramp(Monotonic):
         return self._coords
 
     @classmethod
-    def from_combined(cls, params: ShapeParams):
+    def from_combined(cls, params: ShapeParams) -> Self:
+        """Create the ramp from 
 
+        Args:
+            params (ShapeParams): Shape params with first and second point combined
+
+        Returns:
+            Ramp: A ramp function
+        """
         return cls(
             params.sub((0, 1))
         )
@@ -56,34 +64,15 @@ class Ramp(Monotonic):
             torch.Tensor: The membership
         """
         x = unsqueeze(x)
-        # min_ = torch.tensor(0, dtype=x.dtype, device=x.device)
-        # m = (unsqueeze(x) * ((self._m / (self._coords.pt(1) - self._coords.pt(0))) - self._coords.pt(0)))
-        # return torch.clamp(torch.clamp(m, max=self._m), 0.0)
         return functional.ramp(x, self._coords.pt(0), self._coords.pt(1))
 
     def min_cores(self, m: torch.Tensor) -> torch.Tensor:
-        
+        """Calculate the minimum x for which m is a maximum
+
+        Args:
+            m (torch.Tensor): The membership
+
+        Returns:
+            torch.Tensor: The "min core"
+        """
         return self._coords.pt(0) * (1 - m) - self._coords.pt(0) * m
-
-    # def _calc_min_cores(self):
-    #     """
-    #     Returns:
-    #         torch.Tensor: the minimum value of the start of the core of the set
-    #     """
-    #     return self._resize_to_m(self._coords.pt(1), self._m)
-
-    # def truncate(self, m: torch.Tensor) -> 'Ramp':
-    #     """Truncate the Ramp function. This results in changing the m value as well
-    #     as the point for the upper bound
-
-    #     Args:
-    #         m (torch.Tensor): The value to truncate by
-
-    #     Returns:
-    #         Ramp: The truncated ramp
-    #     """
-    #     truncate_m = functional.inter(self._m, m)
-    #     pt = (truncate_m + self._coords.pt(0)) * (self._coords.pt(1) - self._coords.pt(0)) / self._m
-    #     coords = self._coords.replace(pt, 1, True, truncate_m)
-
-    #     return Ramp(coords, m)

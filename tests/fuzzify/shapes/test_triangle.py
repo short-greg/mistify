@@ -57,19 +57,6 @@ class TestRightTriangle(object):
         areas = right_triangle.areas(m, True)
         assert areas.shape == torch.Size([2, 3, 4])
 
-    # def test_truncate_returns_right_trapezoid(self):
-
-    #     p = torch.rand(3, 4, 2).cumsum(2)
-    #     m = torch.rand(2, 3, 4)
-    #     right_triangle = _triangle.RightTriangle(
-    #         ShapeParams(p)
-    #     )
-    #     # shape = right_triangle.truncate(m)
-    #     assert isinstance(shape, _triangle.IncreasingRightTrapezoid)
-
-
-
-
     def test_scale_returns_shape_with_correct_size_with_decreasing(self):
 
         p = torch.rand(3, 4, 2).cumsum(2)
@@ -161,118 +148,194 @@ class TestTriangle(object):
         optim.step()
 
         p = triangle.params()
-        assert (triangle.params.x[:,:,:,:-1] >= triangle.params.x[:,:,:,1:]).any()
+        assert (triangle._params.x[:,:,:,:-1] >= triangle._params.x[:,:,:,1:]).any()
         assert (p.x[:,:,:,:-1] < p.x[:,:,:,1:]).all()
 
-#     def test_scale_returns_shape_with_correct_size(self):
+    def test_mean_core_returns_tensor_with_correct_size(self):
 
-#         p = torch.rand(3, 4, 3).cumsum(2)
-#         m = torch.rand(2, 3, 4)
-#         triangle = _triangle.Triangle(
-#             ShapeParams(p)
-#         )
-#         shape = triangle.scale(m)
-#         assert isinstance(shape, _triangle.Triangle)
+        p = torch.rand(3, 4, 3).cumsum(2)
+        m = torch.rand(2, 3, 4)
+        triangle = _triangle.Triangle(
+            ShapeParams(p)
+        )
+        mean_cores = triangle.mean_cores(m)
+        assert mean_cores.shape == torch.Size([2, 3, 4])
 
-#     def test_mean_core_returns_tensor_with_correct_size(self):
+    def test_centroids_returns_tensor_with_correct_size(self):
 
-#         p = torch.rand(3, 4, 3).cumsum(2)
-#         m = torch.rand(2, 3, 4)
-#         right_triangle = _triangle.Triangle(
-#             ShapeParams(p)
-#         )
-#         shape = right_triangle.scale(m)
-#         assert shape.mean_cores.shape == torch.Size([2, 3, 4])
+        p = torch.rand(3, 4, 3).cumsum(2)
+        m = torch.rand(2, 3, 4)
+        triangle = _triangle.Triangle(
+            ShapeParams(p)
+        )
+        centroids = triangle.centroids(m)
+        assert centroids.shape == torch.Size([2, 3, 4])
 
-#     def test_centroids_returns_tensor_with_correct_size(self):
+    def test_centroids_returns_tensor_with_correct_size_using_truncation(self):
 
-#         p = torch.rand(3, 4, 3).cumsum(2)
-#         m = torch.rand(2, 3, 4)
-#         right_triangle = _triangle.Triangle(
-#             ShapeParams(p)
-#         )
-#         shape = right_triangle.scale(m)
-#         assert shape.centroids.shape == torch.Size([2, 3, 4])
+        p = torch.rand(3, 4, 3).cumsum(2)
+        m = torch.rand(2, 3, 4)
+        triangle = _triangle.Triangle(
+            ShapeParams(p)
+        )
+        centroids = triangle.centroids(m, True)
+        assert centroids.shape == torch.Size([2, 3, 4])
 
-#     def test_areas_returns_tensor_with_correct_size(self):
+    def test_areas_returns_tensor_with_correct_size(self):
 
-#         p = torch.rand(3, 4, 3).cumsum(2)
-#         m = torch.rand(2, 3, 4)
-#         right_triangle = _triangle.Triangle(
-#             ShapeParams(p)
-#         )
-#         shape = right_triangle.scale(m)
-#         assert shape.areas.shape == torch.Size([2, 3, 4])
+        p = torch.rand(3, 4, 3).cumsum(2)
+        m = torch.rand(2, 3, 4)
+        triangle = _triangle.Triangle(
+            ShapeParams(p)
+        )
+        areas = triangle.areas(m)
+        assert areas.shape == torch.Size([2, 3, 4])
 
-#     def test_truncate_returns_trapezoid(self):
+    def test_truncate_areas_returns_truncate(self):
 
-#         p = torch.rand(3, 4, 3).cumsum(2)
-#         m = torch.rand(2, 3, 4)
-#         right_triangle = _triangle.Triangle(
-#             ShapeParams(p)
-#         )
-#         shape = right_triangle.truncate(m)
-#         assert isinstance(shape, _trapezoid.Trapezoid)
+        p = torch.rand(3, 4, 3).cumsum(2)
+        m = torch.rand(2, 3, 4)
+        triangle = _triangle.Triangle(
+            ShapeParams(p)
+        )
+        areas = triangle.areas(m, True)
+        assert areas.shape == torch.Size([2, 3, 4])
+
+    def test_scaled_areas_returns_tensor_with_correct_size(self):
+
+        p = torch.rand(3, 4, 3).cumsum(2)
+        m = torch.rand(2, 3, 4)
+        triangle = _triangle.Triangle(
+            ShapeParams(p)
+        )
+        areas = triangle.areas(m)
+        assert areas.shape == torch.Size([2, 3, 4])
+
+class TestIsocelesTriangle(object):
+
+    def test_join_returns_fuzzy_set_with_correct_size(self):
+
+        p = torch.rand(3, 4, 2).cumsum(2)
+        x = torch.rand(2, 3)
+        right_trapezoid = _triangle.IsoscelesTriangle(
+            ShapeParams(p)
+        )
+        m = right_trapezoid.join(x)
+        assert m.data.size() == torch.Size([2, 3, 4])
+
+    def test_mean_core_returns_tensor_with_correct_size(self):
+
+        p = torch.rand(3, 4, 2).cumsum(2)
+        m = torch.rand(2, 3, 4)
+        triangle = _triangle.IsoscelesTriangle(
+            ShapeParams(p)
+        )
+        mean_cores = triangle.mean_cores(m)
+        assert mean_cores.shape == torch.Size([2, 3, 4])
+
+    def test_centroids_returns_tensor_with_correct_size(self):
+
+        p = torch.rand(3, 4, 2).cumsum(2)
+        m = torch.rand(2, 3, 4)
+        right_trapezoid = _triangle.IsoscelesTriangle(
+            ShapeParams(p)
+        )
+        centroids = right_trapezoid.centroids(m)
+        assert centroids.shape == torch.Size([2, 3, 4])
+
+    def test_areas_returns_tensor_with_correct_size(self):
+
+        p = torch.rand(3, 4, 2).cumsum(2)
+        m = torch.rand(2, 3, 4)
+        triangle = _triangle.IsoscelesTriangle(
+            ShapeParams(p)
+        )
+        areas = triangle.areas(m)
+        assert areas.shape == torch.Size([2, 3, 4])
+
+    def test_areas_returns_tensor_with_correct_size_with_truncate(self):
+
+        p = torch.rand(3, 4, 2).cumsum(2)
+        m = torch.rand(2, 3, 4)
+        triangle = _triangle.IsoscelesTriangle(
+            ShapeParams(p)
+        )
+        areas = triangle.areas(m, True)
+        assert areas.shape == torch.Size([2, 3, 4])
+
+    def test_mean_cores_returns_tensor_with_correct_size_with_truncate(self):
+
+        p = torch.rand(3, 4, 2).cumsum(2)
+        m = torch.rand(2, 3, 4)
+        triangle = _triangle.IsoscelesTriangle(
+            ShapeParams(p)
+        )
+        mean_cores = triangle.mean_cores(m, True)
+        assert mean_cores.shape == torch.Size([2, 3, 4])
 
 
-# class TestIsocelesTriangle(object):
+class TestTriangleFunctions:
 
-#     def test_join_returns_fuzzy_set_with_correct_size(self):
+    def test_triangle_area(self):
 
-#         p = torch.rand(3, 4, 2).cumsum(2)
-#         x = torch.rand(2, 3)
-#         right_trapezoid = _triangle.IsoscelesTriangle(
-#             ShapeParams(p)
-#         )
-#         m = right_trapezoid.join(x)
-#         assert m.data.size() == torch.Size([2, 3, 4])
+        base1 = torch.tensor([0.0, 1.0])
+        base2 = torch.tensor([1.0, 3.0])
+        height = torch.tensor([0.5, 1.0])
+        
+        areas = _triangle.triangle_area(
+            base1, base2, height
+        )
+        assert torch.isclose(
+            areas[0], torch.tensor(0.25)
+        ).all()
+        assert torch.isclose(
+            areas[1], torch.tensor(1.0)
+        )
 
-#     def test_scale_returns_shape_with_correct_size(self):
+    def test_triangle_centroid(self):
 
-#         p = torch.rand(3, 4, 2).cumsum(2)
-#         m = torch.rand(2, 3, 4)
-#         triangle = _triangle.IsoscelesTriangle(
-#             ShapeParams(p)
-#         )
-#         shape = triangle.scale(m)
-#         assert isinstance(shape, _triangle.IsoscelesTriangle)
+        x1 = torch.tensor([0.0, 1.0])
+        x2 = torch.tensor([1.0, 4.0])
+        x3 = torch.tensor([2.0, 4.0])
+        
+        areas = _triangle.triangle_centroid(
+            x1, x2, x3
+        )
+        assert torch.isclose(
+            areas[0], torch.tensor(1.0)
+        ).all()
+        assert torch.isclose(
+            areas[1], torch.tensor(3.0)
+        ).all()
 
-#     def test_mean_core_returns_tensor_with_correct_size(self):
+    def test_triangle_right_centroid_increasing(self):
 
-#         p = torch.rand(3, 4, 2).cumsum(2)
-#         m = torch.rand(2, 3, 4)
-#         right_trapezoid = _triangle.IsoscelesTriangle(
-#             ShapeParams(p)
-#         )
-#         shape = right_trapezoid.scale(m)
-#         assert shape.mean_cores.shape == torch.Size([2, 3, 4])
+        x1 = torch.tensor([0.0, 1.0])
+        x2 = torch.tensor([1.0, 4.0])
+        
+        areas = _triangle.triangle_right_centroid(
+            x1, x2, True
+        )
+        assert torch.isclose(
+            areas[0], torch.tensor(2 / 3.)
+        ).all()
+        assert torch.isclose(
+            areas[1], torch.tensor(3.0)
+        ).all()
 
-#     def test_centroids_returns_tensor_with_correct_size(self):
+    def test_triangle_right_centroid_decreasing(self):
 
-#         p = torch.rand(3, 4, 2).cumsum(2)
-#         m = torch.rand(2, 3, 4)
-#         right_trapezoid = _triangle.IsoscelesTriangle(
-#             ShapeParams(p)
-#         )
-#         shape = right_trapezoid.scale(m)
-#         assert shape.centroids.shape == torch.Size([2, 3, 4])
+        x1 = torch.tensor([0.0, 1.0])
+        x2 = torch.tensor([1.0, 4.0])
+        
+        areas = _triangle.triangle_right_centroid(
+            x1, x2, False
+        )
+        assert torch.isclose(
+            areas[0], torch.tensor(1 / 3.)
+        ).all()
+        assert torch.isclose(
+            areas[1], torch.tensor(2.0)
+        ).all()
 
-#     def test_areas_returns_tensor_with_correct_size(self):
 
-#         p = torch.rand(3, 4, 2).cumsum(2)
-#         m = torch.rand(2, 3, 4)
-#         right_trapezoid = _triangle.IsoscelesTriangle(
-#             ShapeParams(p)
-#         )
-#         shape = right_trapezoid.scale(m)
-#         assert shape.areas.shape == torch.Size([2, 3, 4])
-
-#     def test_truncate_returns_trapezoid(self):
-
-#         p = torch.rand(3, 4, 2).cumsum(2)
-#         m = torch.rand(2, 3, 4)
-#         right_trapezoid = _triangle.IsoscelesTriangle(
-#             ShapeParams(p)
-#         )
-#         shape = right_trapezoid.truncate(m)
-#         assert isinstance(shape, _trapezoid.IsoscelesTrapezoid)

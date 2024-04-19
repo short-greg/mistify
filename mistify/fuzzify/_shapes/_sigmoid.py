@@ -1,4 +1,5 @@
 # 1st party
+from typing_extensions import Self
 
 # 3rd party
 import torch
@@ -6,12 +7,9 @@ import torch
 # local
 from ._base import ShapeParams, Monotonic
 from ...utils import unsqueeze
-from ... import _functional as functional
 
 
 class Sigmoid(Monotonic):
-    """
-    """
 
     def __init__(
         self, biases: ShapeParams, scales: ShapeParams
@@ -21,7 +19,6 @@ class Sigmoid(Monotonic):
         Args:
             biases (ShapeParams): The biases for the sigmoid function
             scales (ShapeParams): The scales for the sigmoid function
-            truncate_m (torch.Tensor, optional): The value the sigmoid is truncated by. Defaults to None.
         """
         super().__init__(
             biases.n_variables,
@@ -30,19 +27,33 @@ class Sigmoid(Monotonic):
         self._biases = biases
         self._scales = scales
 
-        # self._truncate_m = self._init_m(truncate_m, biases.device)
-
     @property
-    def biases(self):
+    def biases(self) -> ShapeParams:
+        """
+        Returns:
+            ShapeParams: The bias parameter for the sigmoid 
+        """
         return self._biases
     
     @property
-    def scales(self):
+    def scales(self) -> ShapeParams:
+        """
+        Returns:
+            ShapeParams: The scale parameters for the sigmoid
+        """
         return self._scales
     
     @classmethod
-    def from_combined(cls, params: ShapeParams):
+    def from_combined(cls, params: ShapeParams) -> Self:
+        """Create the Sigmoid with biases and scales combined
+        into one parameter
 
+        Args:
+            params (ShapeParams): Bias/Scale
+
+        Returns:
+            Self: The Sigmoid
+        """
         return cls(
             params.sub((0, 1)), 
             params.sub((1, 2))
@@ -61,32 +72,14 @@ class Sigmoid(Monotonic):
         
         return torch.sigmoid(z)
 
-    # def _calc_areas(self):
-    #     # TODO: Need the integral of it
-    #     return torch.log(torch.exp(self._truncate_m) + 1)
-    #     # return self._m * torch.log(self._m) + (0.5 - self._m) * torch.log(1 - self._m) + 0.5 * torch.log(2 * self._m - 2)
-        
-    # def _calc_min_cores(self):
-
-    #     result = torch.logit(self._truncate_m, 1e-7)
-    #     return result * self._scales.pt(0) + self._biases.pt(0)
-
-
     def min_cores(self, m: torch.Tensor) -> torch.Tensor:
+        """Calculate the minimum x for which m is a maximum
 
+        Args:
+            m (torch.Tensor): The membership
+
+        Returns:
+            torch.Tensor: The "min core"
+        """
         m = m.clamp(1e-7, 1. - 1e7)
         return torch.logit(m) * self._scales.pt(0) + self._biases.pt(0)
-
-    # def truncate(self, m: torch.Tensor) -> 'Sigmoid':
-    #     """
-    #     Args:
-    #         m (torch.Tensor): the truncated value for the sigmoid
-
-    #     Returns:
-    #         Sigmoid: The updated sigmoid
-    #     """
-        
-    #     updated_m = functional.inter(self._truncate_m, m)
-    #     return Sigmoid(
-    #         self._biases, self._scales, updated_m 
-    #     )

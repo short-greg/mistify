@@ -1,8 +1,6 @@
 # 1st party
 import typing
-from abc import ABC
 from functools import partial
-from typing_extensions import Self
 
 # 3rd party
 import torch
@@ -18,6 +16,7 @@ from ._ops import (
     InterOnBase, Union, Inter, InterOn, UnionOn,
     ProbInter, ProbUnion
 )
+from .._functional._factory import OrF, AndF
 
 
 WEIGHT_FACTORY = EnumFactory(
@@ -64,14 +63,8 @@ class Or(nn.Module):
     """
     """
 
-#     F = EnumFactory(
-#         max_min=functional.max_min,
-#         ada_max_min=functional.ada_max_min,
-#         max_prod=functional.max_prod,
-
-#     )
     def __init__(self, in_features: int, out_features: int, n_terms: int=None, 
-        inter: InterBase=None, union_on: UnionOnBase=None, wf: 'WeightF'=None
+        f: OrF=None, wf: 'WeightF'=None
     ) -> None:
         """Create an Logical neuron
 
@@ -90,8 +83,9 @@ class Or(nn.Module):
             shape = (in_features,  out_features)
         self.weight_base = nn.parameter.Parameter(torch.ones(*shape))
         self.wf = wf or NullWeightF()
-        self.inter = inter or Inter()
-        self.union_on = union_on or UnionOn(-2, keepdim=False)
+        if isinstance(f, typing.Tuple):
+            f = OrF(f[0], f[1])
+        self.f = f or OrF('std', 'std')
 
         self._n_terms = n_terms
         self._in_features = in_features
@@ -107,7 +101,6 @@ class Or(nn.Module):
             f = torch.rand_like
         self.weight_base.data = f(self.weight_base.data)
     
-
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         """
 
@@ -118,21 +111,15 @@ class Or(nn.Module):
             torch.Tensor: The output of the membership
         """
         w = self.w()
-        return self.union_on(self.inter(m.unsqueeze(-1), w[None]), dim=-2)
+        return self.f(m, w)
 
 
 class And(nn.Module):
     """
     """
 
-#     F = EnumFactory(
-#         max_min=functional.max_min,
-#         ada_max_min=functional.ada_max_min,
-#         max_prod=functional.max_prod,
-
-#     )
     def __init__(self, in_features: int, out_features: int, n_terms: int=None, 
-        union: UnionBase=None, inter_on: InterOnBase=None, wf: 'WeightF'=None,
+        f: typing.Callable[[torch.Tensor, torch.Tensor], torch.Tensor]=None, wf: 'WeightF'=None,
         sub1: bool=False
     ) -> None:
         """Create an Logical neuron
@@ -141,7 +128,7 @@ class And(nn.Module):
             in_features (int): The number of features into the neuron
             out_features (int): The number of features out of the neuron.
             n_terms (int, optional): The number of terms for the neuron. Defaults to None.
-            f (typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]], optional): The function to use for the neuron. Defaults to "min_max".
+            f (typing.Union[str, typing.Callable[[torch.Tensor, torch.Tensor], torch.Tensor]], optional): The function to use for the neuron. Defaults to "min_max".
             wf (typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]], optional): The weight function to use for the neuron. Defaults to "clamp".
         """
         super().__init__()
@@ -151,8 +138,9 @@ class And(nn.Module):
         else:
             shape = (in_features,  out_features)
         self.weight_base = nn.parameter.Parameter(torch.ones(*shape))
-        self.union = union or Union()
-        self.inter_on = inter_on or InterOn(-2)
+        if isinstance(f, typing.Tuple):
+            f = AndF(f[0], f[1])
+        self.f = f or AndF('std', 'std')
         self.wf = wf or NullWeightF()
         self.sub1 = sub1
 
@@ -183,7 +171,7 @@ class And(nn.Module):
             torch.Tensor: The output of the membership
         """
         w = self.w()
-        return self.inter_on(self.union(m.unsqueeze(-1), w[None]), dim=-2)
+        return self.f(m, w)
 
 
 class MaxMin(Or):
@@ -193,7 +181,7 @@ class MaxMin(Or):
         n_terms: int = None, wf: 'WeightF'=None,
         g: G=None
     ) -> None:
-        super().__init__(in_features, out_features, n_terms, Inter(g=g), UnionOn(dim=-2, g=g), wf)
+        super().__init__(in_features, out_features, n_terms, (Inter(g=g), UnionOn(dim=-2, g=g)), wf)
 
 
 class MaxProd(Or):
@@ -203,7 +191,7 @@ class MaxProd(Or):
         n_terms: int = None, wf: 'WeightF'=None,
         g: G=None
     ) -> None:
-        super().__init__(in_features, out_features, n_terms, ProbInter(), UnionOn(dim=-2, g=g), wf)
+        super().__init__(in_features, out_features, n_terms, (ProbInter(), UnionOn(dim=-2, g=g)), wf)
 
 
 class MinMax(And):
@@ -213,7 +201,7 @@ class MinMax(And):
         n_terms: int = None, wf: 'WeightF'=None,
         g: G=None
     ) -> None:
-        super().__init__(in_features, out_features, n_terms, Union(g=g), InterOn(dim=-2, g=g), wf)
+        super().__init__(in_features, out_features, n_terms, (Union(g=g), InterOn(dim=-2, g=g)), wf)
 
 
 class MinSum(And):
@@ -223,7 +211,7 @@ class MinSum(And):
         n_terms: int = None, wf: 'WeightF'=None,
         g: G=None
     ) -> None:
-        super().__init__(in_features, out_features, n_terms, ProbUnion(), InterOn(dim=-2, g=g), wf)
+        super().__init__(in_features, out_features, n_terms, (ProbUnion(), InterOn(dim=-2, g=g)), wf)
 
 
 class WeightF(nn.Module):

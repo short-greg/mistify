@@ -618,6 +618,7 @@ class PieceRange(nn.Module):
 
     @classmethod
     def linspace(self, n_pieces: int, n_features: int=None, lower: float=0., upper: float=1.0, tunable: bool=False):
+        
         pieces = torch.linspace(lower, upper, n_pieces + 1)
         if n_features is not None:
             pieces = pieces[None].repeat(n_features, 1)
@@ -634,7 +635,11 @@ class PieceRange(nn.Module):
         return self._pieces.size(-1)
     
     def pieces(self) -> torch.Tensor:
+        """
 
+        Returns:
+            torch.Tensor: The pieces making upt hte piecewise transform
+        """
         if not self._tunable:
             return self._pieces # * self._diff + self._lower
         
@@ -644,7 +649,15 @@ class PieceRange(nn.Module):
         return ((pieces - min_) / (max_ - min_ + 1e-6)) * self._diff + self._lower
     
     def diff(self, x: torch.Tensor) -> typing.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        
+        """helper method to determine the difference between two points in the 
+        function
+
+        Args:
+            x (torch.Tensor): The input
+
+        Returns:
+            typing.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: pairs of points
+        """
         x = x.unsqueeze(-1)
         pieces = self.pieces()
         lower = pieces[:,:,:-1]
@@ -654,11 +667,24 @@ class PieceRange(nn.Module):
         result = within * x
         return result.gather(-1, chosen), chosen
 
-    def oob(self, x: torch.Tensor):
-        
+    def oob(self, x: torch.Tensor) -> torch.BoolTensor:
+        """
+        Args:
+            x (torch.Tensor): Whether x is out of bounds
+
+        Returns:
+            torch.BoolTensor: Whether 
+        """
         return ((x < self._lower) | (x > self._upper)).type_as(x)
 
-    def range(self, ind: torch.LongTensor):
+    def range(self, ind: torch.LongTensor) -> torch.Tensor:
+        """
+        Args:
+            ind (torch.LongTensor): The indices to choose
+
+        Returns:
+            torch.Tensor: The lower and upper bound for those indices
+        """
         pieces = self.pieces()
         lower = pieces[:,:,:-1]
         upper = pieces[:,:,1:]
@@ -696,7 +722,14 @@ class Piecewise(Transform):
         self.eps = eps
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Compute the piecewise linear function
 
+        Args:
+            x (torch.Tensor): The input
+
+        Returns:
+            torch.Tensor: The output
+        """
         out_of_bounds = self.x_range.oob(x)
         x_diff, ind = self.x_range.diff(x)
         upper_x, lower_x = self.x_range.range(ind)
@@ -708,7 +741,14 @@ class Piecewise(Transform):
         return (value * (1 - out_of_bounds)) + x * out_of_bounds
 
     def reverse(self, y: torch.Tensor) -> torch.Tensor:
+        """Compute the reverse of the piecewise linear function
 
+        Args:
+            y (torch.Tensor): The output
+
+        Returns:
+            torch.Tensor: The input
+        """
         out_of_bounds = self.y_range.oob(y)
         y_diff, ind = self.y_range.diff(y)
         upper_y, lower_y = self.y_range.range(ind)

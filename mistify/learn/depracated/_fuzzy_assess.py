@@ -5,9 +5,9 @@ from torch.nn import functional as nn_func
 from torch import nn
 
 from ._core import MistifyLoss, ToOptim
-from ..infer._neurons import Or, And
+from ...infer._neurons import Or, And
 
-from ..infer._ops import InterOnBase, UnionOnBase, Inter, Union
+from ...infer._ops import InterOnBase, UnionOnBase, Inter, Union
 from zenkai import IO, Reduction
 
 

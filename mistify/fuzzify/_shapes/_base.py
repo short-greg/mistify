@@ -72,10 +72,20 @@ class Shape(nn.Module):
         Returns:
             torch.Tensor: Resized tensor
         """
+        repeat = [1] * m.dim()
         if x.size(0) == 1 and m.size(0) != 1:
-            return x.repeat(m.size(0), *[1] * (m.dim() - 1))
-        return x
-    
+            repeat[0] = m.size(0) 
+        elif x.size(0) != m.size(0):
+            raise ValueError(
+                'Cannot resize to m since xs dimension '
+                f'is {x.size(0)} not 1')
+        if x.size(1) == 1 and m.size(1) != 1:
+            repeat[1] = m.size(1)
+        elif x.size(1) != m.size(1):
+            raise ValueError(
+                'Cannot resize to m since xs dimension '
+                f'is {x.size(1)} not 1')
+        return x.repeat(repeat)
 
     # def _init_m(self, m: torch.Tensor=None, device='cpu') -> torch.Tensor:
     #     """Set m to 1 if m is None
@@ -258,6 +268,8 @@ class ShapeParams(nn.Module):
         """
         if isinstance(index, int):
             index = slice(index, index + 1)
+        elif isinstance(index, typing.List):
+            index = index
         else:
             index = slice(*index)
         return ShapeParams(self._x[:, :, :, index], False, self._descending)

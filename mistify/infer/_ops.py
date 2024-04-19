@@ -365,7 +365,6 @@ class BoundedUnion(UnionBase):
         return self._f(m1, m2, g=self.g)
 
 
-
 class Else(nn.Module):
 
     F = EnumFactory(
@@ -465,30 +464,3 @@ class CatComplement(nn.Module):
         return torch.cat(
             [m, complement], dim=self.dim
         )
-
-
-
-# class JunctionOn(nn.Module):
-#     """Intersect sets that comprise a fuzzy set on a dimension
-#     """
-
-#     F = EnumFactory()
-
-#     def __init__(self, f: typing.Union[typing.Callable, str]='inter_on', dim: int=-1, keepdim: bool=False):
-#         """Join sets that comprise a fuzzy set on a specified dimension
-
-#         Args:
-#             f (str, optional): The function to use for junction. Defaults to 'min'.
-#             dim (int, optional): Dimension to junction on. Defaults to -1.
-#             keepdim (bool, optional): Whether to keep the dim or not. Defaults to False.
-
-#         Raises:
-#             ValueError: If the junction function is invalid
-#         """
-#         super().__init__()
-#         self._f = self.F.f(f)
-#         self.dim = dim
-#         self.keepdim = keepdim
-
-#     def forward(self, m: torch.Tensor) -> torch.Tensor:
-#         return self._f(m, dim=self.dim, keepdim=self.keepdim)

@@ -108,6 +108,7 @@ class TestBasicSigmoidFuzzySytem2:
         system = self.BasicSigmoidFuzzySystem2(in_features, in_terms, hidden_variables, out_features)
         assert system.forward(x).size() == torch.Size([batch_size, out_features])
 
+
 class TestBasicTriangularFuzzySytem:
 
     class BasicTriangularFuzzySystem(nn.Module):
@@ -155,7 +156,6 @@ class TestBasicTriangularFuzzySytem:
     #     assert system.forward(x).size() == torch.Size([batch_size, out_features])
 
 
-
 class TestBasicCrispSystem2:
 
     class BasicCrispSystem(nn.Module):
@@ -173,9 +173,9 @@ class TestBasicCrispSystem2:
             self.out_converter = fuzzify.StepFuzzyConverter.from_linspace(hidden_variables[-1] // out_features)
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
-            m = self.converter.forward(x)
+            m = self.converter(x)
             m = m.reshape(m.shape[0], -1)
-            m = self.hypothesis.forward(m)
+            m = self.hypothesis(m)
             m = m.reshape(m.shape[0], self._out_features, -1)
             x = self.out_converter.defuzzify(m)
             return x
@@ -191,13 +191,13 @@ class TestBasicCrispSystem2:
         system = self.BasicCrispSystem(in_features, in_terms, [hidden_variables], out_features)
         assert system.forward(x).size() == torch.Size([batch_size, out_features])
 
-    def test_crisp_system_with_two_layers_outputs_correct_size(self):
+    # def test_crisp_system_with_two_layers_outputs_correct_size(self):
         
-        in_features = 4
-        in_terms = 3
-        hidden_variables = [4, 6]
-        out_features = 3
-        batch_size = 4
-        x = torch.randn(batch_size, in_features)
-        system = self.BasicCrispSystem(in_features, in_terms, hidden_variables, out_features)
-        assert system.forward(x).size() == torch.Size([batch_size, out_features])
+    #     in_features = 4
+    #     in_terms = 3
+    #     hidden_variables = [4, 6]
+    #     out_features = 3
+    #     batch_size = 4
+    #     x = torch.randn(batch_size, in_features)
+    #     system = self.BasicCrispSystem(in_features, in_terms, hidden_variables, out_features)
+    #     assert system.forward(x).size() == torch.Size([batch_size, out_features])

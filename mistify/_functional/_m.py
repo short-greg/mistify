@@ -8,15 +8,14 @@ TENSOR_FLOAT = typing.Union[torch.Tensor, float]
 
 from ._grad import (
     BinaryG, ClampG,
-    SignG, G, ClipG
+    SignG, G
 )
 
 def binarize(x: torch.Tensor, g: G=None) -> torch.Tensor:
     """Convenience function to use the straight through estimator for binary
 
     Args:
-        x1 (torch.Tensor): First tensor
-        x2 (torch.Tensor): Second tensor
+        x1 (torch.Tensor): The tensor to binarize
 
     Returns:
         torch.Tensor: The binarized tensor

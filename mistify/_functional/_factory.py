@@ -19,11 +19,11 @@ BETWEEN_F = typing.Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
 
 class InterOn(Enum):
 
-    prob_inter_on = (prob_inter_on,)
-    bounded_inter_on = bounded_inter_on,
-    inter_on = inter_on,
-    smooth_inter_on = smooth_inter_on,
-    ada_inter_on = ada_inter_on,
+    prob = (prob_inter_on,)
+    bounded = bounded_inter_on,
+    std = inter_on,
+    smooth = smooth_inter_on,
+    daa = ada_inter_on,
 
     def f(self, dim: int=None, keepdim: bool=None, **kwargs):
         if dim is not None:
@@ -39,11 +39,11 @@ class InterOn(Enum):
 
 class UnionOn(Enum):
 
-    bounded_union_on = bounded_union_on,
-    union_on = union_on,
-    smooth_union_on = smooth_union_on,
-    ada_union_on = ada_union_on,
-    prob_union_on = prob_union_on,
+    bounded = bounded_union_on,
+    std = union_on,
+    smooth = smooth_union_on,
+    ada = ada_union_on,
+    prob = prob_union_on,
 
     def f(self, dim: int=None, keepdim: bool=None, **kwargs):
         if dim is not None:
@@ -60,11 +60,11 @@ class UnionOn(Enum):
 
 class Inter(Enum):
 
-    bounded_inter = bounded_inter,
-    inter = inter,
-    smooth_inter = smooth_inter,
-    ada_inter = ada_inter,
-    prob_inter = prob_inter,
+    bounded = bounded_inter,
+    std = inter,
+    smooth = smooth_inter,
+    ada = ada_inter,
+    prob = prob_inter,
 
     def f(self, **kwargs):
         return partial(self.value[0], **kwargs)
@@ -76,11 +76,11 @@ class Inter(Enum):
 
 class Union(Enum):
 
-    bounded_union = bounded_union,
-    union = union,
-    smooth_union = smooth_union,
-    ada_union = ada_union,
-    prob_union = prob_union,
+    bounded = bounded_union,
+    std = union,
+    smooth = smooth_union,
+    ada = ada_union,
+    prob = prob_union,
 
     def f(self, **kwargs):
         return partial(self.value[0], **kwargs)
