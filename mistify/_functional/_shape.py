@@ -1,7 +1,7 @@
 from ._m import TENSOR_FLOAT
 from functools import partial
 import torch
-from ._m import G, ClipG
+from ._grad import G, ClipG
 
 
 def _shape_post_hook(grad, state):
