@@ -4,7 +4,7 @@ import torch
 import typing
 from functools import partial
 from abc import abstractmethod
-from zenkai.kikai import WrapNN, WrapState
+from zenkai import WrapNN, WrapState
 from typing_extensions import Self
 
 
