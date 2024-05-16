@@ -7,6 +7,20 @@ import torch.nn as nn
 import torch
 import zenkai
 from ..infer import Or, And, InterOnBase, UnionOnBase
+from zenkai.utils import checkattr
+
+class PostFit(object):
+
+    @checkattr('postprocessor')
+    def fit_postprocessor(self, X: IO, t: IO=None):
+        self.postprocessor.fit(X.f, t.f if t is not None else t)
+
+
+class PreFit(object):
+    
+    @checkattr('preprocessor')
+    def fit_preprocessor(self, X: IO, t: IO=None):
+        self.preprocessor.fit(X.f, t.f if t is not None else t)
 
 
 class MaxMinLoss(nn.Module):
