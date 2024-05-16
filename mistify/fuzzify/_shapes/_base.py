@@ -1,6 +1,5 @@
 # 1st party
-from abc import abstractmethod, abstractproperty
-from dataclasses import dataclass
+from abc import abstractmethod
 import typing
 
 # 3rd party
@@ -87,45 +86,6 @@ class Shape(nn.Module):
                 f'is {x.size(1)} not 1')
         return x.repeat(repeat)
 
-    # def _init_m(self, m: torch.Tensor=None, device='cpu') -> torch.Tensor:
-    #     """Set m to 1 if m is None
-
-    #     Args:
-    #         m (torch.Tensor, optional): the membership. Defaults to None.
-    #         device (str, optional): the device for the membership. Defaults to 'cpu'.
-
-    #     Returns:
-    #         torch.Tensor: the output membership
-    #     """
-    #     if m is None:
-    #         return torch.tensor(1., device=device)
-    #     return m.to(device)
-
-    # @abstractproperty
-    # def m(self):
-    #     """
-    #     Returns:
-    #         torch.Tensor: The max membership for the set
-    #     """
-    #     pass
-    
-    # @abstractmethod
-    # def truncate(self, m: torch.Tensor) -> 'Shape':
-    #     """Truncate the shape by a membership tensor
-
-    #     Args:
-    #         m (torch.Tensor): Membership tensor to truncate by
-
-    #     Returns:
-    #         Shape: Scaled shape
-    #     """
-    #     pass
-
-    # @abstractmethod
-    # def _calc_areas(self):
-    #     """Method to override to calculate the area of the shape
-    #     """
-    #     pass
 
 class Monotonic(Shape):
     """A nondecreasing or nonincreasing shape
@@ -144,24 +104,6 @@ class Monotonic(Shape):
     @abstractmethod
     def min_cores(self, m: torch.Tensor) -> torch.Tensor:
         pass
-
-    # @abstractmethod
-    # def _calc_min_cores(self) -> torch.Tensor:
-    #     """
-    #     Returns:
-    #         torch.Tensor: The minimum of the "core" of the shape
-    #     """
-    #     pass
-
-    # @property
-    # def min_cores(self) -> torch.Tensor:
-    #     """
-    #     Returns:
-    #         torch.Tensor: The mean of the core of the shape
-    #     """
-    #     if self._min_cores is None:
-    #         self._min_cores = self._calc_min_cores()
-    #     return self._min_cores
 
 
 class Nonmonotonic(Shape):
@@ -187,9 +129,6 @@ class Nonmonotonic(Shape):
             torch.Tensor: The mean of the core of the shape
         """
         pass
-        # if self._mean_cores is None:
-        #     self._mean_cores = self._calc_mean_cores()
-        # return self._mean_cores
 
     @abstractmethod
     def areas(self, m: torch.Tensor, truncate: bool=False) -> torch.Tensor:
@@ -206,37 +145,6 @@ class Nonmonotonic(Shape):
             torch.Tensor: Centroid for the 
         """
         pass
-        # if self._centroids is None:
-        #     self._centroids = self._calc_centroids()
-        # return self._centroids
-
-    # @abstractmethod
-    # def scale(self, m: torch.Tensor) -> 'Shape':
-    #     """Scale the shape by a membership tensor
-
-    #     Args:
-    #         m (torch.Tensor): Membership tensor to scale by
-
-    #     Returns:
-    #         Shape: Scaled shape
-    #     """
-    #     pass
-
-    # @abstractmethod
-    # def _calc_centroids(self) -> torch.Tensor:
-    #     """
-    #     Returns:
-    #         torch.Tensor: The centroid of the shape
-    #     """
-    #     pass
-
-    # @abstractmethod
-    # def _calc_mean_cores(self) -> torch.Tensor:
-    #     """
-    #     Returns:
-    #         torch.Tensor: The mean of the core of the shape
-    #     """
-    #     pass
 
 
 class ShapeParams(nn.Module):
@@ -272,7 +180,7 @@ class ShapeParams(nn.Module):
             index = index
         else:
             index = slice(*index)
-        return ShapeParams(self._x[:, :, :, index], False, self._descending)
+        return ShapeParams(self._x[..., index], False, self._descending)
 
     @property
     def device(self) -> torch.device:
@@ -289,7 +197,7 @@ class ShapeParams(nn.Module):
             torch.Tensor: 
         """
         assert isinstance(index, int)
-        return self._x[:,:,:,index]
+        return self._x[...,index]
 
     def sample(self, index: int) -> torch.Tensor:
         """Retrieve one sample from the shape parameters

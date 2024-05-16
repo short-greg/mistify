@@ -57,7 +57,6 @@ class UnionOn(Enum):
         return self.value[0](x, dim, keepdim, **kwargs)
 
 
-
 class Inter(Enum):
 
     bounded = bounded_inter,

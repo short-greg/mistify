@@ -7,7 +7,6 @@ import math
 # 3rd party
 import torch
 from torch import Tensor
-from zenkai.kikai import WrapNN
 import torch.nn.functional
 
 # local
