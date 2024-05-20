@@ -17,6 +17,18 @@ class Rel(nn.Module, ABC):
     def forward(self, x: torch.Tensor, t: torch.Tensor, dim: int) -> torch.Tensor:
         pass
 
+    @classmethod
+    def x_rel(cls, *args, **kwargs) -> 'XRel':
+        return XRel(
+            cls(*args, **kwargs)
+        )
+
+    @classmethod
+    def w_rel(cls, *args, **kwargs) -> 'WRel':
+        return WRel(
+            cls(*args, **kwargs)
+        )
+
 
 class XRel(nn.Module):
 
@@ -38,7 +50,7 @@ class XRel(nn.Module):
         # add in the unsqueeze
         w = w.unsqueeze(0)
         t = t.unsqueeze(-2)
-        return self.base_rel(w, t, dim=-1)
+        return self.base_rel(w, t, dim=-1).squeeze(dim=-1)
 
 
 class WRel(nn.Module):
@@ -60,7 +72,7 @@ class WRel(nn.Module):
         """
         x = x.unsqueeze(-1)
         t = t.unsqueeze(-2)
-        return self.base_rel(x, t, dim=0)
+        return self.base_rel(x, t, dim=0).squeeze(dim=0)
 
 
 class MaxMinRel(Rel):
@@ -181,13 +193,13 @@ class RelLoss(nn.Module):
         """
         base_loss = self.base_loss(y, t)
         if self.x_rel is not None:
-            x_rel = self.x_rel(self.neuron.w, t)
-            yx = self.neuron.f(x_rel.detach(), self.neuron.w)
-            base_loss = base_loss + self.x_weight * self.loss(yx, t)
+            x_rel = self.x_rel(self.neuron.w(), t)
+            yx = self.neuron.f(x_rel.detach(), self.neuron.w())
+            base_loss = base_loss + self.x_weight * self.base_loss(yx, t)
         if self.w_rel is not None:
             w_rel = self.w_rel(x, t)
             yw = self.neuron.f(x, w_rel.detach())
-            base_loss = base_loss + self.w_weight * self.loss(yw, t)
+            base_loss = base_loss + self.w_weight * self.base_loss(yw, t)
         return base_loss
 
 

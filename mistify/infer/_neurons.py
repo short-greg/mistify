@@ -70,7 +70,7 @@ class LogicalNeuron(nn.Module):
 
     @property
     @abstractmethod
-    def _f(self) -> typing.Callable:
+    def f(self) -> typing.Callable:
 
         pass
 
