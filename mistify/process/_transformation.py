@@ -756,3 +756,30 @@ class Piecewise(Transform):
         m = (upper - lower) / (upper_y - lower_y + self.eps)
         value = (y_diff.squeeze(-1) - lower_y) * m + lower
         return (value * (1 - out_of_bounds)) + y * out_of_bounds
+
+    @classmethod
+    def linspace(
+        self, n_pieces: int, n_features: int=None, 
+        lower_x: float=0., upper_x: float=1.0, 
+        lower_y: float=0., upper_y: float=1.0, tunable_x: bool=False, tunable_y: bool=False, eps: float=1e-6) -> 'Piecewise':
+        """Create the Piecewise function from two linear spaces
+
+        Args:
+            n_pieces (int): Number of pieces
+            n_features (int, optional): Number of features. Defaults to None.
+            lower_x (float, optional): The lower bound for x. Defaults to 0..
+            upper_x (float, optional): The upper bound for x. Defaults to 1.0.
+            lower_y (float, optional): The lower bound for y. Defaults to 0..
+            upper_y (float, optional): The upper bound for y. Defaults to 1.0.
+            tunable_x (bool, optional): Whether x is tunable. Defaults to False.
+            tunable_y (bool, optional): Whether y is tunable. Defaults to False.
+            eps (float, optional): The epsilon. Defaults to 1e-6.
+
+        Returns:
+            Piecewise: The Piecewise function
+        """
+        x_range = PieceRange.linspace(n_pieces,n_features, lower_x, upper_x, tunable_x)
+        y_range = PieceRange.linspace(n_pieces, n_features, lower_y, upper_y, tunable_y)
+        return Piecewise(
+            x_range, y_range, eps
+        )

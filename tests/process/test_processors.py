@@ -1,6 +1,7 @@
 from mistify.process import _transformation as processors
 import torch
 import pytest
+from itertools import chain
 
 
 class TestStdDev:
@@ -185,7 +186,6 @@ class TestMinMaxScaler:
         
         assert torch.isclose(y, y_target, 1e-4).all()
 
-from itertools import chain
 
 class TestPiecewise:
 
@@ -224,6 +224,17 @@ class TestPiecewise:
         y = piecwise(x)
         x_prime = piecwise.reverse(y)
         assert (torch.isclose(x_prime, x, 1e-4)).all()
+    
+    def test_piecwise_outputs_in_correct_range(self):
+
+        torch.manual_seed(1)
+        x = torch.rand(8, 4)
+        x_range = processors.PieceRange.linspace(4)
+        y_range = processors.PieceRange.linspace(4, lower=1.0, upper=2.0)
+        piecwise = processors.Piecewise(x_range, y_range)
+        
+        y = piecwise(x)
+        assert ((y >= 1.0) & (y <= 2.0)).all()
 
     def test_tunable_updates_parameters(self):
 
@@ -243,6 +254,12 @@ class TestPiecewise:
 
         y_after = torch.nn.utils.parameters_to_vector(y_range.parameters())
         assert ((y_before != y_after).any())
+
+
+    def test_linspace_creates_piecewise(self):
+
+        piecwise = processors.Piecewise.linspace(4, lower_y=1.0, upper_y=2.0)
+        assert isinstance(piecwise, processors.Piecewise)
 
     def test_not_tunable_returns_no_parameters(self):
 
