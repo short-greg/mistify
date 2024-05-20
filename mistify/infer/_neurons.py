@@ -12,8 +12,7 @@ from .._functional import G
 from ..utils import EnumFactory
 from abc import abstractmethod
 from ._ops import (
-    UnionBase, UnionOnBase, InterBase, 
-    InterOnBase, Union, Inter, InterOn, UnionOn,
+    Union, Inter, InterOn, UnionOn,
     ProbInter, ProbUnion
 )
 from .._functional._factory import OrF, AndF
@@ -46,7 +45,7 @@ def validate_weight_range(w: torch.Tensor, min_value: float, max_value: float) -
 
 
 def validate_binary_weight(w: torch.Tensor, neg_value: float=0.0, pos_value: float=1.0) -> int:
-    """_summary_
+    """
 
     Args:
         w (torch.Tensor): _description_
@@ -59,14 +58,32 @@ def validate_binary_weight(w: torch.Tensor, neg_value: float=0.0, pos_value: flo
     return ((w != neg_value) & (w != pos_value)).float().sum().item()
 
 
-class Or(nn.Module):
-    """
+class LogicalNeuron(nn.Module):
+
+    @abstractmethod
+    def w(self) -> torch.Tensor:
+        pass
+
+    @abstractmethod
+    def init_weight(self, f: typing.Callable[[torch.Tensor], torch.Tensor]=None):
+        pass
+
+    @property
+    @abstractmethod
+    def _f(self) -> typing.Callable:
+
+        pass
+
+
+class Or(LogicalNeuron):
+    """An Or neuron implements a T-norm between the weights and the inputs 
+    followed by an S-norm for aggregation
     """
 
     def __init__(self, in_features: int, out_features: int, n_terms: int=None, pop_size: int=None,
         f: OrF=None, wf: 'WeightF'=None
     ) -> None:
-        """Create an Logical neuron
+        """Create an Or neuron
 
         Args:
             in_features (int): The number of features into the neuron
@@ -88,7 +105,7 @@ class Or(nn.Module):
         self.wf = wf or NullWeightF()
         if isinstance(f, typing.Tuple):
             f = OrF(f[0], f[1])
-        self.f = f or OrF('std', 'std')
+        self._f = f or OrF('std', 'std')
 
         self._n_terms = n_terms
         self._in_features = in_features
@@ -103,7 +120,11 @@ class Or(nn.Module):
         if f is None:
             f = torch.rand_like
         self.weight_base.data = f(self.weight_base.data)
-    
+
+    @property
+    def f(self) -> typing.Callable:
+        return self._f
+
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         """
 
@@ -114,11 +135,12 @@ class Or(nn.Module):
             torch.Tensor: The output of the membership
         """
         w = self.w()
-        return self.f(m, w)
+        return self._f(m, w)
 
 
-class And(nn.Module):
-    """
+class And(LogicalNeuron):
+    """An And neuron implements a S-norm between the weights and the inputs 
+    followed by an T-norm for aggregation. 
     """
 
     def __init__(self, in_features: int, out_features: int, n_terms: int=None, pop_size: int=None,
@@ -147,7 +169,7 @@ class And(nn.Module):
         self.weight_base = nn.parameter.Parameter(torch.ones(*shape))
         if isinstance(f, typing.Tuple):
             f = AndF(f[0], f[1])
-        self.f = f or AndF('std', 'std')
+        self._f = f or AndF('std', 'std')
         self.wf = wf or NullWeightF()
         self.sub1 = sub1
 
@@ -168,6 +190,10 @@ class And(nn.Module):
             f = torch.rand_like
         self.weight_base.data = f(self.weight_base.data)
     
+    @property
+    def f(self) -> typing.Callable:
+        return self._f
+
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         """
 
@@ -178,7 +204,7 @@ class And(nn.Module):
             torch.Tensor: The output of the membership
         """
         w = self.w()
-        return self.f(m, w)
+        return self._f(m, w)
 
 
 class MaxMin(Or):

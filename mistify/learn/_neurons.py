@@ -3,13 +3,193 @@ import torch.nn as nn
 import torch
 import typing
 from functools import partial
-from abc import abstractmethod
+from abc import abstractmethod, ABC
+from ..infer import LogicalNeuron
 # from zenkai.kikai import WrapNN, WrapState
 from typing_extensions import Self
 
-# TODO: Update these to be "learning machines" if i still use them
 
-# Later simplify these
+class Rel(nn.Module, ABC):
+    """Function to use for predicting the relation between two values
+    """
+
+    @abstractmethod
+    def forward(self, x: torch.Tensor, t: torch.Tensor, dim: int) -> torch.Tensor:
+        pass
+
+
+class XRel(nn.Module):
+
+    def __init__(self, base_rel: Rel) -> None:
+        """Predict the x from W and T
+        """
+        super().__init__()
+        self.base_rel = base_rel
+
+    def forward(self, w: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x (torch.Tensor): The weight
+            t (torch.Tensor): The target
+
+        Returns:
+            torch.Tensor: The "x"
+        """
+        # add in the unsqueeze
+        w = w.unsqueeze(0)
+        t = t.unsqueeze(-2)
+        return self.base_rel(w, t, dim=-1)
+
+
+class WRel(nn.Module):
+    """Predict the weight from X and T
+    """
+
+    def __init__(self, base_rel: Rel) -> None:
+        super().__init__()
+        self.base_rel = base_rel
+
+    def forward(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x (torch.Tensor): The input
+            t (torch.Tensor): The target
+
+        Returns:
+            torch.Tensor: The "weight"
+        """
+        x = x.unsqueeze(-1)
+        t = t.unsqueeze(-2)
+        return self.base_rel(x, t, dim=0)
+
+
+class MaxMinRel(Rel):
+    """The relation for a "MaxMin" function
+    """
+
+    def forward(self, x: torch.Tensor, t: torch.Tensor, dim: int=0) -> torch.Tensor:
+        """
+        Args:
+            x (torch.Tensor): The input
+            t (torch.Tensor): The target
+            dim (int, optional): The dimension to calculate the rel with. Defaults to 0.
+
+        Returns:
+            torch.Tensor: The relation
+        """
+        return torch.min(
+            x, t
+        ).sum(dim=dim, keepdim=True) / torch.sum(x, dim=dim, keepdim=True)
+
+
+class MinMaxRel(Rel):
+    """The relation for a "MinMax" function
+    """
+
+    def forward(self, x: torch.Tensor, t: torch.Tensor, dim: int=0) -> torch.Tensor:
+        """
+        Args:
+            x (torch.Tensor): The input
+            t (torch.Tensor): The target
+            dim (int, optional): The dimension to calculate the rel with. Defaults to 0.
+
+        Returns:
+            torch.Tensor: The relation
+        """
+        x_comp = 1 - x
+        t_comp = 1 - t
+
+        return 1 - torch.min(
+            x_comp, t_comp
+        ).sum(dim=dim, keepdim=True) / torch.sum(x_comp, dim=dim, keepdim=True)
+
+
+class MaxProdRel(Rel):
+    """The relation for a "MaxProd" function
+    """
+
+    def forward(self, x: torch.Tensor, t: torch.Tensor, dim: int=0) -> torch.Tensor:
+        """
+        Args:
+            x (torch.Tensor): The input
+            t (torch.Tensor): The target
+            dim (int, optional): The dimension to calculate the rel with. Defaults to 0.
+
+        Returns:
+            torch.Tensor: The relation
+        """
+        comp = torch.tensor(1.0, dtype=x.dtype, device=x.device)
+        return torch.min(
+            t / (x + 1e-7), comp
+        ).sum(dim=dim, keepdim=True) / torch.sum(x, dim=dim, keepdim=True)
+
+
+class MinSumRel(Rel):
+    """The relation for a "MinSum" function
+    """
+
+    def forward(self, x: torch.Tensor, t: torch.Tensor, dim: int=0) -> torch.Tensor:
+        """
+        Args:
+            x (torch.Tensor): The input
+            t (torch.Tensor): The target
+            dim (int, optional): The dimension to calculate the rel with. Defaults to 0.
+
+        Returns:
+            torch.Tensor: The relation
+        """
+        x_comp = 1 - x
+        t_comp = 1 - t
+        comp = torch.tensor(1.0, dtype=x_comp.dtype, device=x_comp.device)
+
+        return 1 - torch.min(
+            (t_comp - x_comp) / (1 - x_comp), comp
+        ).sum(dim=dim, keepdim=True) / torch.sum(x_comp, dim=dim, keepdim=True)
+
+
+class RelLoss(nn.Module):
+
+    def __init__(self, base_loss: nn.Module, neuron: LogicalNeuron, x_rel: Rel=None, w_rel: Rel=None, x_weight: float=1.0, w_weight: float=1.0):
+        """Use the outputs using w_rel and x_rel as regularizers for the loss
+
+        Args:
+            base_loss (nn.Module): The loss function to use
+            neuron (nn.Module): The fuzzy neuron. Assumes the weight is the member variable w
+            x_rel (Rel, optional): The x relation to calculate the loss with. Defaults to None.
+            w_rel (Rel, optional): The w relation to calculate the loss with. Defaults to None.
+            x_weight (float, optional): The weight on x_rel. Defaults to 1.0.
+            w_weight (float, optional): The weight on w_rel. Defaults to 1.0.
+        """
+        super().__init__()
+        self.base_loss = base_loss
+        self.neuron = neuron
+        self.x_rel = XRel(x_rel) if x_rel is not None else None
+        self.w_rel = WRel(w_rel) if w_rel is not None else None
+        self.x_weight = x_weight
+        self.w_weight = w_weight
+
+    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        """
+
+        Args:
+            x (torch.Tensor): The input to the model
+            y (torch.Tensor): The output of the model
+            t (torch.Tensor): The target
+
+        Returns:
+            torch.Tensor: _description_
+        """
+        base_loss = self.base_loss(y, t)
+        if self.x_rel is not None:
+            x_rel = self.x_rel(self.neuron.w, t)
+            yx = self.neuron.f(x_rel.detach(), self.neuron.w)
+            base_loss = base_loss + self.x_weight * self.loss(yx, t)
+        if self.w_rel is not None:
+            w_rel = self.w_rel(x, t)
+            yw = self.neuron.f(x, w_rel.detach())
+            base_loss = base_loss + self.w_weight * self.loss(yw, t)
+        return base_loss
+
 
 # class MaxMinRelOut(nn.Module):
 

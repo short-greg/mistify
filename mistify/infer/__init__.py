@@ -4,7 +4,7 @@ from ._neurons import (
     WeightF, NullWeightF, SignWeightF, Sub1WeightF, ClampWeightF,
     BooleanWeightF, 
     validate_binary_weight, validate_weight_range,
-    SigmoidWeightF
+    SigmoidWeightF, LogicalNeuron
 )
 from ._noise import DropoutNoise, ExpNoise, GaussianClampNoise
 from ._shape import swap, expand_term, collapse_term
