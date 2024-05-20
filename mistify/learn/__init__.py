@@ -3,6 +3,8 @@ from ._infer import (
     MinMaxLoss, MinMaxPredictorLoss, MinMaxSortedPredictorLoss,
     IntersectionOnLoss, UnionOnLoss
 )
-# from ._neurons import (
-#     WrapNeuron, MaxMinRelOut, MinMaxRelOut, MinSumRelOut, MaxProdRelOut
-# )
+from ._rel import (
+    Rel, RelLoss, MaxMinRel, MinMaxRel, 
+    MinSumRel, MaxProdRel, XRel, WRel
+)
+from ._fit import PostFit, PreFit
