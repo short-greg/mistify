@@ -15,6 +15,6 @@ class PreFit(object):
     
     def fit_preprocessor(self, X: torch.Tensor, t: torch.Tensor=None):
         if not hasattr(self, 'preprocessor'):
-            logging.warn('Trying to fit the preprocessor but no postprocessor is defined')
+            logging.warn('Trying to fit the preprocessor but no preprocessor is defined')
             return
         self.preprocessor.fit(X, t)
