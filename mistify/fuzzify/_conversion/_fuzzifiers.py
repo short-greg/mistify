@@ -6,7 +6,6 @@ from torch import clamp
 import torch.nn.functional
 
 from ._conclude import HypoM
-from ._utils import generate_repeat_params, generate_spaced_params
 
 
 class Fuzzifier(nn.Module):
@@ -45,7 +44,8 @@ class Defuzzifier(nn.Module):
         pass
 
     @abstractmethod
-    def forward(self, m: torch.Tensor) -> torch.Tensor:
+    def forward(self, m: torch.Tensor, weight: torch.Tensor=None) -> torch.Tensor:
+        
         return self.conclude(self.hypo(m))
 
 

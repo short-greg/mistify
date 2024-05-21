@@ -22,13 +22,18 @@ from ._fuzzifiers import Fuzzifier, Defuzzifier
 class FuzzyConverter(nn.Module):
     """Convert tensor to fuzzy set and vice versa
     """
-    def __init__(self, n_terms: int):
+    def __init__(self, n_terms: int, n_vars: int=None):
         super().__init__()
         self._n_terms = n_terms
+        self._n_vars = n_vars
 
     @property
     def n_terms(self) -> int:
         return self._n_terms
+
+    @property
+    def n_vars(self) -> int:
+        return self._n_vars
 
     @abstractmethod
     def fuzzify(self, x: torch.Tensor) -> torch.Tensor:
@@ -134,11 +139,14 @@ class CompositeFuzzyConverter(FuzzyConverter):
             conclusion (typing.Union[Conclusion, str], optional): The function to draw the conclusion from. Defaults to "max".
             truncate (bool, optional): Whether to truncate (True) or scale (False). Defaults to False.
         """
-        super().__init__(sum([shape.n_terms for shape in shapes]))
+        super().__init__(
+            sum([shape.n_terms for shape in shapes]),
+            sum([shape.n_variables for shape in shapes]),
+        )
 
         self._composite = Composite(shapes)
         self._hypothesis = HypothesisEnum.get(hypothesis)
-        self._conclusion = ConcEnum.get(conclusion)
+        self._conclusion = ConcEnum.get(conclusion, self._n_terms, self._n_vars)
         self._truncate = truncate
 
     def fuzzify(self, x: torch.Tensor) -> torch.Tensor:

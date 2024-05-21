@@ -3,7 +3,8 @@ from ._conclude import (
     MaxConc, 
     Conclusion,
     MaxValueConc, 
-    WeightedAverageConc,
+    WeightedMAverageConc,
+    WeightedPAverageConc,
     ConcEnum
 )
 from ._fuzzifiers import (
