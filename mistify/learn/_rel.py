@@ -159,13 +159,65 @@ class MinSumRel(Rel):
         ).sum(dim=dim, keepdim=True) / torch.sum(x_comp, dim=dim, keepdim=True)
 
 
+def align_sort(x1: torch.Tensor, x2: torch.Tensor, dim: int, descending: bool=False) -> torch.Tensor:
+
+    _, ind = x1.sort(dim, descending)
+    return x2.gather(dim, ind)
+
+
+class AlignLoss(nn.Module):
+
+    def __init__(self, base_loss: nn.Module, neuron: LogicalNeuron, x_rel: Rel=None, w_rel: Rel=None, x_weight: float=1.0, w_weight: float=1.0):
+        """Use the outputs using w_rel and x_rel as regularizers for the loss. 
+        Based on which are more related to the output
+
+        Args:
+            base_loss (nn.Module): The loss function to use. Must use a reduction that reduces to a scalar
+            neuron (nn.Module): The fuzzy neuron. Assumes the weight is the member variable w
+            x_rel (Rel, optional): The x relation to calculate the loss with. Defaults to None.
+            w_rel (Rel, optional): The w relation to calculate the loss with. Defaults to None.
+            x_weight (float, optional): The weight on x_rel. Defaults to 1.0.
+            w_weight (float, optional): The weight on w_rel. Defaults to 1.0.
+        """
+        super().__init__()
+        self.base_loss = base_loss
+        self.neuron = neuron
+        self.x_rel = XRel(x_rel) if x_rel is not None else None
+        self.w_rel = WRel(w_rel) if w_rel is not None else None
+        self.x_weight = x_weight
+        self.w_weight = w_weight
+
+    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        """
+
+        Args:
+            x (torch.Tensor): The input to the model
+            y (torch.Tensor): The output of the model
+            t (torch.Tensor): The target
+
+        Returns:
+            torch.Tensor: 
+        """
+        base_loss = self.base_loss(y, t)
+        if self.x_rel is not None:
+            x_rel = self.x_rel(self.neuron.w(), t)
+            aligned = align_sort(x, x_rel.detach(), dim=-1)
+            base_loss = base_loss + self.x_weight * (x - aligned).pow(2).mean()
+        if self.w_rel is not None:
+            w = self.neuron.w()
+            w_rel = self.w_rel(x, t)
+            aligned = align_sort(w, w_rel.detach(), dim=-1)
+            base_loss = base_loss + self.w_weight * (w - aligned).pow(2).mean()
+        return base_loss
+
+
 class RelLoss(nn.Module):
 
     def __init__(self, base_loss: nn.Module, neuron: LogicalNeuron, x_rel: Rel=None, w_rel: Rel=None, x_weight: float=1.0, w_weight: float=1.0):
         """Use the outputs using w_rel and x_rel as regularizers for the loss
 
         Args:
-            base_loss (nn.Module): The loss function to use
+            base_loss (nn.Module): The loss function to use. 
             neuron (nn.Module): The fuzzy neuron. Assumes the weight is the member variable w
             x_rel (Rel, optional): The x relation to calculate the loss with. Defaults to None.
             w_rel (Rel, optional): The w relation to calculate the loss with. Defaults to None.

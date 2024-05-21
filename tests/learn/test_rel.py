@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from mistify.learn import _rel
-from mistify.infer import MaxMin, MaxProd
+from mistify.infer import MaxMin
 
 
 class TestMaxMinRel:
@@ -201,3 +201,38 @@ class TestRelLoss:
         cost = loss(x, y, t)
         assert cost.dim() == 0
 
+
+class TestAlignLoss:
+
+    def test_align_loss_computes_loss(self):
+
+        max_min = MaxMin(
+            4, 5
+        )
+        loss = _rel.AlignLoss(
+            nn.MSELoss(), max_min, _rel.MaxMinRel(),
+            _rel.MaxMinRel()
+        )
+
+        x = torch.rand(6, 4)
+        y = max_min(x)
+        t = torch.rand(6, 5)
+
+        cost = loss(x, y, t)
+        assert cost.dim() == 0
+
+    def test_rel_loss_computes_loss_without_w_rel(self):
+
+        max_min = MaxMin(
+            4, 5
+        )
+        loss = _rel.AlignLoss(
+            nn.MSELoss(), max_min, _rel.MaxMinRel()
+        )
+
+        x = torch.rand(6, 4)
+        y = max_min(x)
+        t = torch.rand(6, 5)
+
+        cost = loss(x, y, t)
+        assert cost.dim() == 0
