@@ -13,7 +13,8 @@ from ..utils import EnumFactory
 from abc import abstractmethod
 from ._ops import (
     Union, Inter, InterOn, UnionOn,
-    ProbInter, ProbUnion
+    ProbInter, ProbUnion, SmoothInter, SmoothInterOn,
+    SmoothUnion, SmoothUnionOn
 )
 from .._functional._factory import OrF, AndF
 
@@ -215,6 +216,54 @@ class MaxMin(Or):
         g: G=None
     ) -> None:
         super().__init__(in_features, out_features, n_terms, pop_size, (Inter(g=g), UnionOn(dim=-2, g=g)), wf)
+
+
+class SmoothMaxMin(Or):
+
+    def __init__(
+        self, in_features: int, out_features: int, 
+        n_terms: int = None, pop_size: int=None, wf: 'WeightF'=None,
+        a: float=None
+    ) -> None:
+        super().__init__(in_features, out_features, n_terms, pop_size, (SmoothInter(a=a), SmoothUnionOn(dim=-2, a=a)), wf)
+        self._a = a
+
+    @property
+    def a(self) -> float:
+
+        return self._a
+    
+    @a.setter
+    def a(self, a: float) -> float:
+
+        self._a = a
+        self._f = OrF(
+            SmoothInter(a=a), SmoothUnionOn(dim=-2, a=a)
+        )
+
+
+class SmoothMinMax(And):
+
+    def __init__(
+        self, in_features: int, out_features: int, 
+        n_terms: int = None, pop_size: int=None, wf: 'WeightF'=None,
+        a: float=None
+    ) -> None:
+        super().__init__(in_features, out_features, n_terms, pop_size, (SmoothUnion(a=a), SmoothInterOn(dim=-2, a=a)), wf)
+        self._a = a
+
+    @property
+    def a(self) -> float:
+
+        return self._a
+    
+    @a.setter
+    def a(self, a: float) -> float:
+
+        self._a = a
+        self._f = AndF(
+            SmoothUnion(a=a), SmoothInterOn(dim=-2, a=a)
+        )
 
 
 class MaxProd(Or):

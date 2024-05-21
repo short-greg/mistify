@@ -1,6 +1,7 @@
 from ._neurons import (
     Or, And, WEIGHT_FACTORY,
     MinMax, MaxMin, MinSum, MaxProd,
+    SmoothMinMax, SmoothMaxMin,
     WeightF, NullWeightF, SignWeightF, Sub1WeightF, ClampWeightF,
     BooleanWeightF, 
     validate_binary_weight, validate_weight_range,
@@ -16,7 +17,7 @@ from ._ops import (
     ProbUnion, UnionBase, ProbUnionOn, SmoothUnion,
     SmoothUnionOn, BoundedUnion, BoundedUnionOn,
     Inter, InterBase, InterOn, ProbInterOn, SmoothInter,
-    SmoothInterOn, BoundedInter, BoundedInterOn
+    SmoothInterOn, BoundedInter, BoundedInterOn,
 )
 from ._activate import (
     MembershipAct, Descale,
