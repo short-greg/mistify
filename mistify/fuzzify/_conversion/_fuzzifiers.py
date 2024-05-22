@@ -49,7 +49,6 @@ class Defuzzifier(nn.Module):
     def conclude(self, value_weight: HypoM) -> torch.Tensor:
         pass
 
-    @abstractmethod
     def forward(self, m: torch.Tensor, weight: torch.Tensor=None) -> torch.Tensor:
         
         return self.conclude(self.hypo(m))

@@ -19,108 +19,6 @@ from ._conclude import HypoM, Conclusion, ConcEnum
 from ._fuzzifiers import Fuzzifier, Defuzzifier
 
 
-class Fuzzifier(nn.Module):
-    """Convert tensor to fuzzy set and vice versa
-    """
-    def __init__(self, n_terms: int, n_vars: int=None):
-        super().__init__()
-        self._n_terms = n_terms
-        self._n_vars = n_vars
-
-    @property
-    def n_terms(self) -> int:
-        return self._n_terms
-
-    @property
-    def n_vars(self) -> int:
-        return self._n_vars
-
-    @abstractmethod
-    def fuzzify(self, x: torch.Tensor) -> torch.Tensor:
-        """Fuzzify the crisp value
-
-        Args:
-            x (torch.Tensor): The value to fuzzify
-
-        Returns:
-            torch.Tensor: The fuzzy set
-        """
-        pass
-
-    @abstractmethod
-    def hypo(self, m: torch.Tensor) -> HypoM:
-        """Convert the fuzzy set to a 'hypothesis' about how to defuzzify
-
-        Args:
-            m (torch.Tensor): The fuzzy set
-
-        Returns:
-            HypoM: The hypothesis and their weights
-        """
-        pass
-
-    @abstractmethod
-    def conclude(self, hypo_weight: HypoM) -> torch.Tensor:
-        """Make a conclusion about how to defuzzify from the hypotheses
-
-        Args:
-            hypo_weight (HypoM): The hypotheses to use in the conclusion
-
-        Returns:
-            torch.Tensor: The defuzzified tensor
-        """
-        pass
-
-    def defuzzify(self, m: torch.Tensor) -> torch.Tensor:
-        """Convenience function to form a hypothesis and make a conclusion
-
-        Args:
-            m (torch.Tensor): The fuzzy set
-
-        Returns:
-            torch.Tensor: The defuzzified value
-        """
-        return self.conclude(self.hypo(m))
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Convenience function to fuzzify the value
-
-        Args:
-            x (torch.Tensor): The input
-
-        Returns:
-            torch.Tensor: The fuzzy set
-        """
-        return self.fuzzify(x)
-    
-    # def fuzzifier(self) -> 'ConverterFuzzifier':
-    #     """
-
-    #     Returns:
-    #         ConverterFuzzifier: A fuzzifier built from self
-    #     """
-    #     return ConverterFuzzifier(self)
-    
-    # def defuzzifier(self) -> 'ConverterDefuzzifier':
-    #     """
-
-    #     Returns:
-    #         ConverterFuzzifier: A defuzzifier built from self
-    #     """
-    #     return ConverterDefuzzifier(self)
-
-    def reverse(self, m: torch.Tensor) -> torch.Tensor:
-        """Convenience function to defuzzify the value
-
-        Args:
-            x (torch.Tensor): The fuzzy set
-
-        Returns:
-            torch.Tensor: The defuzzified value
-        """
-        return self.defuzzify(m)
-
-
 class ShapeFuzzifier(Fuzzifier):
     """Define a conversion of multiple shapes to and from fuzzy sets
     """
@@ -156,6 +54,9 @@ class ShapeFuzzifier(Fuzzifier):
 
     def fuzzify(self, x: torch.Tensor) -> torch.Tensor:
         return self._composite.join(x)
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.fuzzify(x)
 
 
 class ShapeDefuzzifier(Defuzzifier):
@@ -941,7 +842,7 @@ class StepFuzzifier(ShapeFuzzifier):
         )
 
 
-class FuzzifierDecorator(ABC, Fuzzifier):
+class FuzzifierDecorator(Fuzzifier):
     """Define a decorator for the converter
     """
 
@@ -976,6 +877,9 @@ class FuzzifierDecorator(ABC, Fuzzifier):
             torch.Tensor: The resulting tensor
         """
         return self._fuzzifier.fuzzify(self.decorate_fuzzify(x))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.fuzzify(x)
 
 
 class DefuzzifierDecorator(ABC, Defuzzifier):
@@ -1024,7 +928,7 @@ class DefuzzifierDecorator(ABC, Defuzzifier):
             HypoWeight: The hypothesis and the weight
         """
         return self.decorate_defuzzify(self._defuzzifier.hypo(m))
-    
+
 
 class FuncFuzzifierDecorator(FuzzifierDecorator):
 
