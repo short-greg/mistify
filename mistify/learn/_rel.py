@@ -1,3 +1,4 @@
+from zenkai.kaku._io2 import IO as IO
 from ..infer import Or, And
 import torch.nn as nn
 import torch
@@ -7,6 +8,7 @@ from abc import abstractmethod, ABC
 from ..infer import LogicalNeuron
 # from zenkai.kikai import WrapNN, WrapState
 from typing_extensions import Self
+from zenkai import XCriterion, Criterion
 
 
 class Rel(nn.Module, ABC):
@@ -165,7 +167,7 @@ def align_sort(x1: torch.Tensor, x2: torch.Tensor, dim: int, descending: bool=Fa
     return x2.gather(dim, ind)
 
 
-class AlignLoss(nn.Module):
+class AlignLoss(XCriterion):
 
     def __init__(self, base_loss: nn.Module, neuron: LogicalNeuron, x_rel: Rel=None, w_rel: Rel=None, x_weight: float=1.0, w_weight: float=1.0):
         """Use the outputs using w_rel and x_rel as regularizers for the loss. 
@@ -187,17 +189,18 @@ class AlignLoss(nn.Module):
         self.x_weight = x_weight
         self.w_weight = w_weight
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: IO, y: IO, t: IO, reduction_override: str = None) -> torch.Tensor:
         """
 
         Args:
-            x (torch.Tensor): The input to the model
-            y (torch.Tensor): The output of the model
-            t (torch.Tensor): The target
+            x (IO): The input to the model
+            y (IO): The output of the model
+            t (IO): The target
 
         Returns:
             torch.Tensor: 
         """
+        x, y, t = x.f, y.f, t.f
         base_loss = self.base_loss(y, t)
         if self.x_rel is not None:
             x_rel = self.x_rel(self.neuron.w(), t)
@@ -211,7 +214,7 @@ class AlignLoss(nn.Module):
         return base_loss
 
 
-class RelLoss(nn.Module):
+class RelLoss(XCriterion):
 
     def __init__(self, base_loss: nn.Module, neuron: LogicalNeuron, x_rel: Rel=None, w_rel: Rel=None, x_weight: float=1.0, w_weight: float=1.0):
         """Use the outputs using w_rel and x_rel as regularizers for the loss
@@ -243,6 +246,7 @@ class RelLoss(nn.Module):
         Returns:
             torch.Tensor: _description_
         """
+        x, y, t = x.f, y.f, t.f
         base_loss = self.base_loss(y, t)
         if self.x_rel is not None:
             x_rel = self.x_rel(self.neuron.w(), t)

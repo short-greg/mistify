@@ -9,6 +9,7 @@ import zenkai
 from ..infer import Or, And, InterOnBase, UnionOnBase
 from zenkai.utils import checkattr
 
+
 class PostFit(object):
 
     @checkattr('postprocessor')

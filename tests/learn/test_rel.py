@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from mistify.learn import _rel
 from mistify.infer import MaxMin
+from zenkai import iou
 
 
 class TestMaxMinRel:
@@ -182,7 +183,7 @@ class TestRelLoss:
         y = max_min(x)
         t = torch.rand(6, 5)
 
-        cost = loss(x, y, t)
+        cost = loss(iou(x), iou(y), iou(t))
         assert cost.dim() == 0
 
     def test_rel_loss_computes_loss_without_w_rel(self):
@@ -198,7 +199,7 @@ class TestRelLoss:
         y = max_min(x)
         t = torch.rand(6, 5)
 
-        cost = loss(x, y, t)
+        cost = loss(iou(x), iou(y), iou(t))
         assert cost.dim() == 0
 
 
@@ -218,7 +219,7 @@ class TestAlignLoss:
         y = max_min(x)
         t = torch.rand(6, 5)
 
-        cost = loss(x, y, t)
+        cost = loss(iou(x), iou(y), iou(t))
         assert cost.dim() == 0
 
     def test_rel_loss_computes_loss_without_w_rel(self):
@@ -234,5 +235,5 @@ class TestAlignLoss:
         y = max_min(x)
         t = torch.rand(6, 5)
 
-        cost = loss(x, y, t)
+        cost = loss(iou(x), iou(y), iou(t))
         assert cost.dim() == 0
