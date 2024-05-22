@@ -24,15 +24,15 @@ class TestBasicSigmoidFuzzySytem:
                 hidden_terms (typing.List[int]): 
             """
             super().__init__()
-            self.converter = fuzzify.SigmoidFuzzyConverter.from_linspace(in_terms)
+            self.converter = fuzzify.SigmoidFuzzifier.from_linspace(in_terms)
 
             terms = [in_terms, *hidden_terms]
             self.fuzzy_layers = nn.ModuleList()
             for in_i, out_i in zip(terms[:-1], terms[1:]):
                 self.fuzzy_layers.append(neurons.Or(in_i, out_i, n_terms=in_features))
             self.hypothesis = nn.Sequential(*self.fuzzy_layers)
-            self.out_converter = fuzzify.SigmoidFuzzyConverter.from_linspace(hidden_terms[-1])
-            self.defuzzifier = fuzzify.ConverterDefuzzifier(self.out_converter)
+            self.out_converter = fuzzify.SigmoidFuzzifier.from_linspace(hidden_terms[-1])
+            self.defuzzifier = self.out_converter.defuzzifier()
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
             x = self.converter.forward(x)
@@ -67,7 +67,7 @@ class TestBasicSigmoidFuzzySytem2:
 
         def __init__(self, in_features: int, in_terms: int, hidden_variables: typing.List[int], out_features: typing.List[int]):
             super().__init__()
-            self.converter = fuzzify.SigmoidFuzzyConverter.from_linspace(in_terms)
+            self.converter = fuzzify.SigmoidFuzzifier.from_linspace(in_terms)
 
             variables = [in_terms * in_features, *hidden_variables]
             self.fuzzy_layers = nn.ModuleList()
@@ -75,8 +75,8 @@ class TestBasicSigmoidFuzzySytem2:
                 self.fuzzy_layers.append(neurons.Or(in_i, out_i))
             self.hypothesis = nn.Sequential(*self.fuzzy_layers)
             self._out_features = out_features
-            self.out_converter = fuzzify.SigmoidFuzzyConverter.from_linspace(hidden_variables[-1] // out_features)
-            self.defuzzifier = fuzzify.ConverterDefuzzifier(self.out_converter)
+            self.out_converter = fuzzify.SigmoidFuzzifier.from_linspace(hidden_variables[-1] // out_features)
+            self.defuzzifier = self.out_converter.defuzzifier()
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
             m = self.converter.forward(x)
@@ -115,7 +115,7 @@ class TestBasicTriangularFuzzySytem:
 
         def __init__(self, in_features: int, in_terms: int, hidden_variables: typing.List[int], out_features: typing.List[int]):
             super().__init__()
-            self.converter = fuzzify.TriangleFuzzyConverter(in_features, in_terms)
+            self.converter = fuzzify.TriangleFuzzifier(in_features, in_terms)
 
             variables = [in_terms * in_features, *hidden_variables]
             self.fuzzy_layers = nn.ModuleList()
@@ -123,7 +123,7 @@ class TestBasicTriangularFuzzySytem:
                 self.fuzzy_layers.append(neurons.Or(in_i, out_i))
             self.hypothesis = nn.Sequential(*self.fuzzy_layers)
             self._out_features = out_features
-            self.out_converter = fuzzify.TriangleFuzzyConverter(out_features, hidden_variables[-1] // out_features)
+            self.out_converter = fuzzify.TriangleFuzzifier(out_features, hidden_variables[-1] // out_features)
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
             m = self.converter.forward(x)
@@ -162,7 +162,7 @@ class TestBasicCrispSystem2:
 
         def __init__(self, in_features: int, in_terms: int, hidden_variables: typing.List[int], out_features: typing.List[int]):
             super().__init__()
-            self.converter = fuzzify.StepFuzzyConverter.from_linspace(in_terms)
+            self.converter = fuzzify.StepFuzzifier.from_linspace(in_terms)
 
             variables = [in_terms * in_features, *hidden_variables]
             self.fuzzy_layers = nn.ModuleList()
@@ -170,14 +170,14 @@ class TestBasicCrispSystem2:
                 self.fuzzy_layers.append(neurons.Or(in_i, out_i))
             self.hypothesis = nn.Sequential(*self.fuzzy_layers)
             self._out_features = out_features
-            self.out_converter = fuzzify.StepFuzzyConverter.from_linspace(hidden_variables[-1] // out_features)
+            self.out_converter = fuzzify.StepFuzzifier.from_linspace(hidden_variables[-1] // out_features)
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
             m = self.converter(x)
             m = m.reshape(m.shape[0], -1)
             m = self.hypothesis(m)
             m = m.reshape(m.shape[0], self._out_features, -1)
-            x = self.out_converter.defuzzify(m)
+            x = self.out_converter.defuzzifier()(m)
             return x
 
     def test_crisp_system_with_one_layer_outputs_correct_size(self):

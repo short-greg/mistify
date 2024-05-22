@@ -9,7 +9,8 @@ from ._conclude import (
 )
 from ._fuzzifiers import (
     Fuzzifier, 
-    EmbeddingFuzzifier
+    EmbeddingFuzzifier,
+    Defuzzifier
 )
 from ._hypo import (
     HypothesisEnum, 
@@ -23,18 +24,15 @@ from ._utils import (
     stride_coordinates
 )
 from ._converters import (
-    ConverterFuzzifier, 
-    FuzzyConverter, 
-    ConverterDefuzzifier, 
-    CompositeFuzzyConverter,  
-    LogisticFuzzyConverter, 
-    ConverterDecorator, 
-    FuncConverterDecorator,
-    TriangleFuzzyConverter, 
-    IsoscelesFuzzyConverter, 
-    TrapezoidFuzzyConverter,
-    IsoscelesTrapezoidFuzzyConverter,
-    SigmoidFuzzyConverter,
-    RampFuzzyConverter,
-    StepFuzzyConverter,
+    ShapeFuzzifier,  
+    LogisticFuzzifier, 
+    FuzzifierDecorator, 
+    FuncFuzzifierDecorator,
+    TriangleFuzzifier, 
+    IsoscelesFuzzifier, 
+    TrapezoidFuzzifier,
+    IsoscelesTrapezoidFuzzifier,
+    SigmoidFuzzifier,
+    RampFuzzifier,
+    StepFuzzifier,
 )
