@@ -17,6 +17,7 @@ from ._ops import (
     SmoothUnion, SmoothUnionOn
 )
 from .._functional._factory import OrF, AndF
+from .._base import Constrained
 
 
 WEIGHT_FACTORY = EnumFactory(
@@ -59,7 +60,7 @@ def validate_binary_weight(w: torch.Tensor, neg_value: float=0.0, pos_value: flo
     return ((w != neg_value) & (w != pos_value)).float().sum().item()
 
 
-class LogicalNeuron(nn.Module):
+class LogicalNeuron(nn.Module, Constrained):
 
     @abstractmethod
     def w(self) -> torch.Tensor:
@@ -138,6 +139,11 @@ class Or(LogicalNeuron):
         w = self.w()
         return self._f(m, w)
 
+    def constrain(self):
+        self.weight.data = torch.clamp(
+            self.weight.data, 0, 1
+        )
+
 
 class And(LogicalNeuron):
     """An And neuron implements a S-norm between the weights and the inputs 
@@ -206,6 +212,11 @@ class And(LogicalNeuron):
         """
         w = self.w()
         return self._f(m, w)
+
+    def constrain(self):
+        self.weight.data = torch.clamp(
+            self.weight.data, 0, 1
+        )
 
 
 class MaxMin(Or):

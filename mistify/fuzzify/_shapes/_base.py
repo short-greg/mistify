@@ -8,21 +8,22 @@ import torch.nn as nn
 
 # local
 from ...utils._utils import resize_to, unsqueeze
+from ..._base import Constrained
 
 
-class Shape(nn.Module):
+class Shape(nn.Module, Constrained):
     """Convert an input into a membership or vice-versa
     """
 
-    def __init__(self, n_variables: int, n_terms: int):
+    def __init__(self, n_vars: int, n_terms: int):
         """Create the shape
 
         Args:
-            n_variables (int): the number of linguistic variables
+            n_vars (int): the number of linguistic variables
             n_terms (int): the number of terms for each variable
         """
         super().__init__()
-        self._n_variables = n_variables
+        self._n_vars = n_vars
         self._n_terms = n_terms
         self._areas = None
 
@@ -36,12 +37,12 @@ class Shape(nn.Module):
         return self._n_terms
     
     @property
-    def n_variables(self) -> int:
+    def n_vars(self) -> int:
         """
         Returns:
             int: the number of variables for the shape
         """
-        return self._n_variables
+        return self._n_vars
 
     @abstractmethod
     def join(self, x: torch.Tensor) -> torch.Tensor:
@@ -58,7 +59,6 @@ class Shape(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
         return self.join(x)
-
 
     def _resize_to_m(self, x: torch.Tensor, m: torch.Tensor) -> torch.Tensor:
         """Convenience method to resize x to ahve the same batch size
@@ -86,19 +86,22 @@ class Shape(nn.Module):
                 f'is {x.size(1)} not 1')
         return x.repeat(repeat)
 
+    def constrain(self):
+        pass
+
 
 class Monotonic(Shape):
     """A nondecreasing or nonincreasing shape
     """
 
-    def __init__(self, n_variables: int, n_terms: int):
+    def __init__(self, n_vars: int, n_terms: int):
         """Create a shape
 
         Args:
-            n_variables (int): The number of 
+            n_vars (int): The number of 
             n_terms (int): The number of 
         """
-        super().__init__(n_variables, n_terms)
+        super().__init__(n_vars, n_terms)
         self._min_cores = None
 
     @abstractmethod
@@ -110,14 +113,14 @@ class Nonmonotonic(Shape):
     """A shape that has both an increasing and decreasing part
     """
 
-    def __init__(self, n_variables: int, n_terms: int):
+    def __init__(self, n_vars: int, n_terms: int):
         """
 
         Args:
-            n_variables (int): the number of linguistic variables
+            n_vars (int): the number of linguistic variables
             n_terms (int): the number of terms for each variable
         """
-        super().__init__(n_variables, n_terms)
+        super().__init__(n_vars, n_terms)
         self._mean_cores = None
         self._centroids = None
 
@@ -186,6 +189,21 @@ class ShapeParams(nn.Module):
     def device(self) -> torch.device:
         
         return self._x.device
+    
+    def constrain(self, eps: float=1e-7):
+
+        prev = None
+        for i in range(self.n_points):
+            if prev is not None:
+                if self._descending:
+                    self._x[...,prev].data = torch.clamp(
+                        self._x[...,prev], self._x[...,prev], self._x[...,i] - eps
+                    )
+                else:
+                    self._x[...,i].data = torch.clamp(
+                        self._x[...,i], self._x[...,prev] + eps, self._x[...,i]
+                    )
+            prev = i
 
     def pt(self, index: int) -> torch.Tensor:
         """Retrieve a given point in the shape parameters
@@ -238,7 +256,7 @@ class ShapeParams(nn.Module):
         return self._x.size(1)
 
     @property
-    def n_variables(self) -> int:
+    def n_vars(self) -> int:
         return self._x.size(1)
 
     @property
@@ -364,7 +382,7 @@ class Polygon(Nonmonotonic):
     """
     PT = None
 
-    def __init__(self, params: ShapeParams):
+    def __init__(self, coords: ShapeParams):
         """Create a polygon consisting of Nonmonotonic shapes
 
         Args:
@@ -374,11 +392,15 @@ class Polygon(Nonmonotonic):
         Raises:
             ValueError: If the number of points is not valid
         """
-        if params.x.size(3) != self.PT:
-            raise ValueError(f'Number of points must be {self.PT} not {params.x.size(3)}')
+        if coords.x.size(3) != self.PT:
+            raise ValueError(f'Number of points must be {self.PT} not {coords.x.size(3)}')
         
-        super().__init__(params.set_size, params.n_terms)
-        self._params = params
+        super().__init__(coords.set_size, coords.n_terms)
+        self._coords = coords
 
-    def params(self) -> ShapeParams:
-        return self._params()
+    def coords(self) -> ShapeParams:
+        return self._coords()
+
+    def constrain(self):
+        self._coords.constrain(self._eps)
+

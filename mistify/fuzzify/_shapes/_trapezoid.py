@@ -58,7 +58,7 @@ class Trapezoid(Polygon):
         Returns:
             torch.Tensor: The membership
         """
-        params = self.params()
+        params = self.coords()
         x = unsqueeze(x)
         # m1 = calc_m_linear_increasing(x, params.pt(0), params.pt(1), self._m)
         # m2 = calc_m_flat(x, params.pt(1), params.pt(2), self._m)
@@ -79,7 +79,7 @@ class Trapezoid(Polygon):
             torch.Tensor: Calculate the top length
         """
 
-        params = params or self.params()
+        params = params or self.coords()
         return (
             params.pt(3) - params.pt(0)
         )
@@ -92,7 +92,7 @@ class Trapezoid(Polygon):
         Returns:
             torch.Tensor: The bottom length
         """
-        params = params or self.params()
+        params = params or self.coords()
         return params.pt(2) - params.pt(1)
 
     def truncate(self, m: torch.Tensor) -> ShapeParams:
@@ -104,7 +104,7 @@ class Trapezoid(Polygon):
         Returns:
             torch.Tensor: Truncate the trapezoid
         """
-        params = self.params()
+        params = self.coords()
         new_pt1 = (params.pt(1) * (1 - m) + params.pt(0) * m)
         new_pt2 = params.pt(3) * m + params.pt(2) * (1 - m)
         params = params.replace(new_pt1, 1, to_unsqueeze=True)
@@ -124,7 +124,7 @@ class Trapezoid(Polygon):
         if truncate:
             params = self.truncate(m)
         else:
-            params = self.params()
+            params = self.coords()
             
         a = self.a(params)
         b = self.b(params)
@@ -141,7 +141,7 @@ class Trapezoid(Polygon):
         Returns:
             torch.Tensor: The mean cores of the trapezoid
         """
-        params = self._params()
+        params = self._coords()
         return self._resize_to_m(
              trapezoid_mean_core(params.pt(1), params.pt(2)),
              m
@@ -161,7 +161,7 @@ class Trapezoid(Polygon):
         if truncate:
             params = self.truncate(m)
         else:
-            params = self._params()
+            params = self._coords()
         
         a = self.a(params)
         b = self.b(params)
@@ -183,7 +183,7 @@ class IsoscelesTrapezoid(Polygon):
             torch.Tensor: The membership value of x
         """
         x = unsqueeze(x)
-        params = self.params()
+        params = self.coords()
         return functional.shape.isosceles_trapezoid(
             x, params.pt(0), params.pt(1), params.pt(2)
         )
@@ -197,7 +197,7 @@ class IsoscelesTrapezoid(Polygon):
         Returns:
             torch.Tensor: Calculate the top length
         """
-        params = params or self.params()
+        params = params or self.coords()
 
         dx = params.pt(1) - params.pt(0)
         return (
@@ -212,7 +212,7 @@ class IsoscelesTrapezoid(Polygon):
         Returns:
             torch.Tensor: Calculate the bottom length
         """
-        params = params or self.params()
+        params = params or self.coords()
         return params.pt(2) - params.pt(1)
 
     def truncate(self, m: torch.Tensor) -> ShapeParams:
@@ -224,7 +224,7 @@ class IsoscelesTrapezoid(Polygon):
         Returns:
             torch.Tensor: Truncate the trapezoid
         """
-        params = self._params()
+        params = self._coords()
         new_pt1 = (params.pt(0) * (1 - m) + params.pt(1) * m)
         new_pt2 = 2 * params.pt(2) - new_pt1
         params = params.replace(new_pt1, 1, to_unsqueeze=True)
@@ -244,7 +244,7 @@ class IsoscelesTrapezoid(Polygon):
         if truncate:
             params = self.truncate(m)
         else:
-            params = self._params()
+            params = self._coords()
             
         a = self.a(params)
         b = self.b(params)
@@ -261,7 +261,7 @@ class IsoscelesTrapezoid(Polygon):
         Returns:
             torch.Tensor: The mean cores of the trapezoid
         """
-        params = self._params()
+        params = self._coords()
         return self._resize_to_m(
             trapezoid_mean_core(params.pt(1), params.pt(2)), m
         )
@@ -280,13 +280,14 @@ class IsoscelesTrapezoid(Polygon):
         if truncate:
             params = self.truncate(m)
         else:
-            params = self._params()
+            params = self._coords()
         
         a = self.a(params)
         b = self.b(params)
         return self._resize_to_m(
             trapezoid_centroid(a, b, m), m
         )
+
 
 class RightTrapezoid(Polygon):
 
@@ -306,7 +307,7 @@ class RightTrapezoid(Polygon):
         Returns:
             torch.Tensor: The membership
         """
-        params = self.params()
+        params = self.coords()
         return functional.shape.right_trapezoid(
             unsqueeze(x), params.pt(0), params.pt(1), params.pt(2), self.increasing
         )
@@ -319,7 +320,7 @@ class RightTrapezoid(Polygon):
         Returns:
             torch.Tensor: Calculate the top length
         """
-        params = params or self.params()
+        params = params or self.coords()
         return (
             params.pt(2) - params.pt(0)
         )
@@ -332,7 +333,7 @@ class RightTrapezoid(Polygon):
         Returns:
             torch.Tensor: Calculate the bottom length
         """
-        params = params or self.params()
+        params = params or self.coords()
         if self.increasing:
 
             return params.pt(2) - params.pt(1)
@@ -347,7 +348,7 @@ class RightTrapezoid(Polygon):
         Returns:
             ShapeParams: The triangle points
         """
-        params = params or self.params()
+        params = params or self.coords()
 
         if self.increasing:
             return params.sub([0, 1])
@@ -364,7 +365,7 @@ class RightTrapezoid(Polygon):
         Returns:
             ShapeParams: The square points
         """
-        params = params or self.params()
+        params = params or self.coords()
 
         if self.increasing:
             return params.sub([1, 2])
@@ -379,7 +380,7 @@ class RightTrapezoid(Polygon):
         Returns:
             torch.Tensor: Truncate the trapezoid
         """
-        params = self._params()
+        params = self._coords()
         if self.increasing:
             new_pt = params.pt(0) * (1 - m)  + params.pt(1) * m
         else:
@@ -399,7 +400,7 @@ class RightTrapezoid(Polygon):
         if truncate:
             params = self.truncate(m)
         else:
-            params = self._params()
+            params = self._coords()
             
         a = self.a(params)
         b = self.b(params)
@@ -419,7 +420,7 @@ class RightTrapezoid(Polygon):
         if truncate:
             params = self.truncate(m)
         else:
-            params = self._params()
+            params = self._coords()
 
         pts = self.square_pts(params)
         return self._resize_to_m(
@@ -440,7 +441,7 @@ class RightTrapezoid(Polygon):
         if truncate:
             params = self.truncate(m)
         else:
-            params = self._params()
+            params = self._coords()
         
         a = self.a(params)
         b = self.b(params)

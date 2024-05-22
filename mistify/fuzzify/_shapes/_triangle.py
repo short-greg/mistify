@@ -62,7 +62,7 @@ class RightTriangle(Polygon):
 
     def truncate(self, m: torch.Tensor) -> ShapeParams:
 
-        params = self._params()
+        params = self._coords()
 
         if self.increasing:
             new_pt = params.pt(0) * m - params.pt(1) * (1 - m)
@@ -81,7 +81,7 @@ class RightTriangle(Polygon):
         Returns:
             torch.Tensor: The membership
         """
-        params = self._params()
+        params = self._coords()
         x = unsqueeze(x)
         return functional.shape.right_triangle(
             x, params.pt(0), params.pt(1), self.increasing
@@ -89,7 +89,7 @@ class RightTriangle(Polygon):
 
     def truncate(self, m: torch.Tensor) -> ShapeParams:
         
-        params = self._params()
+        params = self._coords()
 
         if self.increasing:
             new_pt = params.pt(0) * (1 - m) + params.pt(1) * m
@@ -110,7 +110,7 @@ class RightTriangle(Polygon):
             b = params.pt(2) - params.pt(0)
             return trapezoid_area(a, b, m)
         else:
-            params = self._params()
+            params = self._coords()
             
         return triangle_area(params.pt(0), params.pt(1), m)
     
@@ -126,7 +126,7 @@ class RightTriangle(Polygon):
                 trapezoid_mean_core(params.pt(0), params.pt(1)), m
             )
 
-        params = self._params()
+        params = self._coords()
         if self.increasing:
             return self._resize_to_m(params.pt(1), m)
         return self._resize_to_m(params.pt(0), m)
@@ -141,7 +141,7 @@ class RightTriangle(Polygon):
                 a = params.pt(1) - params.pt(0)
             b = params.pt(2) - params.pt(0)
             return trapezoid_centroid(a, b, m)
-        params = self._params()
+        params = self._coords()
         
         return self._resize_to_m(
             triangle_right_centroid(params.pt(0), params.pt(1), self.increasing), m
@@ -162,7 +162,7 @@ class Triangle(Polygon):
         Returns:
             torch.Tensor: The membership
         """
-        params = self._params()
+        params = self._coords()
         x = unsqueeze(x)
         return functional.shape.triangle(
             x, params.pt(0), params.pt(1), params.pt(2)
@@ -170,7 +170,7 @@ class Triangle(Polygon):
 
     def truncate(self, m: torch.Tensor) -> ShapeParams:
 
-        params = self._params()
+        params = self._coords()
 
         new_pt1 = params.pt(0) * (1 - m) - params.pt(1) * m
         new_pt2 = params.pt(1) * (m) - params.pt(2) * (1 - m)
@@ -187,7 +187,7 @@ class Triangle(Polygon):
             return self._resize_to_m(
                 trapezoid_area(a, b, m), m
             )
-        params = self._params()
+        params = self._coords()
 
         return self._resize_to_m(
             triangle_area(params.pt(0), params.pt(2), m), m
@@ -201,7 +201,7 @@ class Triangle(Polygon):
                 trapezoid_mean_core(params.pt(1), params.pt(2)), m
             )
         return self._resize_to_m(
-            self._params().pt(1), m
+            self._coords().pt(1), m
         )
 
     def centroids(self, m: torch.Tensor, truncate: bool = False) -> torch.Tensor:
@@ -213,7 +213,7 @@ class Triangle(Polygon):
             return self._resize_to_m(
                 trapezoid_centroid(a, b, m), m
             )
-        params = self._params()
+        params = self._coords()
 
         return self._resize_to_m(
             triangle_centroid(params.pt(0), params.pt(1), params.pt(2)), m
@@ -234,7 +234,7 @@ class IsoscelesTriangle(Polygon):
         Returns:
             torch.Tensor: The membership value of x
         """
-        params = self._params()
+        params = self._coords()
         x = unsqueeze(x)
         return functional.shape.isosceles(
             x, params.pt(0), params.pt(1)
@@ -242,7 +242,7 @@ class IsoscelesTriangle(Polygon):
 
     def truncate(self, m: torch.Tensor) -> ShapeParams:
 
-        params = self._params()
+        params = self._coords()
         new_pt1 = (params.pt(1) * (1 - m) - params.pt(0)) * m
         new_pt2 = 2 * params.pt(1) - new_pt1
         params = params.replace(new_pt1, 1, to_unsqueeze=True)
@@ -257,7 +257,7 @@ class IsoscelesTriangle(Polygon):
             b = 2 * params.pt(2) - params.pt(1) - params.pt(0)
             return trapezoid_area(a, b, m)
 
-        params = self._params()
+        params = self._coords()
         return triangle_area(
             params.pt(0), params.pt(1), m
         )
@@ -270,7 +270,7 @@ class IsoscelesTriangle(Polygon):
             return self._resize_to_m(
                 0.5 * (params.pt(2) + params.pt(1)), m)
 
-        params = self._params()
+        params = self._coords()
         return self._resize_to_m(
             (params.pt(1) + params.pt(0)) * 0.5, m
         )
@@ -284,7 +284,7 @@ class IsoscelesTriangle(Polygon):
             return self._resize_to_m(
                 (params.pt(2) + params.pt(1)) * 0.5
             )
-        params = self._params()
+        params = self._coords()
         
         return self._resize_to_m(
             params.pt(1), m

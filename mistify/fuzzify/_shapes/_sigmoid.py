@@ -21,7 +21,7 @@ class Sigmoid(Monotonic):
             scales (ShapeParams): The scales for the sigmoid function
         """
         super().__init__(
-            biases.n_variables,
+            biases.n_vars,
             biases.n_terms
         )
         self._biases = biases

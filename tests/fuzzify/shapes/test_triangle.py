@@ -147,8 +147,8 @@ class TestTriangle(object):
         (m - t).pow(2).sum().backward()
         optim.step()
 
-        p = triangle.params()
-        assert (triangle._params.x[:,:,:,:-1] >= triangle._params.x[:,:,:,1:]).any()
+        p = triangle.coords()
+        assert (triangle._coords.x[:,:,:,:-1] >= triangle._coords.x[:,:,:,1:]).any()
         assert (p.x[:,:,:,:-1] < p.x[:,:,:,1:]).all()
 
     def test_mean_core_returns_tensor_with_correct_size(self):

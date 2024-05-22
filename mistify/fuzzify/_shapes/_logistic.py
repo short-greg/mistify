@@ -150,7 +150,7 @@ class Logistic(Nonmonotonic):
             scales (ShapeParams): The scale value for the distribution
         """
         super().__init__(
-            biases.n_variables,
+            biases.n_vars,
             biases.n_terms
         )
         self._biases = biases

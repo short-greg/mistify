@@ -20,7 +20,7 @@ class TestShapeParams:
     def test_n_variables_is_correct_value(self):
         x = torch.rand(2, 3, 4, 5)
         params = fuzzify.ShapeParams(x)
-        assert params.n_variables == 3
+        assert params.n_vars == 3
 
     def test_n_terms_is_correct_value(self):
         x = torch.rand(2, 3, 4, 5)

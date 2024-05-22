@@ -171,7 +171,7 @@ class Gaussian(Nonmonotonic):
             m (torch.Tensor, optional): The max membership. Defaults to None.
         """
         super().__init__(
-            biases.n_variables,
+            biases.n_vars,
             biases.n_terms
         )
         self._biases = biases

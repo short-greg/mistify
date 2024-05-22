@@ -81,7 +81,7 @@ def ramp(x: torch.Tensor, lower: torch.Tensor, upper: torch.Tensor, g: G=None) -
     Returns:
         torch.Tensor: The ramped 
     """
-    scaled = (x - lower) / (upper - upper)
+    scaled = (x - lower) / (upper - lower + 1e-5)
     return clamp(scaled, 0.0, 1.0, g)
 
 

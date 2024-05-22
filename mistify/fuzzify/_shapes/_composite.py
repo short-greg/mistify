@@ -5,7 +5,7 @@ import typing
 import torch
 
 # local
-from ._base import Shape, Nonmonotonic, Monotonic
+from ._base import Nonmonotonic, Monotonic
 
 
 class Composite(Nonmonotonic, Monotonic):
@@ -18,15 +18,15 @@ class Composite(Nonmonotonic, Monotonic):
         though
         """
         n_terms = 0
-        n_variables = -1
+        n_vars = -1
         for shape in shapes:
             n_terms += shape.n_terms
-            if n_variables == -1:
-                n_variables = shape.n_variables
+            if n_vars == -1:
+                n_vars = shape.n_vars
             else:
-                if n_variables != shape.n_variables:
+                if n_vars != shape.n_vars:
                     raise ValueError('Number of variables must be the same for all shapes')
-        super().__init__(n_variables=n_variables, n_terms=n_terms)
+        super().__init__(n_vars=n_vars, n_terms=n_terms)
         self._shapes = shapes
 
     @property
@@ -69,3 +69,8 @@ class Composite(Nonmonotonic, Monotonic):
         return torch.cat(
             [shape.centroids(m, truncate) for shape in self._shapes], dim=-1
         )
+
+    def constrain(self):
+        
+        for shape in self._shapes:
+            shape.constrain()

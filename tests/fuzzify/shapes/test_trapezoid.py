@@ -142,8 +142,8 @@ class TestTrapezoid(object):
         (m - t).pow(2).sum().backward()
         optim.step()
 
-        p = trapezoid.params()
-        assert (trapezoid._params.x[:,:,:,:-1] >= trapezoid._params.x[:,:,:,1:]).any()
+        p = trapezoid.coords()
+        assert (trapezoid._coords.x[:,:,:,:-1] >= trapezoid._coords.x[:,:,:,1:]).any()
         assert (p.x[:,:,:,:-1] < p.x[:,:,:,1:]).all()
 
 class TestIsoscelesTrapezoid(object):

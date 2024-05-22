@@ -17,9 +17,10 @@ from ._utils import stride_coordinates, generate_repeat_params, generate_spaced_
 from .._shapes import Shape, ShapeParams, Composite
 from ._conclude import HypoM, Conclusion, ConcEnum
 from ._fuzzifiers import Fuzzifier, Defuzzifier
+from ..._base import Constrained
 
 
-class ShapeFuzzifier(Fuzzifier):
+class ShapeFuzzifier(Fuzzifier, Constrained):
     """Define a conversion of multiple shapes to and from fuzzy sets
     """
 
@@ -35,7 +36,7 @@ class ShapeFuzzifier(Fuzzifier):
         """
         composite = Composite(shapes)
         super().__init__(
-            composite.n_terms, composite.n_variables
+            composite.n_terms, composite.n_vars
         )
         
         self._composite = composite
@@ -58,6 +59,9 @@ class ShapeFuzzifier(Fuzzifier):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.fuzzify(x)
 
+    def constrain(self):
+        self._composite.constrain()
+
 
 class ShapeDefuzzifier(Defuzzifier):
 
@@ -65,7 +69,7 @@ class ShapeDefuzzifier(Defuzzifier):
         self, composite: Composite, hypothesis: ShapeHypothesis='area', 
         conclusion: Conclusion='max', truncate: bool=False
     ):
-        super().__init__(composite.n_terms, composite.n_variables)
+        super().__init__(composite.n_terms, composite.n_vars)
         self._composite = composite
         self._hypothesis = HypothesisEnum.get(hypothesis)
         self._conclusion = ConcEnum.get(conclusion, self._n_terms, self._n_vars)
@@ -198,7 +202,7 @@ class IsoscelesFuzzifier(ShapeFuzzifier):
     @classmethod
     def from_coords(
         cls, coords: torch.Tensor, n_terms: int,
-        flat_edges: bool=False, 
+        flat_edges: bool=False, tunable: bool=False
     ) -> 'IsoscelesFuzzifier':
         """Create the IsoscelesFuzzifier converter from coordinates
 
@@ -212,22 +216,22 @@ class IsoscelesFuzzifier(ShapeFuzzifier):
         """
         middle = None
         if flat_edges:
-            left = shape.RightTrapezoid(ShapeParams(coords[:,:,None,:3]), False)
+            left = shape.RightTrapezoid(ShapeParams(coords[:,:,None,:3], tunable), False)
             if n_terms > 2:
-                middle = shape.IsoscelesTriangle(ShapeParams(stride_coordinates(coords[:,:,1:-1], n_terms - 2, 1, 2)))
-            right = shape.RightTrapezoid(ShapeParams(coords[:,:,None,-3:]), True)
+                middle = shape.IsoscelesTriangle(ShapeParams(stride_coordinates(coords[:,:,1:-1], n_terms - 2, 1, 2), tunable))
+            right = shape.RightTrapezoid(ShapeParams(coords[:,:,None,-3:], tunable), True)
 
         else:
-            left = shape.RightTriangle(ShapeParams(coords[:,:,None,:2]), False)
+            left = shape.RightTriangle(ShapeParams(coords[:,:,None,:2], tunable), False)
             if n_terms > 2:
-                middle = shape.IsoscelesTriangle(ShapeParams(stride_coordinates(coords, n_terms - 2, 1, 2)))
-            right = shape.RightTriangle(ShapeParams(coords[:,:,None,-2:]), True)
+                middle = shape.IsoscelesTriangle(ShapeParams(stride_coordinates(coords, n_terms - 2, 1, 2), tunable))
+            right = shape.RightTriangle(ShapeParams(coords[:,:,None,-2:], tunable), True)
         return IsoscelesFuzzifier(left, right, middle)
 
     @classmethod
     def from_linspace(
         cls, n_terms: int, 
-        flat_edges: bool=False, 
+        flat_edges: bool=False, tunable: bool=False
     ) -> 'IsoscelesFuzzifier':
         """Create the IsoscelesFuzzy converter from coordinates
 
@@ -244,7 +248,7 @@ class IsoscelesFuzzifier(ShapeFuzzifier):
             coords = generate_spaced_params(n_terms)
         return IsoscelesFuzzifier.from_coords(
             coords, n_terms, 
-            flat_edges
+            flat_edges, tunable
         )
 
 
@@ -290,7 +294,7 @@ class IsoscelesTrapezoidFuzzifier(ShapeFuzzifier):
     @classmethod
     def from_coords(
         cls, coords: torch.Tensor, n_terms: int,
-        flat_edges: bool=False, 
+        flat_edges: bool=False, tunable: bool=False
     ):
         """Create the IsoscelesTrapezoidFuzzifier converter from coordinates
 
@@ -304,22 +308,22 @@ class IsoscelesTrapezoidFuzzifier(ShapeFuzzifier):
         """
         middle = None
         if flat_edges:
-            left = shape.RightTrapezoid(ShapeParams(coords[:,:,None,:3]), False)
+            left = shape.RightTrapezoid(ShapeParams(coords[:,:,None,:3], tunable), False)
             if n_terms > 2:
-                middle = shape.IsoscelesTrapezoid(ShapeParams(stride_coordinates(coords[:,:,1:-1], n_terms - 2, 2, 3)))
-            right = shape.RightTrapezoid(ShapeParams(coords[:,:,None,-3:]), True)
+                middle = shape.IsoscelesTrapezoid(ShapeParams(stride_coordinates(coords[:,:,1:-1], n_terms - 2, 2, 3), tunable))
+            right = shape.RightTrapezoid(ShapeParams(coords[:,:,None,-3:], tunable), True)
         else:
-            left = shape.RightTriangle(ShapeParams(coords[:,:,None,:2]), False)
+            left = shape.RightTriangle(ShapeParams(coords[:,:,None,:2], tunable), False)
             if n_terms > 2:
-                middle = shape.IsoscelesTrapezoid(ShapeParams(stride_coordinates(coords, n_terms - 2, 2, 3)))
-            right = shape.RightTriangle(ShapeParams(coords[:,:,None,-2:]), True)
+                middle = shape.IsoscelesTrapezoid(ShapeParams(stride_coordinates(coords, n_terms - 2, 2, 3), tunable))
+            right = shape.RightTriangle(ShapeParams(coords[:,:,None,-2:], tunable), True)
 
         return IsoscelesTrapezoidFuzzifier(left, right, middle)
 
     @classmethod
     def from_linspace(
         cls, n_terms: int, 
-        flat_edges: bool=False, 
+        flat_edges: bool=False, tunable: bool=False
     ) -> 'IsoscelesTrapezoidFuzzifier':
         """Create the IsoscelesTrapezoidFuzzifierconverter from coordinates
 
@@ -336,7 +340,7 @@ class IsoscelesTrapezoidFuzzifier(ShapeFuzzifier):
             coords = generate_spaced_params((n_terms - 2) * 2 + 2)
         return IsoscelesTrapezoidFuzzifier.from_coords(
             coords, n_terms, 
-            flat_edges
+            flat_edges, tunable
         )
 
 
@@ -361,16 +365,17 @@ class TrapezoidFuzzifier(ShapeFuzzifier):
     @classmethod
     def create(
         cls, left: torch.Tensor, right: torch.Tensor, middle: torch.Tensor=None, 
+        tunable: bool=False
     ):
         left, right, middle = validate_terms(left, right, middle)
         validate_n_points(middle, n_points=4)
         validate_right_trapezoid(left, right)
         left_shape = shape.RightTrapezoid if flat_edges(left, 2) else shape.RightTriangle
         right_shape = shape.RightTrapezoid if flat_edges(left, 2) else shape.RightTriangle
-        left_shape = left_shape(ShapeParams(left), False)
-        right_shape = right_shape(ShapeParams(right), True)
+        left_shape = left_shape(ShapeParams(left, tunable), False)
+        right_shape = right_shape(ShapeParams(right, tunable), True)
         if middle is not None:
-            middle = shape.Trapezoid(ShapeParams(middle))
+            middle = shape.Trapezoid(ShapeParams(middle, tunable))
         return TrapezoidFuzzifier(
             left, right, middle
         )
@@ -378,7 +383,7 @@ class TrapezoidFuzzifier(ShapeFuzzifier):
     @classmethod
     def from_coords(
         cls, coords: torch.Tensor, n_terms: int,
-        flat_edges: bool=False, 
+        flat_edges: bool=False, tunable: bool=False
     ):
         """Create the TrapezoidFuzzifier converter from coordinates
 
@@ -392,22 +397,22 @@ class TrapezoidFuzzifier(ShapeFuzzifier):
         """
         middle = None
         if flat_edges:
-            left = shape.RightTrapezoid(ShapeParams(coords[:,:,None,:3]), False)
+            left = shape.RightTrapezoid(ShapeParams(coords[:,:,None,:3], tunable), False)
             if n_terms > 2:
-                middle = shape.Trapezoid(ShapeParams(stride_coordinates(coords[:,:,1:-1], n_terms - 2, 2, 4)))
-            right = shape.RightTrapezoid(ShapeParams(coords[:,:,None,-3:]), True)
+                middle = shape.Trapezoid(ShapeParams(stride_coordinates(coords[:,:,1:-1], n_terms - 2, 2, 4), tunable))
+            right = shape.RightTrapezoid(ShapeParams(coords[:,:,None,-3:], tunable), True)
         else:
-            left = shape.RightTriangle(ShapeParams(coords[:,:,None,:2]), False)
+            left = shape.RightTriangle(ShapeParams(coords[:,:,None,:2], tunable), False)
             if n_terms > 2:
-                middle = shape.Trapezoid(ShapeParams(stride_coordinates(coords, n_terms - 2, 2, 4)))
-            right = shape.RightTriangle(ShapeParams(coords[:,:,None,-2:]), True)
+                middle = shape.Trapezoid(ShapeParams(stride_coordinates(coords, n_terms - 2, 2, 4), tunable))
+            right = shape.RightTriangle(ShapeParams(coords[:,:,None,-2:], tunable), True)
 
         return TrapezoidFuzzifier(left, right, middle)
 
     @classmethod
     def from_linspace(
         cls, n_terms: int, 
-        flat_edges: bool=False,
+        flat_edges: bool=False, tunable: bool=False
     ):
         """Create the TrapezoidFuzzifier converter from coordinates
 
@@ -424,7 +429,7 @@ class TrapezoidFuzzifier(ShapeFuzzifier):
             coords = generate_spaced_params((n_terms - 2) * 2 + 2)
         return TrapezoidFuzzifier.from_coords(
             coords, n_terms,
-            flat_edges
+            flat_edges, tunable
         )
 
 
@@ -449,16 +454,17 @@ class TriangleFuzzifier(ShapeFuzzifier):
     @classmethod
     def create(
         cls, left: torch.Tensor, right: torch.Tensor, middle: torch.Tensor=None, 
+        tunable: bool=False
     ):
         left, right, middle = validate_terms(left, right, middle)
         validate_n_points(middle, n_points=3)
         validate_right_trapezoid(left, right)
         left_shape = shape.RightTrapezoid if flat_edges(left, 2) else shape.RightTriangle
         right_shape = shape.RightTrapezoid if flat_edges(left, 2) else shape.RightTriangle
-        left_shape = left_shape(ShapeParams(left), False)
-        right_shape = right_shape(ShapeParams(right), True)
+        left_shape = left_shape(ShapeParams(left, tunable), False)
+        right_shape = right_shape(ShapeParams(right, tunable), True)
         if middle is not None:
-            middle = shape.Triangle(ShapeParams(middle))
+            middle = shape.Triangle(ShapeParams(middle, tunable))
         return TriangleFuzzifier(
             left, right, middle
         )
@@ -466,7 +472,7 @@ class TriangleFuzzifier(ShapeFuzzifier):
     @classmethod
     def from_coords(
         cls, coords: torch.Tensor, n_terms: int,
-        flat_edges: bool=False, 
+        flat_edges: bool=False, tunable: bool=False
     ):
         """Create the TriangleFuzzifier converter from coordinates
 
@@ -480,22 +486,22 @@ class TriangleFuzzifier(ShapeFuzzifier):
         """
         middle = None
         if flat_edges:
-            left = shape.RightTrapezoid(ShapeParams(coords[:,:,None,:3]), False)
+            left = shape.RightTrapezoid(ShapeParams(coords[:,:,None,:3], tunable), False)
             if n_terms > 2:
-                middle = shape.Triangle(ShapeParams(stride_coordinates(coords[:,:,1:-1], n_terms - 2, 1, 3)))
-            right = shape.RightTrapezoid(ShapeParams(coords[:,:,None,-3:]), True)
+                middle = shape.Triangle(ShapeParams(stride_coordinates(coords[:,:,1:-1], n_terms - 2, 1, 3), tunable))
+            right = shape.RightTrapezoid(ShapeParams(coords[:,:,None,-3:], tunable), True)
 
         else:
-            left = shape.RightTriangle(ShapeParams(coords[:,:,None,:2]), False)
+            left = shape.RightTriangle(ShapeParams(coords[:,:,None,:2], tunable), False)
             if n_terms > 2:
-                middle = shape.Triangle(ShapeParams(stride_coordinates(coords, n_terms - 2, 1, 3)))
-            right = shape.RightTriangle(ShapeParams(coords[:,:,None,-2:]), True)
+                middle = shape.Triangle(ShapeParams(stride_coordinates(coords, n_terms - 2, 1, 3), tunable))
+            right = shape.RightTriangle(ShapeParams(coords[:,:,None,-2:], tunable), True)
         return TriangleFuzzifier(left, right, middle)
 
     @classmethod
     def from_linspace(
         cls, n_terms: int,
-        flat_edges: bool=False
+        flat_edges: bool=False, tunable: bool=False
     ):
         """Create the TriangleFuzzifier converter from coordinates
 
@@ -512,7 +518,7 @@ class TriangleFuzzifier(ShapeFuzzifier):
             coords = generate_spaced_params(n_terms)
         return TriangleFuzzifier.from_coords(
             coords, n_terms,
-            flat_edges
+            flat_edges, tunable
         )
 
 
@@ -533,30 +539,30 @@ class SquareFuzzifier(ShapeFuzzifier):
 
     @classmethod
     def create(
-        cls, params: torch.Tensor, 
+        cls, params: torch.Tensor, tunable: bool=False
     ):
         params = validate_terms(params)
         
         validate_n_points(params, n_points=2)
-        params = shape.Square(ShapeParams(params))
+        params = shape.Square(ShapeParams(params, tunable))
         return SquareFuzzifier(
             params, 
         )
 
     @classmethod
     def from_coords(
-        cls, coords: torch.Tensor, n_terms: int,
+        cls, coords: torch.Tensor, n_terms: int, tunable: bool=False
     ):
-        square = shape.Square(ShapeParams(stride_coordinates(coords[:,:,:], n_terms, 2, 2)))
+        square = shape.Square(ShapeParams(stride_coordinates(coords[:,:,:], n_terms, 2, 2), tunable))
         return SquareFuzzifier(square)
 
     @classmethod
     def from_linspace(
-        cls, n_terms: int
+        cls, n_terms: int, tunable: bool=False
     ):
         coords = generate_spaced_params(n_terms + 1)
         return SquareFuzzifier.from_coords(
-            coords, n_terms
+            coords, n_terms, tunable
         )
 
 
@@ -577,7 +583,6 @@ class LogisticFuzzifier(ShapeFuzzifier):
         super().__init__(
             polygon_set(left, middle, right)
         )
-
     
     @classmethod
     def create(
@@ -599,30 +604,31 @@ class LogisticFuzzifier(ShapeFuzzifier):
     @classmethod
     def from_coords(
         cls, bias_coords: torch.Tensor, scale_coords: torch.Tensor, n_terms: int,
+        tunable: bool=False
     ):
         middle = None
         left = shape.HalfLogisticBell(
-            ShapeParams(bias_coords[:,:,None,0:1]), 
-            ShapeParams(scale_coords[:,:,None,0:1]), 
+            ShapeParams(bias_coords[:,:,None,0:1], tunable), 
+            ShapeParams(scale_coords[:,:,None,0:1], tunable), 
             False
         )
         if n_terms > 2:
             middle = shape.LogisticBell(
-                ShapeParams(bias_coords[:,:,1:-1,None]), ShapeParams(scale_coords[:,:,1:-1,None])
+                ShapeParams(bias_coords[:,:,1:-1,None],tunable), ShapeParams(scale_coords[:,:,1:-1,None], tunable)
             )
-        right = shape.HalfLogisticBell(ShapeParams(bias_coords[:,:,-1:,None]), ShapeParams(scale_coords[:,:,-1:,None]), True)
+        right = shape.HalfLogisticBell(ShapeParams(bias_coords[:,:,-1:,None], tunable), ShapeParams(scale_coords[:,:,-1:,None], tunable), True)
 
         return LogisticFuzzifier(left, right, middle)
 
     @classmethod
     def from_linspace(
-        cls, n_terms: int
+        cls, n_terms: int, tunable: bool=False
     ):
         bias_coords = generate_spaced_params(n_terms)
         width = 1.0 / 2 * (n_terms - 1.0)
         scale_coords = generate_repeat_params(n_terms, width)
         return LogisticFuzzifier.from_coords(
-            bias_coords, scale_coords, n_terms
+            bias_coords, scale_coords, n_terms, tunable
         )
 
 
@@ -646,7 +652,7 @@ class SigmoidFuzzifier(ShapeFuzzifier):
         if isinstance(scales, float):
 
             scales = ShapeParams(
-                generate_repeat_params(biases_params.n_terms, scales, biases_params.n_variables)
+                generate_repeat_params(biases_params.n_terms, scales, biases_params.n_vars), tunable
             )
         sigmoid = shape.Sigmoid(biases, scales)
         return SigmoidFuzzifier(
@@ -655,23 +661,24 @@ class SigmoidFuzzifier(ShapeFuzzifier):
 
     @classmethod
     def from_coords(
-        cls, bias_coords: torch.Tensor, scale_coords: torch.Tensor
+        cls, bias_coords: torch.Tensor, scale_coords: torch.Tensor,
+        tunable: bool=False
     ):
         sigmoid = shape.Sigmoid(
-            ShapeParams(bias_coords[:,:,:,None]), ShapeParams(scale_coords[:,:,:,None])
+            ShapeParams(bias_coords[:,:,:,None], tunable), ShapeParams(scale_coords[:,:,:,None], tunable)
         )
         return SigmoidFuzzifier(sigmoid)
 
     @classmethod
     def from_linspace(
-        cls, n_terms: int
+        cls, n_terms: int, tunable: bool=False
     ):
         bias_coords = generate_spaced_params(n_terms + 2)[:,:,1:-1]
         width = 1.0 / (2 * (n_terms + 1))
         scale_coords = generate_repeat_params(n_terms, width)
 
         return SigmoidFuzzifier.from_coords(
-            bias_coords, scale_coords
+            bias_coords, scale_coords, tunable
         )
 
     def defuzzifier(
@@ -716,7 +723,7 @@ class RampFuzzifier(ShapeFuzzifier):
 
     @classmethod
     def from_coords(
-        cls, coords: torch.Tensor, n_terms: int,
+        cls, coords: torch.Tensor, n_terms: int, tunable: bool=False
     ) -> 'RampFuzzifier':
         """Create the converter from coordinates. Each ramp function uses two coordinates with a stride of two
 
@@ -729,27 +736,25 @@ class RampFuzzifier(ShapeFuzzifier):
         """
         
         ramp = shape.Ramp(
-            ShapeParams(stride_coordinates(coords, n_terms, 1, 2, 2))
+            ShapeParams(stride_coordinates(coords, n_terms, 1, 2, 2), tunable)
         )
         return RampFuzzifier(ramp)
 
     @classmethod
     def from_linspace(
-        cls, n_terms: int, 
+        cls, n_terms: int, tunable: bool=False
     ) -> 'RampFuzzifier':
         """Create the converter from a linspace with n terms
 
         Args:
             n_terms (int): The number of terms for the fuzzy converter
-            hypothesis (typing.Union[ShapeHypothesis, str], optional): The hypothesis function. Defaults to "min_core".
-            conclusion (typing.Union[Conclusion, str], optional): The conclusion function for the ramp function. Defaults to "max".
 
         Returns:
             RampFuzzifier The resulting Fuzzifier using ramp functions
         """
         coords = generate_spaced_params(n_terms + 2)
         return RampFuzzifier.from_coords(
-            coords, n_terms,
+            coords, n_terms, tunable
         )
 
     def defuzzifier(
@@ -796,7 +801,7 @@ class StepFuzzifier(ShapeFuzzifier):
 
     @classmethod
     def from_coords(
-        cls, coords: torch.Tensor, n_terms: int,
+        cls, coords: torch.Tensor, n_terms: int, tunable: bool=False
     ) -> 'StepFuzzifier':
         """Create the StepFuzzifier from coordinates
 
@@ -808,13 +813,13 @@ class StepFuzzifier(ShapeFuzzifier):
             StepFuzzifier: the created StepFuzzifier
         """
         step = shape.Step(
-            ShapeParams(stride_coordinates(coords, n_terms, 1, 1, 1))
+            ShapeParams(stride_coordinates(coords, n_terms, 1, 1, 1), tunable)
         )
         return StepFuzzifier(step)
 
     @classmethod
     def from_linspace(
-        cls, n_terms: int
+        cls, n_terms: int, tunable: bool=False
     ) -> 'StepFuzzifier':
         """Create the StepFuzzifier from coordinates
 
@@ -827,7 +832,7 @@ class StepFuzzifier(ShapeFuzzifier):
         coords = generate_spaced_params(n_terms + 2)[:,:,1:-1]
         
         return StepFuzzifier.from_coords(
-            coords, n_terms
+            coords, n_terms, tunable
         )
 
     def defuzzifier(

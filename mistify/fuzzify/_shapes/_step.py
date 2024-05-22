@@ -23,7 +23,7 @@ class Step(Monotonic):
             threshold (ShapeParams): The threshold where the step occurs
         """
         super().__init__(
-            threshold.n_variables,
+            threshold.n_vars,
             threshold.n_terms
         )
         self._threshold = threshold

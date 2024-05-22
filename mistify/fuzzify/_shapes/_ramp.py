@@ -26,7 +26,7 @@ class Ramp(Monotonic):
         """
 
         super().__init__(
-            coords.n_variables,
+            coords.n_vars,
             coords.n_terms
         )
         self._coords = coords
@@ -53,6 +53,10 @@ class Ramp(Monotonic):
             params.sub((0, 1))
         )
 
+    def constrain(self):
+
+        self._coords.constrain(self._eps)
+
     def join(self, x: torch.Tensor) -> torch.Tensor:
         """Join calculates the membership value for each section of Ramp and uses the maximimum value
         as the value
@@ -64,10 +68,12 @@ class Ramp(Monotonic):
             torch.Tensor: The membership
         """
         x = unsqueeze(x)
-        return functional.ramp(x, self._coords.pt(0), self._coords.pt(1))
+        coords = self._coords()
+        return functional.ramp(x, coords.pt(0), coords.pt(1))
 
     def min_cores(self, m: torch.Tensor) -> torch.Tensor:
-        """Calculate the minimum x for which m is a maximum
+        """Calculates an average of the two points disregarding
+        other points (min support + min core)
 
         Args:
             m (torch.Tensor): The membership
@@ -75,4 +81,6 @@ class Ramp(Monotonic):
         Returns:
             torch.Tensor: The "min core"
         """
-        return self._coords.pt(0) * (1 - m) - self._coords.pt(0) * m
+        coords = self._coords()
+        # print(coords.pt(1)[0, 0], coords.pt(0)[0, 0])
+        return coords.pt(1) * (1 - m) + coords.pt(0) * m
