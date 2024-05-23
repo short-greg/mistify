@@ -1,5 +1,5 @@
 import torch
-from mistify.fuzzify import ShapeParams, Square
+from mistify.fuzzify import Coords, Square
 
 
 class TestSquare(object):
@@ -10,7 +10,7 @@ class TestSquare(object):
         x = torch.rand(2, 3)
 
         square = Square(
-            ShapeParams(p)
+            Coords(p)
         )
         m = square.join(x)
         assert m.data.size() == torch.Size([2, 3, 4])
@@ -30,7 +30,7 @@ class TestSquare(object):
         p = torch.rand(3, 4, 2).cumsum(2)
         m = torch.rand(2, 3, 4)
         square = Square(
-            ShapeParams(p)
+            Coords(p)
         )
         mean_cores = square.mean_cores(m, False)
         assert mean_cores.shape == torch.Size([2, 3, 4])
@@ -40,7 +40,7 @@ class TestSquare(object):
         p = torch.rand(3, 4, 2).cumsum(2)
         m = torch.rand(2, 3, 4)
         square = Square(
-            ShapeParams(p)
+            Coords(p)
         )
         mean_cores = square.mean_cores(m, True)
         assert mean_cores.shape == torch.Size([2, 3, 4])
@@ -50,7 +50,7 @@ class TestSquare(object):
         p = torch.rand(3, 4, 2).cumsum(2)
         m = torch.rand(2, 3, 4)
         square = Square(
-            ShapeParams(p)
+            Coords(p)
         )
         centroids = square.centroids(m, True)
         assert centroids.shape == torch.Size([2, 3, 4])
@@ -60,7 +60,7 @@ class TestSquare(object):
         p = torch.rand(3, 4, 2).cumsum(2)
         m = torch.rand(2, 3, 4)
         square = Square(
-            ShapeParams(p)
+            Coords(p)
         )
         areas = square.areas(m)
         assert areas.shape == torch.Size([2, 3, 4])
@@ -70,7 +70,7 @@ class TestSquare(object):
         p = torch.rand(3, 4, 2).cumsum(2)
         m = torch.rand(2, 3, 4)
         square = Square(
-            ShapeParams(p)
+            Coords(p)
         )
         areas = square.areas(m, True)
         assert areas.shape == torch.Size([2, 3, 4])

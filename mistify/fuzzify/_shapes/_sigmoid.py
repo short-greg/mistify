@@ -5,30 +5,33 @@ from typing_extensions import Self
 import torch
 
 # local
-from ._base import ShapeParams, Monotonic
-from ...utils import unsqueeze
+from ._base import Coords, Monotonic
 
 
 class Sigmoid(Monotonic):
 
     def __init__(
-        self, biases: ShapeParams, scales: ShapeParams
+        self, biases: torch.Tensor, scales: torch.Tensor
     ):
         """Create a Sigmoid membership function
 
         Args:
-            biases (ShapeParams): The biases for the sigmoid function
-            scales (ShapeParams): The scales for the sigmoid function
+            biases (torch.Tensor): The biases for the sigmoid function
+            scales (torch.Tensor): The scales for the sigmoid function
         """
+        if biases.dim() == 2:
+            biases = biases[None]
+        if scales.dim() == 2:
+            scales = scales[None]
         super().__init__(
-            biases.n_vars,
-            biases.n_terms
+            biases.shape[1],
+            biases.shape[2]
         )
-        self._biases = biases
-        self._scales = scales
+        self._biases = torch.nn.parameter.Parameter(biases)
+        self._scales = torch.nn.parameter.Parameter(scales)
 
     @property
-    def biases(self) -> ShapeParams:
+    def biases(self) -> Coords:
         """
         Returns:
             ShapeParams: The bias parameter for the sigmoid 
@@ -36,7 +39,7 @@ class Sigmoid(Monotonic):
         return self._biases
     
     @property
-    def scales(self) -> ShapeParams:
+    def scales(self) -> Coords:
         """
         Returns:
             ShapeParams: The scale parameters for the sigmoid
@@ -44,7 +47,7 @@ class Sigmoid(Monotonic):
         return self._scales
     
     @classmethod
-    def from_combined(cls, params: ShapeParams) -> Self:
+    def from_combined(cls, params: torch.Tensor) -> Self:
         """Create the Sigmoid with biases and scales combined
         into one parameter
 
@@ -55,8 +58,8 @@ class Sigmoid(Monotonic):
             Self: The Sigmoid
         """
         return cls(
-            params.sub((0, 1)), 
-            params.sub((1, 2))
+            params[...,0], 
+            params[...,1]
         )
 
     def join(self, x: torch.Tensor) -> torch.Tensor:
@@ -68,7 +71,7 @@ class Sigmoid(Monotonic):
         Returns:
             torch.Tensor: The membership value
         """
-        z = (unsqueeze(x) - self._biases.pt(0)) / self._scales.pt(0)
+        z = (x[...,None] - self._biases) / self._scales
         
         return torch.sigmoid(z)
 
@@ -82,4 +85,4 @@ class Sigmoid(Monotonic):
             torch.Tensor: The "min core"
         """
         m = m.clamp(1e-7, 1. - 1e7)
-        return torch.logit(m) * self._scales.pt(0) + self._biases.pt(0)
+        return torch.logit(m) * self._scales + self._biases

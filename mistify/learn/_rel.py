@@ -93,7 +93,7 @@ class MaxMinRel(Rel):
         """
         return torch.min(
             x, t
-        ).sum(dim=dim, keepdim=True) / torch.sum(x, dim=dim, keepdim=True)
+        ).sum(dim=dim, keepdim=True) / (torch.sum(x, dim=dim, keepdim=True) + 1e-7)
 
 
 class MinMaxRel(Rel):
@@ -115,7 +115,7 @@ class MinMaxRel(Rel):
 
         return 1 - torch.min(
             x_comp, t_comp
-        ).sum(dim=dim, keepdim=True) / torch.sum(x_comp, dim=dim, keepdim=True)
+        ).sum(dim=dim, keepdim=True) / (torch.sum(x_comp, dim=dim, keepdim=True) + 1e-7)
 
 
 class MaxProdRel(Rel):
@@ -200,16 +200,22 @@ class AlignLoss(XCriterion):
         Returns:
             torch.Tensor: 
         """
+        # if reduction_override is not None:
+        #     raise ValueError('Cannnot override the reduction for AlignLoss')
+        
         x, y, t = x.f, y.f, t.f
         base_loss = self.base_loss(y, t)
         if self.x_rel is not None:
             x_rel = self.x_rel(self.neuron.w(), t)
-            aligned = align_sort(x, x_rel.detach(), dim=-1)
+            aligned = align_sort(x.detach(), x_rel.detach(), dim=-1)
+            # print((x - aligned).pow(2).mean(), x.shape, aligned.shape)
             base_loss = base_loss + self.x_weight * (x - aligned).pow(2).mean()
         if self.w_rel is not None:
             w = self.neuron.w()
             w_rel = self.w_rel(x, t)
-            aligned = align_sort(w, w_rel.detach(), dim=-1)
+            aligned = align_sort(w.detach(), w_rel.detach(), dim=-1)
+            # print((w - aligned).pow(2).mean(), w.shape, aligned.shape)
+
             base_loss = base_loss + self.w_weight * (w - aligned).pow(2).mean()
         return base_loss
 

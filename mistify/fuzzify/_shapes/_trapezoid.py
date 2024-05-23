@@ -1,4 +1,4 @@
-from ._base import Polygon, ShapeParams
+from ._base import Polygon, Coords, replace, replace_slice
 from ...utils import unsqueeze
 import torch
 from ... import _functional as functional
@@ -67,10 +67,10 @@ class Trapezoid(Polygon):
         # return torch.max(torch.max(m1, m2), m3)
 
         return functional.shape.trapezoid(
-            x, params.pt(0), params.pt(1), params.pt(2), params.pt(3)
+            x, params[...,0], params[...,1], params[...,2], params[...,3]
         )
 
-    def a(self, params: ShapeParams=None) -> torch.Tensor:
+    def a(self, params: torch.Tensor=None) -> torch.Tensor:
         """
         Args:
             params (ShapeParams, optional): the params for the trapezoid. Defaults to None.
@@ -79,12 +79,12 @@ class Trapezoid(Polygon):
             torch.Tensor: Calculate the top length
         """
 
-        params = params or self.coords()
+        params = params if params is not None else self.coords()
         return (
-            params.pt(3) - params.pt(0)
+            params[...,3] - params[...,0]
         )
 
-    def b(self, params: ShapeParams=None) -> torch.Tensor:
+    def b(self, params: torch.Tensor=None) -> torch.Tensor:
         """
         Args:
             params (ShapeParams, optional): the params for the trapezoid. Defaults to None.
@@ -92,10 +92,10 @@ class Trapezoid(Polygon):
         Returns:
             torch.Tensor: The bottom length
         """
-        params = params or self.coords()
-        return params.pt(2) - params.pt(1)
+        params = params if params is not None else self.coords()
+        return params[...,2] - params[...,1]
 
-    def truncate(self, m: torch.Tensor) -> ShapeParams:
+    def truncate(self, m: torch.Tensor) -> torch.Tensor:
         """
 
         Args:
@@ -105,10 +105,10 @@ class Trapezoid(Polygon):
             torch.Tensor: Truncate the trapezoid
         """
         params = self.coords()
-        new_pt1 = (params.pt(1) * (1 - m) + params.pt(0) * m)
-        new_pt2 = params.pt(3) * m + params.pt(2) * (1 - m)
-        params = params.replace(new_pt1, 1, to_unsqueeze=True)
-        params = params.replace(new_pt2, 2, to_unsqueeze=True)
+        new_pt1 = (params[...,1] * (1 - m) + params[...,0] * m)
+        new_pt2 = params[...,3] * m + params[...,2] * (1 - m)
+        params = replace(params, new_pt1, 1, to_unsqueeze=True)
+        params = replace(params, new_pt2, 2, to_unsqueeze=True)
         return params
 
     def areas(self, m: torch.Tensor, truncate: bool = False) -> torch.Tensor:
@@ -143,7 +143,7 @@ class Trapezoid(Polygon):
         """
         params = self._coords()
         return self._resize_to_m(
-             trapezoid_mean_core(params.pt(1), params.pt(2)),
+             trapezoid_mean_core(params[...,1], params[...,2]),
              m
         )
 
@@ -182,13 +182,13 @@ class IsoscelesTrapezoid(Polygon):
         Returns:
             torch.Tensor: The membership value of x
         """
-        x = unsqueeze(x)
+        x = x[...,None]
         params = self.coords()
         return functional.shape.isosceles_trapezoid(
-            x, params.pt(0), params.pt(1), params.pt(2)
+            x, params[...,0], params[...,1], params[...,2]
         )
     
-    def a(self, params: ShapeParams=None) -> torch.Tensor:
+    def a(self, params: torch.Tensor=None) -> torch.Tensor:
 
         """
         Args:
@@ -197,14 +197,14 @@ class IsoscelesTrapezoid(Polygon):
         Returns:
             torch.Tensor: Calculate the top length
         """
-        params = params or self.coords()
+        params = params if params is not None else self.coords()
 
-        dx = params.pt(1) - params.pt(0)
+        dx = params[...,1] - params[...,0]
         return (
-            params.pt(2) + dx - params.pt(0)
+            params[...,2] + dx - params[...,0]
         )
 
-    def b(self, params: ShapeParams=None):
+    def b(self, params: torch.Tensor=None):
         """
         Args:
             params (ShapeParams, optional): the params for the trapezoid. Defaults to None.
@@ -212,10 +212,10 @@ class IsoscelesTrapezoid(Polygon):
         Returns:
             torch.Tensor: Calculate the bottom length
         """
-        params = params or self.coords()
-        return params.pt(2) - params.pt(1)
+        params = params if params is not None else self.coords()
+        return params[...,2] - params[...,1]
 
-    def truncate(self, m: torch.Tensor) -> ShapeParams:
+    def truncate(self, m: torch.Tensor) -> torch.Tensor:
         """
 
         Args:
@@ -225,10 +225,10 @@ class IsoscelesTrapezoid(Polygon):
             torch.Tensor: Truncate the trapezoid
         """
         params = self._coords()
-        new_pt1 = (params.pt(0) * (1 - m) + params.pt(1) * m)
-        new_pt2 = 2 * params.pt(2) - new_pt1
-        params = params.replace(new_pt1, 1, to_unsqueeze=True)
-        params = params.replace(new_pt2, 2, to_unsqueeze=True)
+        new_pt1 = (params[...,0] * (1 - m) + params[...,1] * m)
+        new_pt2 = 2 * params[...,2] - new_pt1
+        params = replace(params, new_pt1, 1, to_unsqueeze=True)
+        params = replace(params, new_pt2, 2, to_unsqueeze=True)
         return params
 
     def areas(self, m: torch.Tensor, truncate: bool = False) -> torch.Tensor:
@@ -263,7 +263,7 @@ class IsoscelesTrapezoid(Polygon):
         """
         params = self._coords()
         return self._resize_to_m(
-            trapezoid_mean_core(params.pt(1), params.pt(2)), m
+            trapezoid_mean_core(params[...,1], params[...,2]), m
         )
 
     def centroids(self, m: torch.Tensor, truncate: bool = False) -> torch.Tensor:
@@ -293,7 +293,7 @@ class RightTrapezoid(Polygon):
 
     PT = 3
 
-    def __init__(self, params: ShapeParams, increasing: bool=True):
+    def __init__(self, params: Coords, increasing: bool=True):
         super().__init__(params)
         self.increasing = increasing
 
@@ -309,10 +309,10 @@ class RightTrapezoid(Polygon):
         """
         params = self.coords()
         return functional.shape.right_trapezoid(
-            unsqueeze(x), params.pt(0), params.pt(1), params.pt(2), self.increasing
+            x[...,None], params[...,0], params[...,1], params[...,2], self.increasing
         )
     
-    def a(self, params: ShapeParams=None) -> torch.Tensor:
+    def a(self, params: torch.Tensor=None) -> torch.Tensor:
         """
         Args:
             params (ShapeParams, optional): the params for the trapezoid. Defaults to None.
@@ -320,12 +320,12 @@ class RightTrapezoid(Polygon):
         Returns:
             torch.Tensor: Calculate the top length
         """
-        params = params or self.coords()
+        params = params if params is not None else self.coords()
         return (
-            params.pt(2) - params.pt(0)
+            params[...,2] - params[...,0]
         )
 
-    def b(self, params: ShapeParams=None) -> torch.Tensor:
+    def b(self, params: Coords=None) -> torch.Tensor:
         """
         Args:
             params (ShapeParams, optional): the params for the trapezoid. Defaults to None.
@@ -333,13 +333,13 @@ class RightTrapezoid(Polygon):
         Returns:
             torch.Tensor: Calculate the bottom length
         """
-        params = params or self.coords()
+        params = params if params is not None else self.coords()
         if self.increasing:
 
-            return params.pt(2) - params.pt(1)
-        return params.pt(1) - params.pt(0)
+            return params[...,2] - params[...,1]
+        return params[...,1] - params[...,0]
     
-    def triangle_pts(self, params: ShapeParams=None, to_order: bool=False) -> ShapeParams:
+    def triangle_pts(self, params: torch.Tensor=None, to_order: bool=False) -> Coords:
         """
 
         Args:
@@ -348,15 +348,15 @@ class RightTrapezoid(Polygon):
         Returns:
             ShapeParams: The triangle points
         """
-        params = params or self.coords()
+        params = params if params is not None else self.coords()
 
         if self.increasing:
-            return params.sub([0, 1])
+            return params[...,[0, 1]]
         if to_order:
-            return params.sub([2, 1])
-        return params.sub([1, 2])
+            return params[...,[2, 1]]
+        return params[...,[1, 2]]
 
-    def square_pts(self, params: ShapeParams=None) -> ShapeParams:
+    def square_pts(self, params: torch.Tensor=None) -> Coords:
         """
 
         Args:
@@ -365,13 +365,13 @@ class RightTrapezoid(Polygon):
         Returns:
             ShapeParams: The square points
         """
-        params = params or self.coords()
+        params = params if params is not None else self.coords()
 
         if self.increasing:
-            return params.sub([1, 2])
-        return params.sub([0, 1])
+            return params[...,[1, 2]]
+        return params[...,[0, 1]]
     
-    def truncate(self, m: torch.Tensor) -> ShapeParams:
+    def truncate(self, m: torch.Tensor) -> torch.Tensor:
         """
 
         Args:
@@ -382,10 +382,10 @@ class RightTrapezoid(Polygon):
         """
         params = self._coords()
         if self.increasing:
-            new_pt = params.pt(0) * (1 - m)  + params.pt(1) * m
+            new_pt = params[...,0] * (1 - m)  + params[...,1] * m
         else:
-            new_pt = (params.pt(1) * m +  params.pt(2) * (1 - m))
-        return params.replace(new_pt, 1, to_unsqueeze=True)
+            new_pt = (params[...,1] * m +  params[...,2] * (1 - m))
+        return replace(params, new_pt, 1, to_unsqueeze=True)
 
     def areas(self, m: torch.Tensor, truncate: bool = False) -> torch.Tensor:
         """
@@ -401,7 +401,8 @@ class RightTrapezoid(Polygon):
             params = self.truncate(m)
         else:
             params = self._coords()
-            
+        
+        assert isinstance(params, torch.Tensor), type(params)
         a = self.a(params)
         b = self.b(params)
 
@@ -424,7 +425,7 @@ class RightTrapezoid(Polygon):
 
         pts = self.square_pts(params)
         return self._resize_to_m(
-            trapezoid_mean_core(pts.pt(0), pts.pt(1)), m
+            trapezoid_mean_core(pts[...,0], pts[...,1]), m
         )
 
     def centroids(self, m: torch.Tensor, truncate: bool = False) -> torch.Tensor:

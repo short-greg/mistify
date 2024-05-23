@@ -5,8 +5,7 @@ from typing_extensions import Self
 import torch
 
 # local
-from ._base import ShapeParams, Monotonic
-from ...utils import unsqueeze
+from ._base import Monotonic
 from ... import _functional as functional
 
 
@@ -15,21 +14,24 @@ class Step(Monotonic):
     """
 
     def __init__(
-        self, threshold: ShapeParams
+        self, threshold: torch.Tensor
     ):
         """Create a step function
 
         Args:
             threshold (ShapeParams): The threshold where the step occurs
         """
+        if threshold.dim() == 2:
+            threshold = threshold[None]
+        
         super().__init__(
-            threshold.n_vars,
-            threshold.n_terms
+            threshold.shape[1],
+            threshold.shape[2]
         )
-        self._threshold = threshold
+        self._threshold = torch.nn.parameter.Parameter(threshold)
 
     @property
-    def thresholds(self) -> ShapeParams:
+    def thresholds(self) -> torch.Tensor:
         """
         Returns:
             ShapeParams: The threshold where the step occurs
@@ -37,18 +39,17 @@ class Step(Monotonic):
         return self._threshold
     
     @classmethod
-    def from_combined(cls, params: ShapeParams, m: torch.Tensor=None) -> Self:
+    def from_combined(cls, params: torch.Tensor) -> Self:
         """Create Step from combined parameters
 
         Args:
-            params (ShapeParams): The parameters (with a threshold point)
-            m (torch.Tensor, optional): The. Defaults to None.
+            params (torch.Tensor): The parameters (with a threshold point)
 
         Returns:
             Step: The Step shape
         """
         return cls(
-            params.sub((0, 1)), m
+            params[...,0]
         )
 
     def join(self, x: torch.Tensor) -> torch.Tensor:
@@ -59,8 +60,8 @@ class Step(Monotonic):
         Returns:
             torch.Tensor: The membership value of x
         """
-        x = unsqueeze(x)
-        return functional.threshold(x, self._threshold.pt(0))
+        x = x[...,None]
+        return functional.threshold(x, self._threshold)
     
     def min_cores(self, m: torch.Tensor) -> torch.Tensor:
         """
@@ -70,4 +71,4 @@ class Step(Monotonic):
         Returns:
             torch.Tensor: The value of the threshold
         """
-        return self._resize_to_m(self._threshold.pt(0), m)
+        return self._resize_to_m(self._threshold, m)

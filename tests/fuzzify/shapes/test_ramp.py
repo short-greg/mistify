@@ -1,5 +1,5 @@
 import torch
-from mistify.fuzzify._shapes import _ramp, ShapeParams
+from mistify.fuzzify._shapes import _ramp, Coords
 
 
 class TestRamp(object):
@@ -8,9 +8,9 @@ class TestRamp(object):
 
         p = torch.rand(3, 4, 2).cumsum(2)
         x = torch.rand(2, 3)
-        ramp = _ramp.Ramp(
-            ShapeParams(p)
-        )
+        coords = Coords(p)
+        print(coords.n_points)
+        ramp = _ramp.Ramp(coords)
         m = ramp.join(x)
         assert m.size() == torch.Size([2, 3, 4])
 
@@ -18,8 +18,7 @@ class TestRamp(object):
 
         p = torch.rand(3, 4, 2).cumsum(2)
         m = torch.rand(2, 3, 4)
-        ramp = _ramp.Ramp(
-            ShapeParams(p)
-        )
+        coords = Coords(p)
+        ramp = _ramp.Ramp(coords)
         truncated = ramp.min_cores(m)
         assert truncated.size() == torch.Size([2, 3, 4])

@@ -10,7 +10,7 @@ from torch import Tensor
 import torch.nn.functional
 
 # local
-from ._base import ShapeParams, Nonmonotonic
+from ._base import Coords, Nonmonotonic
 from ...utils import unsqueeze
 
 
@@ -159,30 +159,34 @@ def truncated_half_gaussian_centroid(bias: torch.Tensor, std: torch.Tensor, heig
 class Gaussian(Nonmonotonic):
 
     def __init__(
-        self, biases: ShapeParams, scales: ShapeParams
+        self, biases: torch.Tensor, scales: torch.Tensor
     ):
         """The base class for logistic distribution functions
 
         Note: Don't need to sort for this because there is only one point per parameter
 
         Args:
-            biases (ShapeParams): The bias of the distribution
-            scales (ShapeParams): The scale value for the distribution
-            m (torch.Tensor, optional): The max membership. Defaults to None.
+            biases (torch.Tensor): The bias of the distribution
+            scales (torch.Tensor): The scale value for the distribution
         """
+        if biases.dim() == 2:
+            biases = biases[None]
+        if scales.dim() == 2:
+            scales = scales[None]
+
         super().__init__(
-            biases.n_vars,
-            biases.n_terms
+            biases.shape[1],
+            biases.shape[2]
         )
-        self._biases = biases
-        self._scales = scales
+        self._biases = torch.nn.parameter.Parameter(biases)
+        self._scales = torch.nn.parameter.Parameter(scales)
 
     @property
     def sigma(self) -> torch.Tensor:
-        return torch.nn.functional.softplus(self._scales.pt(0))
+        return torch.nn.functional.softplus(self._scales)
 
     @property
-    def biases(self) -> 'ShapeParams':
+    def biases(self) -> torch.Tensor:
         """
         Returns:
             ShapeParams: The bias values
@@ -190,7 +194,7 @@ class Gaussian(Nonmonotonic):
         return self._biases
     
     @property
-    def scales(self) -> 'ShapeParams':
+    def scales(self) -> torch.Tensor:
         """
         Returns:
             ShapeParams: The scales
@@ -198,31 +202,21 @@ class Gaussian(Nonmonotonic):
         return self._scales
 
     @classmethod
-    def from_combined(cls, params: ShapeParams) -> 'Gaussian':
+    def from_combined(cls, params: torch.Tensor) -> 'Gaussian':
         """Create the shape from 
 
         Returns:
             Logistic: The logistic distribution function 
         """
         return cls(
-            params.sub((0, 1)), 
-            params.sub((1, 2))
+            params[...,0], 
+            params[...,1]
         )
 
 
 class GaussianBell(Gaussian):
     """Use the GaussianBell function as the membership function
     """
-
-    def __init__(self, biases: ShapeParams, scales: ShapeParams):
-        """Use a Gaussian as the membership function
-
-        Args:
-            biases (ShapeParams): The biases for the Gaussian
-            scales (ShapeParams): The scale parameter for the Gaussian (deviation)
-            hookf (_type_, optional): The GradHook for the join function. Defaults to None.
-        """
-        super().__init__(biases, scales)
 
     def join(self, x: Tensor) -> Tensor:
         """Convert x to a membership value
@@ -234,7 +228,7 @@ class GaussianBell(Gaussian):
             Tensor: The membership
         """
         return gaussian(
-            unsqueeze(x), self._biases.pt(0), self.sigma
+            unsqueeze(x), self._biases, self.sigma
         )
     
     def areas(self, m: Tensor, truncate: bool = False) -> Tensor:
@@ -249,10 +243,10 @@ class GaussianBell(Gaussian):
         """
         if truncate:
             return self._resize_to_m(
-                truncated_gaussian_area(self._biases.pt(0), self._scales.pt(0), m),
+                truncated_gaussian_area(self._biases, self._scales, m),
                 m)
         return self._resize_to_m(
-            gaussian_area(self._scales.pt(0)), m
+            gaussian_area(self._scales), m
         )
     
     def mean_cores(self, m: Tensor, truncate: bool = False) -> Tensor:
@@ -267,9 +261,9 @@ class GaussianBell(Gaussian):
         """
         if truncate:
             return self._resize_to_m(
-                truncated_gaussian_mean_core(self._biases.pt(0), self._scales.pt(0), m), m
+                truncated_gaussian_mean_core(self._biases, self._scales, m), m
             )
-        return self._resize_to_m(self._biases.pt(0), m)
+        return self._resize_to_m(self._biases, m)
     
     def centroids(self, m: Tensor, truncate: bool = False) -> Tensor:
         """Calculate the 'centroid' of the Gaussian for a membership
@@ -281,13 +275,13 @@ class GaussianBell(Gaussian):
         Returns:
             Tensor: The centroid of the Gaussian
         """
-        return self._resize_to_m(self._biases.pt(0), m)
+        return self._resize_to_m(self._biases, m)
     
 
 class HalfGaussianBell(Gaussian):
     """Use the GaussianBell function as the membership function
     """
-    def __init__(self, biases: ShapeParams, scales: ShapeParams, increasing: torch.Tensor):
+    def __init__(self, biases: Coords, scales: Coords, increasing: torch.Tensor):
         """Create a membership that comprises half of a Gaussian function either increasing or decreasing
 
         Args:
@@ -329,7 +323,7 @@ class HalfGaussianBell(Gaussian):
         """
         x = unsqueeze(x)
         return self.half_gaussian(
-            x, self._biases.pt(0), self.sigma
+            x, self._biases, self.sigma
         )
     
     def areas(self, m: Tensor, truncate: bool = False) -> Tensor:
@@ -343,7 +337,7 @@ class HalfGaussianBell(Gaussian):
             Tensor: The area
         """   
         if truncate:
-            return truncated_half_gaussian_area(self._biases.pt(0), self.sigma, m)
+            return truncated_half_gaussian_area(self._biases, self.sigma, m)
         return self._resize_to_m(half_gaussian_area(self.sigma), m)
     
     def mean_cores(self, m: Tensor, truncate: bool = False) -> Tensor:
@@ -359,9 +353,9 @@ class HalfGaussianBell(Gaussian):
         if truncate:
             return self._resize_to_m(
                 truncated_half_gaussian_mean_core(
-                    self._biases.pt(0), self.sigma, m, self.increasing
+                    self._biases, self.sigma, m, self.increasing
                 ), m)
-        return self._resize_to_m(self._biases.pt(0), m)
+        return self._resize_to_m(self._biases, m)
     
     def centroids(self, m: Tensor, truncate: bool = False) -> Tensor:
         """Calculate the 'centroid' of the Gaussian for a membership
@@ -374,5 +368,5 @@ class HalfGaussianBell(Gaussian):
             Tensor: The centroid of the Gaussian
         """
         if truncate:
-            return truncated_half_gaussian_centroid(self._biases.pt(0), self.sigma, m, self.increasing)
-        return half_gaussian_centroid(self._biases.pt(0), self.sigma, m, self.increasing)
+            return truncated_half_gaussian_centroid(self._biases, self.sigma, m, self.increasing)
+        return half_gaussian_centroid(self._biases, self.sigma, m, self.increasing)

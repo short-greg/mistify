@@ -22,7 +22,7 @@ class Square(Polygon):
         params = self._coords()
         x = unsqueeze(x)
         return functional.shape.square(
-            x, params.pt(0), params.pt(1)
+            x, params[...,0], params[...,1]
         )
 
     def areas(self, m: torch.Tensor, truncate: bool = False) -> torch.Tensor:
@@ -35,7 +35,8 @@ class Square(Polygon):
         Returns:
             torch.Tensor: The area of the square
         """
-        return (self._coords.pt(1) - self._coords.pt(0)) * m
+        coords = self._coords()
+        return (coords[...,1] - coords[...,0]) * m
     
     def mean_cores(self, m: torch.Tensor, truncate: bool = False) -> torch.Tensor:
         """
@@ -47,7 +48,8 @@ class Square(Polygon):
         Returns:
             torch.Tensor: The mean of the core
         """
-        return self._resize_to_m((self._coords.pt(1) + self._coords.pt(0)) / 2.0, m)
+        coords = self._coords()
+        return self._resize_to_m((coords[...,1] + coords[...,0]) / 2.0, m)
     
     def centroids(self, m: torch.Tensor, truncate: bool = False) -> torch.Tensor:
         """
@@ -59,4 +61,5 @@ class Square(Polygon):
         Returns:
             torch.Tensor: The centroid of the square
         """
-        return self._resize_to_m((self._coords.pt(1) + self._coords.pt(0)) / 2.0, m)
+        coords = self._coords()
+        return self._resize_to_m((coords[...,1] + coords[...,0]) / 2.0, m)

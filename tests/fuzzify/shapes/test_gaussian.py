@@ -1,6 +1,6 @@
 import torch
 
-from mistify.fuzzify import ShapeParams
+from mistify.fuzzify import Coords
 from mistify.fuzzify._shapes import _gaussian
 
 
@@ -8,8 +8,8 @@ class TestGaussian(object):
 
     def test_join_returns_fuzzy_set_with_correct_size(self):
 
-        b = ShapeParams(torch.rand(3, 4, 1))
-        s = ShapeParams(torch.rand(3, 4, 1))
+        b = torch.rand(3, 4)
+        s = torch.rand(3, 4)
         x = torch.rand(2, 3)
         gaussian = _gaussian.GaussianBell(
             b, s
@@ -19,8 +19,8 @@ class TestGaussian(object):
 
     def test_areas_returns_shape_with_correct_size(self):
 
-        b = ShapeParams(torch.rand(3, 4, 1))
-        s = ShapeParams(torch.rand(3, 4, 1))
+        b = torch.rand(3, 4)
+        s = torch.rand(3, 4)
         m = torch.rand(2, 3, 4)
         gaussian = _gaussian.GaussianBell(
             b, s
@@ -30,8 +30,8 @@ class TestGaussian(object):
 
     def test_areas_returns_shape_with_correct_size_with_truncate(self):
 
-        b = ShapeParams(torch.rand(3, 4, 1))
-        s = ShapeParams(torch.rand(3, 4, 1))
+        b = torch.rand(3, 4)
+        s = torch.rand(3, 4)
         m = torch.rand(2, 3, 4)
         gaussian = _gaussian.GaussianBell(
             b, s
@@ -42,8 +42,8 @@ class TestGaussian(object):
 
     def test_mean_core_returns_tensor_with_correct_size(self):
 
-        b = ShapeParams(torch.rand(3, 4, 1))
-        s = ShapeParams(torch.rand(3, 4, 1))
+        b = torch.rand(3, 4)
+        s = torch.rand(3, 4)
         m = torch.ones(2, 3, 4)
         gaussian = _gaussian.GaussianBell(
             b, s
@@ -53,8 +53,8 @@ class TestGaussian(object):
 
     def test_mean_core_returns_tensor_with_correct_size_truncate(self):
 
-        b = ShapeParams(torch.rand(3, 4, 1))
-        s = ShapeParams(torch.rand(3, 4, 1))
+        b = torch.rand(3, 4)
+        s = torch.rand(3, 4)
         m = torch.ones(2, 3, 4)
         gaussian = _gaussian.GaussianBell(
             b, s
@@ -63,8 +63,8 @@ class TestGaussian(object):
         assert mean_cores.shape == torch.Size([2, 3, 4])
 
     def test_centroids_returns_tensor_with_correct_size(self):
-        b = ShapeParams(torch.rand(3, 4, 1))
-        s = ShapeParams(torch.rand(3, 4, 1))
+        b = torch.rand(3, 4)
+        s = torch.rand(3, 4)
         m = torch.rand(2, 3, 4)
         gaussian = _gaussian.GaussianBell(
             b, s
@@ -73,8 +73,8 @@ class TestGaussian(object):
         assert centroids.shape == torch.Size([2, 3, 4])
 
     def test_centroids_returns_tensor_with_correct_size_with_truncate(self):
-        b = ShapeParams(torch.rand(3, 4, 1))
-        s = ShapeParams(torch.rand(3, 4, 1))
+        b = torch.rand(3, 4)
+        s = torch.rand(3, 4)
         m = torch.rand(2, 3, 4)
         gaussian = _gaussian.GaussianBell(
             b, s
@@ -87,8 +87,8 @@ class TestRightGaussian(object):
 
     def test_join_returns_fuzzy_set_with_correct_size(self):
 
-        b = ShapeParams(torch.rand(3, 4, 1))
-        s = ShapeParams(torch.rand(3, 4, 1))
+        b = torch.rand(3, 4)
+        s = torch.rand(3, 4)
         x = torch.rand(2, 3)
         gaussian = _gaussian.HalfGaussianBell(
             b, s, True
@@ -99,8 +99,8 @@ class TestRightGaussian(object):
 
     def test_join_returns_fuzzy_set_with_correct_size_with_decreasing(self):
 
-        b = ShapeParams(torch.rand(3, 4, 1))
-        s = ShapeParams(torch.rand(3, 4, 1))
+        b = torch.rand(3, 4)
+        s = torch.rand(3, 4)
         x = torch.rand(2, 3)
         gaussian = _gaussian.HalfGaussianBell(
             b, s, False
@@ -110,8 +110,8 @@ class TestRightGaussian(object):
 
     def test_mean_core_returns_tensor_with_correct_size(self):
 
-        b = ShapeParams(torch.rand(3, 4, 1))
-        s = ShapeParams(torch.rand(3, 4, 1))
+        b = torch.rand(3, 4)
+        s = torch.rand(3, 4)
         m = torch.rand(2, 3, 4)
 
         gaussian = _gaussian.HalfGaussianBell(
@@ -121,8 +121,8 @@ class TestRightGaussian(object):
         assert mean_cores.shape == torch.Size([2, 3, 4])
 
     def test_centroids_returns_tensor_with_correct_size(self):
-        b = ShapeParams(torch.rand(3, 4, 1))
-        s = ShapeParams(torch.rand(3, 4, 1))
+        b = torch.rand(3, 4)
+        s = torch.rand(3, 4)
         m = torch.rand(2, 3, 4)
         gaussian = _gaussian.HalfGaussianBell(
             b, s, False
@@ -131,8 +131,8 @@ class TestRightGaussian(object):
         assert centroids.shape == torch.Size([2, 3, 4])
     
     def test_centroids_returns_tensor_with_correct_size_truncated(self):
-        b = ShapeParams(torch.rand(3, 4, 1))
-        s = ShapeParams(torch.rand(3, 4, 1))
+        b = torch.rand(3, 4)
+        s = torch.rand(3, 4)
         m = torch.rand(2, 3, 4)
         gaussian = _gaussian.HalfGaussianBell(
             b, s, False
@@ -141,8 +141,8 @@ class TestRightGaussian(object):
         assert centroids.shape == torch.Size([2, 3, 4])
 
     def test_areas_returns_tensor_with_correct_size(self):
-        b = ShapeParams(torch.rand(3, 4, 1))
-        s = ShapeParams(torch.rand(3, 4, 1))
+        b = torch.rand(3, 4)
+        s = torch.rand(3, 4)
         m = torch.rand(2, 3, 4)
         gaussian = _gaussian.HalfGaussianBell(
             b, s, True
@@ -151,8 +151,8 @@ class TestRightGaussian(object):
         assert areas.shape == torch.Size([2, 3, 4])
 
     def test_areas_returns_tensor_with_correct_size_truncated(self):
-        b = ShapeParams(torch.rand(3, 4, 1))
-        s = ShapeParams(torch.rand(3, 4, 1))
+        b = torch.rand(3, 4)
+        s = torch.rand(3, 4)
         m = torch.rand(2, 3, 4)
         gaussian = _gaussian.HalfGaussianBell(
             b, s, True

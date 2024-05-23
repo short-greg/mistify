@@ -5,7 +5,7 @@ from typing_extensions import Self
 import torch
 
 # local
-from ._base import ShapeParams, Monotonic
+from ._base import Coords, Monotonic
 from ...utils import unsqueeze
 from ... import _functional as functional
 
@@ -15,7 +15,7 @@ class Ramp(Monotonic):
     """
 
     def __init__(
-        self, coords: ShapeParams
+        self, coords: Coords, 
     ):
         """Create a ramp function that has a lower bound and an upper bound
 
@@ -24,24 +24,24 @@ class Ramp(Monotonic):
             m (torch.Tensor, optional): The membership value for the ramp. Defaults to None.
             scale_m (torch.Tensor, optional): The degree the ramp is scaled by. Defaults to None.
         """
-
+        if coords.n_points != 2:
+            raise ValueError('Ramp only works if the number of coordinates is two')
         super().__init__(
-            coords.n_vars,
-            coords.n_terms
+            coords.shape[1], coords.shape[2]
         )
         self._coords = coords
 
     @property
-    def coords(self) -> 'ShapeParams':
+    def coords(self) -> Coords:
         """
         Returns:
-            ShapeParams: The coordinates for the ramp function. It has two points, the lower bound and upper bound
+            Coords: The coordinates for the ramp function. It has two points, the lower bound and upper bound
         """
         return self._coords
 
     @classmethod
-    def from_combined(cls, params: ShapeParams) -> Self:
-        """Create the ramp from 
+    def from_combined(cls, coords: Coords) -> Self:
+        """Create the ramp from combined coords
 
         Args:
             params (ShapeParams): Shape params with first and second point combined
@@ -50,7 +50,7 @@ class Ramp(Monotonic):
             Ramp: A ramp function
         """
         return cls(
-            params.sub((0, 1))
+            coords
         )
 
     def constrain(self):
@@ -69,7 +69,7 @@ class Ramp(Monotonic):
         """
         x = unsqueeze(x)
         coords = self._coords()
-        return functional.ramp(x, coords.pt(0), coords.pt(1))
+        return functional.ramp(x, coords[...,0], coords[...,1])
 
     def min_cores(self, m: torch.Tensor) -> torch.Tensor:
         """Calculates an average of the two points disregarding
@@ -82,5 +82,4 @@ class Ramp(Monotonic):
             torch.Tensor: The "min core"
         """
         coords = self._coords()
-        # print(coords.pt(1)[0, 0], coords.pt(0)[0, 0])
-        return coords.pt(1) * (1 - m) + coords.pt(0) * m
+        return coords[...,0] * (1 - m) + coords[...,1] * m

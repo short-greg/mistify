@@ -7,7 +7,7 @@ import torch.nn.functional
 from torch import Tensor
 
 # local
-from ._base import ShapeParams, Nonmonotonic
+from ._base import Coords, Nonmonotonic
 from ...utils import unsqueeze
 
 
@@ -139,30 +139,35 @@ class Logistic(Nonmonotonic):
     """
 
     def __init__(
-        self, biases: ShapeParams, scales: ShapeParams
+        self, biases: torch.Tensor, scales: torch.Tensor
     ):
         """The base class for logistic distribution functions
 
         Note: Don't need to sort for this because there is only one point per parameter
 
         Args:
-            biases (ShapeParams): The bias of the distribution
-            scales (ShapeParams): The scale value for the distribution
+            biases (torch.Tensor): The bias of the distribution
+            scales (torch.Tensor): The scale value for the distribution
         """
+        if biases.dim() == 2:
+            biases = biases[None]
+        if scales.dim() == 2:
+            scales = scales[None]
+            
         super().__init__(
-            biases.n_vars,
-            biases.n_terms
+            biases.shape[1],
+            biases.shape[2]
         )
-        self._biases = biases
-        self._scales = scales
+        self._biases = torch.nn.parameter.Parameter(biases)
+        self._scales = torch.nn.parameter.Parameter(scales)
 
     @property
     def sigma(self) -> torch.Tensor:
 
-        return torch.nn.functional.softplus(self._scales.pt(0))
+        return torch.nn.functional.softplus(self._scales)
 
     @property
-    def biases(self) -> 'ShapeParams':
+    def biases(self) -> 'Coords':
         """
         Returns:
             ShapeParams: The bias values
@@ -170,7 +175,7 @@ class Logistic(Nonmonotonic):
         return self._biases
     
     @property
-    def scales(self) -> 'ShapeParams':
+    def scales(self) -> 'Coords':
         """
         Returns:
             ShapeParams: The scales
@@ -178,15 +183,15 @@ class Logistic(Nonmonotonic):
         return self._scales
     
     @classmethod
-    def from_combined(cls, params: ShapeParams) -> 'Logistic':
+    def from_combined(cls, params: torch.Tensor) -> 'Logistic':
         """Create the shape from 
 
         Returns:
             Logistic: The logistic distribution function 
         """
         return cls(
-            params.sub((0, 1)), 
-            params.sub((1, 2))
+            params[...,0], 
+            params[...,1]
         )
 
 
@@ -195,33 +200,33 @@ class LogisticBell(Logistic):
     """
     def join(self, x: Tensor) -> Tensor:
         return logistic(
-            unsqueeze(x), self._biases.pt(0), self.sigma
+            unsqueeze(x), self._biases, self.sigma
         )
     
     def areas(self, m: Tensor, truncate: bool = False) -> Tensor:
         
         if truncate:
-            return truncated_logistic_area(self._biases.pt(0), self.sigma, m)
+            return truncated_logistic_area(self._biases, self.sigma, m)
         return self._resize_to_m(logistic_area(self.sigma), m)
     
     def mean_cores(self, m: Tensor, truncate: bool = False) -> Tensor:
         
         if truncate:
             return self._resize_to_m(
-                truncated_logistic_mean_core(self._biases.pt(0), self.sigma, m), m
+                truncated_logistic_mean_core(self._biases, self.sigma, m), m
             )
-        return self._resize_to_m(self._biases.pt(0), m)
+        return self._resize_to_m(self._biases, m)
     
     def centroids(self, m: Tensor, truncate: bool = False) -> Tensor:
         
-        return self._resize_to_m(self._biases.pt(0), m)
+        return self._resize_to_m(self._biases, m)
     
 
 class HalfLogisticBell(Logistic):
     """Use the Half Logistic Bell function as the membership function
     """
 
-    def __init__(self, biases: ShapeParams, scales: ShapeParams, increasing: bool=True):
+    def __init__(self, biases: torch.Tensor, scales: Coords, increasing: bool=True):
         """Create a "half logistic bell" that is either decreasing or increasing
 
         Args:
@@ -243,12 +248,12 @@ class HalfLogisticBell(Logistic):
         """
         x = unsqueeze(x)
         if self.increasing:
-            contains = (x <= self._biases.pt(0))
+            contains = (x <= self._biases)
         else:
-            contains = (x >= self._biases.pt(0))
+            contains = (x >= self._biases)
 
         return logistic(
-            x, self._biases.pt(0), self.sigma
+            x, self._biases, self.sigma
         ) * contains
     
     def areas(self, m: Tensor, truncate: bool = False) -> Tensor:
@@ -262,7 +267,7 @@ class HalfLogisticBell(Logistic):
             Tensor: The area
         """
         if truncate:
-            return truncated_half_logistic_area(self._biases.pt(0), self.sigma, m)
+            return truncated_half_logistic_area(self._biases, self.sigma, m)
         return self._resize_to_m(half_logistic_area(self.sigma), m)
     
     def mean_cores(self, m: Tensor, truncate: bool = False) -> Tensor:
@@ -276,8 +281,8 @@ class HalfLogisticBell(Logistic):
             Tensor: The mean of the "core" of the logistic
         """
         if truncate:
-            return truncated_half_logistic_mean_core(self._biases.pt(0), self.sigma, m, self.increasing)
-        return self._resize_to_m(self._biases.pt(0), m)
+            return truncated_half_logistic_mean_core(self._biases, self.sigma, m, self.increasing)
+        return self._resize_to_m(self._biases, m)
     
     def centroids(self, m: Tensor, truncate: bool = False) -> Tensor:
         """Calculate the 'centroid' of the half logistic for a membership
@@ -290,5 +295,5 @@ class HalfLogisticBell(Logistic):
             Tensor: The centroid of the logistic
         """
         if truncate:
-            return truncated_half_logistic_centroid(self._biases.pt(0), self.sigma, m, self.increasing)
-        return half_logistic_centroid(self._biases.pt(0), self.sigma, m, self.increasing)
+            return truncated_half_logistic_centroid(self._biases, self.sigma, m, self.increasing)
+        return half_logistic_centroid(self._biases, self.sigma, m, self.increasing)

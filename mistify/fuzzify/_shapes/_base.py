@@ -5,6 +5,7 @@ import typing
 # 3rd party
 import torch
 import torch.nn as nn
+import torch.nn.functional
 
 # local
 from ...utils._utils import resize_to, unsqueeze
@@ -26,7 +27,6 @@ class Shape(nn.Module, Constrained):
         self._n_vars = n_vars
         self._n_terms = n_terms
         self._areas = None
-
 
     @property
     def n_terms(self) -> int:
@@ -145,100 +145,40 @@ class Nonmonotonic(Shape):
     def centroids(self, m: torch.Tensor, truncate: bool=False) -> torch.Tensor:
         """
         Returns:
-            torch.Tensor: Centroid for the 
+            torch.Tensor: Centroid for the shape
         """
         pass
 
 
-class ShapeParams(nn.Module):
+class Coords(nn.Module):
     """A convenience class to wrap a tensor for specifying a Shape
     """
 
-    def __init__(self, x: torch.Tensor, tunable: bool=False, descending: typing.Union[None, bool]=False):
+    def __init__(self, x: torch.Tensor):
 
         super().__init__()
         if x.dim() == 3:
             x = x[None]
         assert x.dim() == 4
-            
-        if not tunable:
-            self._x = x
-        else:
-            self._x = nn.parameter.Parameter(x.detach())
-        self._tunable = tunable
-        self._descending = descending
 
-    def sub(self, index: typing.Union[int, typing.Tuple[int, int]]) -> 'ShapeParams':
-        """Extract a subset of the parameters
+        x_base = x[...,:-1]
+        x_offset = x[...,1:]
+        dx = x_offset - x_base
+        dx = torch.log(torch.exp(dx) - 1)
 
-        Args:
-            index (typing.Union[int, typing.Tuple[int, int]]): Index to extract with
-
-        Returns:
-            ShapeParams: Subset of the shape parameters
-        """
-        if isinstance(index, int):
-            index = slice(index, index + 1)
-        elif isinstance(index, typing.List):
-            index = index
-        else:
-            index = slice(*index)
-        return ShapeParams(self._x[..., index], False, self._descending)
+        if dx.isnan().any():
+            raise ValueError(
+                'The coordinates must be monotonically increasing. '
+                'It seems there are some that are <= to the previous.')
+    
+        self._x = nn.parameter.Parameter(x_base[...,0:1].detach())
+        self._dx = nn.parameter.Parameter(dx.detach())
 
     @property
     def device(self) -> torch.device:
         
         return self._x.device
     
-    def constrain(self, eps: float=1e-7):
-
-        prev = None
-        for i in range(self.n_points):
-            if prev is not None:
-                if self._descending:
-                    self._x[...,prev].data = torch.clamp(
-                        self._x[...,prev], self._x[...,prev], self._x[...,i] - eps
-                    )
-                else:
-                    self._x[...,i].data = torch.clamp(
-                        self._x[...,i], self._x[...,prev] + eps, self._x[...,i]
-                    )
-            prev = i
-
-    def pt(self, index: int) -> torch.Tensor:
-        """Retrieve a given point in the shape parameters
-
-        Args:
-            index (int): The point to retrieve
-
-        Returns:
-            torch.Tensor: 
-        """
-        assert isinstance(index, int)
-        return self._x[...,index]
-
-    def sample(self, index: int) -> torch.Tensor:
-        """Retrieve one sample from the shape parameters
-
-        Args:
-            index (int): The sampel to retrieve
-
-        Returns:
-            torch.Tensor: 
-        """
-        return self._x[index]
-
-    def samples(self, indices) -> torch.Tensor:
-        """Retrieve multiple samples
-
-        Args:
-            indices (typing.Iterable[int]): The indices of the samples to retrieve
-
-        Returns:
-            torch.Tensor: The samples to retrieve
-        """
-        return self._x[indices]
-        
     @property
     def x(self) -> torch.Tensor:
         """
@@ -252,10 +192,6 @@ class ShapeParams(nn.Module):
         return self._x.size(0)
 
     @property
-    def set_size(self) -> int:
-        return self._x.size(1)
-
-    @property
     def n_vars(self) -> int:
         return self._x.size(1)
 
@@ -265,116 +201,255 @@ class ShapeParams(nn.Module):
 
     @property
     def n_points(self) -> int:
-        return self._x.size(3)
-    
-    def sort(self) -> 'ShapeParams':
-        """
+        return self._x.size(3) + self._dx.size(3)
 
-        Args:
-            descending (bool, optional): Sort the parameters by the . Defaults to False.
-
-        Returns:
-            ShapeParams: 
-        """
-        if self._descending is not None:
-            return ShapeParams(
-                self._x.sort(descending=self._descending)[0], tunable=False, descending=self._descending
-            )
-        return self
-
-    def contains(self, x: torch.Tensor, index1: int, index2: int) -> torch.BoolTensor:
-        return (x >= self.pt(index1)) & (x <= self.pt(index2))
-
-    def insert(self, x: torch.Tensor, idx: int, to_unsqueeze: bool=False, equalize_to: torch.Tensor=None) -> 'ShapeParams':
-        """Insert a value into the params
-
-        Args:
-            x (torch.Tensor): The value to insert
-            idx (int): The index to insert at
-            to_unsqueeze (bool, optional): Whether to unsqueeze x. Defaults to False.
-            equalize_to (torch.Tensor, optional): Whether to equalize the size. Defaults to None.
-
-        Returns:
-            ShapeParams: The ShapeParmas inserted
-        """
-        x = x if not to_unsqueeze else unsqueeze(x)
-
-        mine = resize_to(self.x, x)
-        if equalize_to is not None:
-            mine = resize_to(mine, equalize_to, 1)
-        if not (0 <= idx <= mine.size(3)):
-            raise ValueError(f'Argument idx must be in range of [0, {mine.size(3)}] not {idx}')
-        
-        return ShapeParams(
-            torch.concat([mine[:,:,:,:idx], x, mine[:,:,:,idx:]], dim=3), False, self._descending
-        )
-
-    def replace(
-        self, x: torch.Tensor, idx: int, to_unsqueeze: bool=False, 
-        equalize_to: torch.Tensor=None
-    ) -> 'ShapeParams':
-        """Replace the value in the params
-
-        Args:
-            x (torch.Tensor): The value to replace with
-            idx (int): The index to replace at
-            to_unsqueeze (bool, optional): Whether to unsqueeze x. Defaults to False.
-            equalize_to (torch.Tensor, optional): Whether to equalize x's size to the params. Defaults to None.
-
-        Returns:
-            ShapeParams: The ShapeParams with the value replaced
-        """
-        x = x if not to_unsqueeze else unsqueeze(x)
-        mine = resize_to(self.x, x)
-        if equalize_to is not None:
-            mine = resize_to(mine, equalize_to, 1)
-        if not (0 <= idx < self._x.size(3)):
-            raise ValueError(f'Argument idx must be in range of [0, {mine.size(3)}) not {idx}')
-        
-        return ShapeParams(
-            torch.concat([mine[:,:,:,:idx], x, mine[:,:,:,idx+1:]], dim=3), False, self._descending
-        )
-
-    def replace_slice(
-        self, x: torch.Tensor, pt_range: typing.Tuple[int, int], 
-        to_unsqueeze: bool=False, equalize_to: torch.Tensor=None
-    ) -> 'ShapeParams':
-        """Replace a range of values in the ShapeParams
-
-        Args:
-            x (torch.Tensor): The value to replace iwth
-            pt_range (typing.Tuple[int, int]): The range of values to replace
-            to_unsqueeze (bool, optional): Whether to unsqueeze x. Defaults to False.
-            equalize_to (torch.Tensor, optional): Whether to equalize the shape of x to the Params. Defaults to None.
-
-        Returns:
-            ShapeParams: The ShapeParams with the values replaced
-        """
-        x = x if not to_unsqueeze else unsqueeze(x)
-        
-        mine = resize_to(self.x, x)
-        if equalize_to is not None:
-            mine = resize_to(mine, equalize_to, 1)
-        return ShapeParams(
-            torch.concat([mine[:,:,:,:pt_range[0]], x, mine[:,:,:,pt_range[1]+1:]], dim=3), False, self._descending
-        )
-
-    @classmethod
-    def from_sub(cls, *sub: 'ShapeParams', tunable: bool=False, descending: bool=False):
-        
-        return ShapeParams(
-            torch.cat([sub_i._x for sub_i in sub], dim=3), tunable, descending
-        )
-    
     @property
     def shape(self) -> torch.Size:
-        return self.x.shape
+        return self._x.shape
     
-    def forward(self) -> 'ShapeParams':
-        return self.sort()
+    def forward(self) -> torch.Tensor:
+        
+        others = torch.cumsum(
+            torch.nn.functional.softplus(self._dx), -1
+        ) + self._x
+        return torch.cat(
+            [self._x, others], dim=-1
+        )
+
+    # def constrain(self, eps: float=1e-7):
+
+    #     prev = None
+    #     for i in range(self.n_points):
+    #         if prev is not None:
+    #             if self._descending:
+    #                 self._x[...,prev].data = torch.clamp(
+    #                     self._x[...,prev], self._x[...,prev], self._x[...,i] - eps
+    #                 )
+    #             else:
+    #                 self._x[...,i].data = torch.clamp(
+    #                     self._x[...,i], self._x[...,prev] + eps, self._x[...,i]
+    #                 )
+    #         prev = i
+
+    # def sub(self, index: typing.Union[int, typing.Tuple[int, int]]) -> 'Coords':
+    #     """Extract a subset of the parameters
+
+    #     Args:
+    #         index (typing.Union[int, typing.Tuple[int, int]]): Index to extract with
+
+    #     Returns:
+    #         ShapeParams: Subset of the shape parameters
+    #     """
+    #     if isinstance(index, int):
+    #         index = slice(index, index + 1)
+    #     elif isinstance(index, typing.List):
+    #         index = index
+    #     else:
+    #         index = slice(*index)
+    #     return Coords(self._x[..., index], False, self._descending)
+
+    # def pt(self, index: int) -> torch.Tensor:
+    #     """Retrieve a given point in the shape parameters
+
+    #     Args:
+    #         index (int): The point to retrieve
+
+    #     Returns:
+    #         torch.Tensor: 
+    #     """
+    #     assert isinstance(index, int)
+    #     return self._x[...,index]
+
+    # def sample(self, index: int) -> torch.Tensor:
+    #     """Retrieve one sample from the shape parameters
+
+    #     Args:
+    #         index (int): The sampel to retrieve
+
+    #     Returns:
+    #         torch.Tensor: 
+    #     """
+    #     return self._x[index]
+
+    # def samples(self, indices) -> torch.Tensor:
+    #     """Retrieve multiple samples
+
+    #     Args:
+    #         indices (typing.Iterable[int]): The indices of the samples to retrieve
+
+    #     Returns:
+    #         torch.Tensor: The samples to retrieve
+    #     """
+    #     return self._x[indices]
+    # def sort(self) -> 'Coords':
+    #     """
+
+    #     Args:
+    #         descending (bool, optional): Sort the parameters by the . Defaults to False.
+
+    #     Returns:
+    #         ShapeParams: 
+    #     """
+    #     if self._descending is not None:
+    #         return Coords(
+    #             self._x.sort(descending=self._descending)[0], tunable=False, descending=self._descending
+    #         )
+    #     return self
+
+    def contains(self, x: torch.Tensor, index1: int, index2: int) -> torch.BoolTensor:
+        pts = self()
+        return (x >= pts[...,index1]) & (x <= pts[...,index2])
+
+    # def insert(self, x: torch.Tensor, idx: int, to_unsqueeze: bool=False, equalize_to: torch.Tensor=None) -> 'Coords':
+    #     """Insert a value into the params
+
+    #     Args:
+    #         x (torch.Tensor): The value to insert
+    #         idx (int): The index to insert at
+    #         to_unsqueeze (bool, optional): Whether to unsqueeze x. Defaults to False.
+    #         equalize_to (torch.Tensor, optional): Whether to equalize the size. Defaults to None.
+
+    #     Returns:
+    #         ShapeParams: The ShapeParmas inserted
+    #     """
+    #     x = x if not to_unsqueeze else unsqueeze(x)
+
+    #     mine = resize_to(self.x, x)
+    #     if equalize_to is not None:
+    #         mine = resize_to(mine, equalize_to, 1)
+    #     if not (0 <= idx <= mine.size(3)):
+    #         raise ValueError(f'Argument idx must be in range of [0, {mine.size(3)}] not {idx}')
+        
+    #     return Coords(
+    #         torch.concat([mine[:,:,:,:idx], x, mine[:,:,:,idx:]], dim=3), False, self._descending
+    #     )
+
+    # def replace(
+    #     self, x: torch.Tensor, idx: int, to_unsqueeze: bool=False, 
+    #     equalize_to: torch.Tensor=None
+    # ) -> 'Coords':
+    #     """Replace the value in the params
+
+    #     Args:
+    #         x (torch.Tensor): The value to replace with
+    #         idx (int): The index to replace at
+    #         to_unsqueeze (bool, optional): Whether to unsqueeze x. Defaults to False.
+    #         equalize_to (torch.Tensor, optional): Whether to equalize x's size to the params. Defaults to None.
+
+    #     Returns:
+    #         ShapeParams: The ShapeParams with the value replaced
+    #     """
+    #     x = x if not to_unsqueeze else unsqueeze(x)
+    #     mine = resize_to(self.x, x)
+    #     if equalize_to is not None:
+    #         mine = resize_to(mine, equalize_to, 1)
+    #     if not (0 <= idx < self._x.size(3)):
+    #         raise ValueError(f'Argument idx must be in range of [0, {mine.size(3)}) not {idx}')
+        
+    #     return Coords(
+    #         torch.concat([mine[:,:,:,:idx], x, mine[:,:,:,idx+1:]], dim=3), False, self._descending
+    #     )
+
+    # def replace_slice(
+    #     self, x: torch.Tensor, pt_range: typing.Tuple[int, int], 
+    #     to_unsqueeze: bool=False, equalize_to: torch.Tensor=None
+    # ) -> 'Coords':
+    #     """Replace a range of values in the ShapeParams
+
+    #     Args:
+    #         x (torch.Tensor): The value to replace iwth
+    #         pt_range (typing.Tuple[int, int]): The range of values to replace
+    #         to_unsqueeze (bool, optional): Whether to unsqueeze x. Defaults to False.
+    #         equalize_to (torch.Tensor, optional): Whether to equalize the shape of x to the Params. Defaults to None.
+
+    #     Returns:
+    #         ShapeParams: The ShapeParams with the values replaced
+    #     """
+    #     x = x if not to_unsqueeze else unsqueeze(x)
+        
+    #     mine = resize_to(self.x, x)
+    #     if equalize_to is not None:
+    #         mine = resize_to(mine, equalize_to, 1)
+    #     return Coords(
+    #         torch.concat([mine[:,:,:,:pt_range[0]], x, mine[:,:,:,pt_range[1]+1:]], dim=3), False, self._descending
+    #     )
+
+    # @classmethod
+    # def from_sub(cls, *sub: 'Coords', tunable: bool=False, descending: bool=False):
+        
+    #     return Coords(
+    #         torch.cat([sub_i._x for sub_i in sub], dim=3), tunable, descending
+    #     )
+
+
+def insert(insert_to: torch.Tensor, to_insert: torch.Tensor, idx: int, to_unsqueeze: bool=False, equalize_to: torch.Tensor=None) -> torch.Tensor:
+    """Insert a value into the params
+
+    Args:
+        to_insert (torch.Tensor): The value to insert
+        idx (int): The index to insert at
+        to_unsqueeze (bool, optional): Whether to unsqueeze x. Defaults to False.
+        equalize_to (torch.Tensor, optional): Whether to equalize the size. Defaults to None.
+
+    Returns:
+        torch.Tensor: The ShapeParmas inserted
+    """
+    to_insert = to_insert if not to_unsqueeze else unsqueeze(to_insert)
+
+    mine = resize_to(insert_to, to_insert)
+    if equalize_to is not None:
+        mine = resize_to(mine, equalize_to, 1)
+    # if not (0 <= idx <= mine.size(3)):
+    #     raise ValueError(f'Argument idx must be in range of [0, {mine.size(3)}] not {idx}')
     
-    def __call__(self) -> 'ShapeParams':
-        return super().__call__()
+    return torch.concat([mine[...,:idx], to_insert, mine[...,idx:]], dim=3)
+
+
+def replace(
+    insert_to: torch.Tensor, to_insert: torch.Tensor, idx: int, to_unsqueeze: bool=False, 
+    equalize_to: torch.Tensor=None
+) -> torch.Tensor:
+    """Replace the value in the params
+
+    Args:
+        x (torch.Tensor): The value to replace with
+        idx (int): The index to replace at
+        to_unsqueeze (bool, optional): Whether to unsqueeze x. Defaults to False.
+        equalize_to (torch.Tensor, optional): Whether to equalize x's size to the params. Defaults to None.
+
+    Returns:
+        ShapeParams: The ShapeParams with the value replaced
+    """
+    to_insert = to_insert if not to_unsqueeze else unsqueeze(to_insert)
+    mine = resize_to(insert_to, to_insert)
+    if equalize_to is not None:
+        mine = resize_to(mine, equalize_to, 1)
+
+    return torch.concat([mine[...,:idx], to_insert, mine[...,idx+1:]], dim=3)
+
+
+def replace_slice(
+    insert_to: torch.Tensor, to_insert: torch.Tensor, pt_range: typing.Tuple[int, int], 
+    to_unsqueeze: bool=False, equalize_to: torch.Tensor=None
+) -> torch.Tensor:
+    """Replace a range of values in the ShapeParams
+
+    Args:
+        insert_to (torch.Tensor): The value to replace 
+        to_insert (torch.Tensor): The value to replace with
+        pt_range (typing.Tuple[int, int]): The range of values to replace
+        to_unsqueeze (bool, optional): Whether to unsqueeze x. Defaults to False.
+        equalize_to (torch.Tensor, optional): Whether to equalize the shape of x to the Params. Defaults to None.
+
+    Returns:
+        ShapeParams: The ShapeParams with the values replaced
+    """
+    to_insert = to_insert if not to_unsqueeze else unsqueeze(to_insert)
+    
+    mine = resize_to(insert_to, to_insert)
+    if equalize_to is not None:
+        mine = resize_to(mine, equalize_to, 1)
+    return torch.concat([mine[...,:pt_range[0]], to_insert, mine[...,pt_range[1]+1:]], dim=3)
 
 
 class Polygon(Nonmonotonic):
@@ -382,7 +457,7 @@ class Polygon(Nonmonotonic):
     """
     PT = None
 
-    def __init__(self, coords: ShapeParams):
+    def __init__(self, coords: Coords):
         """Create a polygon consisting of Nonmonotonic shapes
 
         Args:
@@ -392,13 +467,13 @@ class Polygon(Nonmonotonic):
         Raises:
             ValueError: If the number of points is not valid
         """
-        if coords.x.size(3) != self.PT:
-            raise ValueError(f'Number of points must be {self.PT} not {coords.x.size(3)}')
+        if coords.n_points != self.PT:
+            raise ValueError(f'Number of points must be {self.PT} not {coords.n_points}')
         
-        super().__init__(coords.set_size, coords.n_terms)
+        super().__init__(coords.n_vars, coords.n_terms)
         self._coords = coords
 
-    def coords(self) -> ShapeParams:
+    def coords(self) -> Coords:
         return self._coords()
 
     def constrain(self):

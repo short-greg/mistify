@@ -14,7 +14,7 @@ from .. import _shapes as shape
 from ._conclude import Conclusion, HypoM
 from ._hypo import ShapeHypothesis, HypothesisEnum
 from ._utils import stride_coordinates, generate_repeat_params, generate_spaced_params
-from .._shapes import Shape, ShapeParams, Composite
+from .._shapes import Shape, Coords, Composite
 from ._conclude import HypoM, Conclusion, ConcEnum
 from ._fuzzifiers import Fuzzifier, Defuzzifier
 from ..._base import Constrained
@@ -191,10 +191,10 @@ class IsoscelesFuzzifier(ShapeFuzzifier):
         validate_right_trapezoid(left, right)
         left_shape = shape.RightTrapezoid if flat_edges(left, 2) else shape.RightTriangle
         right_shape = shape.RightTrapezoid if flat_edges(left, 2) else shape.RightTriangle
-        left_shape = left_shape(ShapeParams(left, tunable), False)
-        right_shape = right_shape(ShapeParams(right, tunable), True)
+        left_shape = left_shape(Coords(left, tunable), False)
+        right_shape = right_shape(Coords(right, tunable), True)
         if middle is not None:
-            middle = shape.IsoscelesTriangle(ShapeParams(middle, tunable))
+            middle = shape.IsoscelesTriangle(Coords(middle, tunable))
         return IsoscelesFuzzifier(
             left, right, middle
         )
@@ -216,16 +216,16 @@ class IsoscelesFuzzifier(ShapeFuzzifier):
         """
         middle = None
         if flat_edges:
-            left = shape.RightTrapezoid(ShapeParams(coords[:,:,None,:3], tunable), False)
+            left = shape.RightTrapezoid(Coords(coords[:,:,None,:3], tunable), False)
             if n_terms > 2:
-                middle = shape.IsoscelesTriangle(ShapeParams(stride_coordinates(coords[:,:,1:-1], n_terms - 2, 1, 2), tunable))
-            right = shape.RightTrapezoid(ShapeParams(coords[:,:,None,-3:], tunable), True)
+                middle = shape.IsoscelesTriangle(Coords(stride_coordinates(coords[:,:,1:-1], n_terms - 2, 1, 2), tunable))
+            right = shape.RightTrapezoid(Coords(coords[:,:,None,-3:], tunable), True)
 
         else:
-            left = shape.RightTriangle(ShapeParams(coords[:,:,None,:2], tunable), False)
+            left = shape.RightTriangle(Coords(coords[:,:,None,:2], tunable), False)
             if n_terms > 2:
-                middle = shape.IsoscelesTriangle(ShapeParams(stride_coordinates(coords, n_terms - 2, 1, 2), tunable))
-            right = shape.RightTriangle(ShapeParams(coords[:,:,None,-2:], tunable), True)
+                middle = shape.IsoscelesTriangle(Coords(stride_coordinates(coords, n_terms - 2, 1, 2), tunable))
+            right = shape.RightTriangle(Coords(coords[:,:,None,-2:], tunable), True)
         return IsoscelesFuzzifier(left, right, middle)
 
     @classmethod
@@ -283,10 +283,10 @@ class IsoscelesTrapezoidFuzzifier(ShapeFuzzifier):
         validate_right_trapezoid(left, right)
         left_shape = shape.RightTrapezoid if flat_edges(left, 2) else shape.RightTriangle
         right_shape = shape.RightTrapezoid if flat_edges(left, 2) else shape.RightTriangle
-        left_shape = left_shape(ShapeParams(left, tunable), False)
-        right_shape = right_shape(ShapeParams(right, tunable), True)
+        left_shape = left_shape(Coords(left, tunable), False)
+        right_shape = right_shape(Coords(right, tunable), True)
         if middle is not None:
-            middle = shape.IsoscelesTrapezoid(ShapeParams(middle, tunable=tunable))
+            middle = shape.IsoscelesTrapezoid(Coords(middle, tunable=tunable))
         return IsoscelesTrapezoidFuzzifier(
             left, right, middle
         )
@@ -308,15 +308,15 @@ class IsoscelesTrapezoidFuzzifier(ShapeFuzzifier):
         """
         middle = None
         if flat_edges:
-            left = shape.RightTrapezoid(ShapeParams(coords[:,:,None,:3], tunable), False)
+            left = shape.RightTrapezoid(Coords(coords[:,:,None,:3], tunable), False)
             if n_terms > 2:
-                middle = shape.IsoscelesTrapezoid(ShapeParams(stride_coordinates(coords[:,:,1:-1], n_terms - 2, 2, 3), tunable))
-            right = shape.RightTrapezoid(ShapeParams(coords[:,:,None,-3:], tunable), True)
+                middle = shape.IsoscelesTrapezoid(Coords(stride_coordinates(coords[:,:,1:-1], n_terms - 2, 2, 3), tunable))
+            right = shape.RightTrapezoid(Coords(coords[:,:,None,-3:], tunable), True)
         else:
-            left = shape.RightTriangle(ShapeParams(coords[:,:,None,:2], tunable), False)
+            left = shape.RightTriangle(Coords(coords[:,:,None,:2], tunable), False)
             if n_terms > 2:
-                middle = shape.IsoscelesTrapezoid(ShapeParams(stride_coordinates(coords, n_terms - 2, 2, 3), tunable))
-            right = shape.RightTriangle(ShapeParams(coords[:,:,None,-2:], tunable), True)
+                middle = shape.IsoscelesTrapezoid(Coords(stride_coordinates(coords, n_terms - 2, 2, 3), tunable))
+            right = shape.RightTriangle(Coords(coords[:,:,None,-2:], tunable), True)
 
         return IsoscelesTrapezoidFuzzifier(left, right, middle)
 
@@ -372,10 +372,10 @@ class TrapezoidFuzzifier(ShapeFuzzifier):
         validate_right_trapezoid(left, right)
         left_shape = shape.RightTrapezoid if flat_edges(left, 2) else shape.RightTriangle
         right_shape = shape.RightTrapezoid if flat_edges(left, 2) else shape.RightTriangle
-        left_shape = left_shape(ShapeParams(left, tunable), False)
-        right_shape = right_shape(ShapeParams(right, tunable), True)
+        left_shape = left_shape(Coords(left, tunable), False)
+        right_shape = right_shape(Coords(right, tunable), True)
         if middle is not None:
-            middle = shape.Trapezoid(ShapeParams(middle, tunable))
+            middle = shape.Trapezoid(Coords(middle, tunable))
         return TrapezoidFuzzifier(
             left, right, middle
         )
@@ -397,15 +397,15 @@ class TrapezoidFuzzifier(ShapeFuzzifier):
         """
         middle = None
         if flat_edges:
-            left = shape.RightTrapezoid(ShapeParams(coords[:,:,None,:3], tunable), False)
+            left = shape.RightTrapezoid(Coords(coords[:,:,None,:3], tunable), False)
             if n_terms > 2:
-                middle = shape.Trapezoid(ShapeParams(stride_coordinates(coords[:,:,1:-1], n_terms - 2, 2, 4), tunable))
-            right = shape.RightTrapezoid(ShapeParams(coords[:,:,None,-3:], tunable), True)
+                middle = shape.Trapezoid(Coords(stride_coordinates(coords[:,:,1:-1], n_terms - 2, 2, 4), tunable))
+            right = shape.RightTrapezoid(Coords(coords[:,:,None,-3:], tunable), True)
         else:
-            left = shape.RightTriangle(ShapeParams(coords[:,:,None,:2], tunable), False)
+            left = shape.RightTriangle(Coords(coords[:,:,None,:2], tunable), False)
             if n_terms > 2:
-                middle = shape.Trapezoid(ShapeParams(stride_coordinates(coords, n_terms - 2, 2, 4), tunable))
-            right = shape.RightTriangle(ShapeParams(coords[:,:,None,-2:], tunable), True)
+                middle = shape.Trapezoid(Coords(stride_coordinates(coords, n_terms - 2, 2, 4), tunable))
+            right = shape.RightTriangle(Coords(coords[:,:,None,-2:], tunable), True)
 
         return TrapezoidFuzzifier(left, right, middle)
 
@@ -461,10 +461,10 @@ class TriangleFuzzifier(ShapeFuzzifier):
         validate_right_trapezoid(left, right)
         left_shape = shape.RightTrapezoid if flat_edges(left, 2) else shape.RightTriangle
         right_shape = shape.RightTrapezoid if flat_edges(left, 2) else shape.RightTriangle
-        left_shape = left_shape(ShapeParams(left, tunable), False)
-        right_shape = right_shape(ShapeParams(right, tunable), True)
+        left_shape = left_shape(Coords(left, tunable), False)
+        right_shape = right_shape(Coords(right, tunable), True)
         if middle is not None:
-            middle = shape.Triangle(ShapeParams(middle, tunable))
+            middle = shape.Triangle(Coords(middle, tunable))
         return TriangleFuzzifier(
             left, right, middle
         )
@@ -486,16 +486,16 @@ class TriangleFuzzifier(ShapeFuzzifier):
         """
         middle = None
         if flat_edges:
-            left = shape.RightTrapezoid(ShapeParams(coords[:,:,None,:3], tunable), False)
+            left = shape.RightTrapezoid(Coords(coords[:,:,None,:3], tunable), False)
             if n_terms > 2:
-                middle = shape.Triangle(ShapeParams(stride_coordinates(coords[:,:,1:-1], n_terms - 2, 1, 3), tunable))
-            right = shape.RightTrapezoid(ShapeParams(coords[:,:,None,-3:], tunable), True)
+                middle = shape.Triangle(Coords(stride_coordinates(coords[:,:,1:-1], n_terms - 2, 1, 3), tunable))
+            right = shape.RightTrapezoid(Coords(coords[:,:,None,-3:], tunable), True)
 
         else:
-            left = shape.RightTriangle(ShapeParams(coords[:,:,None,:2], tunable), False)
+            left = shape.RightTriangle(Coords(coords[:,:,None,:2], tunable), False)
             if n_terms > 2:
-                middle = shape.Triangle(ShapeParams(stride_coordinates(coords, n_terms - 2, 1, 3), tunable))
-            right = shape.RightTriangle(ShapeParams(coords[:,:,None,-2:], tunable), True)
+                middle = shape.Triangle(Coords(stride_coordinates(coords, n_terms - 2, 1, 3), tunable))
+            right = shape.RightTriangle(Coords(coords[:,:,None,-2:], tunable), True)
         return TriangleFuzzifier(left, right, middle)
 
     @classmethod
@@ -544,7 +544,7 @@ class SquareFuzzifier(ShapeFuzzifier):
         params = validate_terms(params)
         
         validate_n_points(params, n_points=2)
-        params = shape.Square(ShapeParams(params, tunable))
+        params = shape.Square(Coords(params, tunable))
         return SquareFuzzifier(
             params, 
         )
@@ -553,7 +553,7 @@ class SquareFuzzifier(ShapeFuzzifier):
     def from_coords(
         cls, coords: torch.Tensor, n_terms: int, tunable: bool=False
     ):
-        square = shape.Square(ShapeParams(stride_coordinates(coords[:,:,:], n_terms, 2, 2), tunable))
+        square = shape.Square(Coords(stride_coordinates(coords[:,:,:], n_terms, 2, 2), tunable))
         return SquareFuzzifier(square)
 
     @classmethod
@@ -592,8 +592,8 @@ class LogisticFuzzifier(ShapeFuzzifier):
     ):
         left, right, middle = validate_terms(left_scales, right_scales, left_scales, left_biases, middle_scales, middle_biases)
         validate_n_points(left, middle, right, n_points=1)
-        left = shape.HalfLogisticBell(ShapeParams(left_biases, tunable), ShapeParams(left_scales, tunable), True)
-        right = shape.HalfLogisticBell(ShapeParams(right_biases, tunable), ShapeParams(right_scales, tunable), False)
+        left = shape.HalfLogisticBell(Coords(left_biases, tunable), Coords(left_scales, tunable), True)
+        right = shape.HalfLogisticBell(Coords(right_biases, tunable), Coords(right_scales, tunable), False)
 
         if middle is not None:
             middle = shape.Logistic(middle_biases, middle_scales)
@@ -608,15 +608,15 @@ class LogisticFuzzifier(ShapeFuzzifier):
     ):
         middle = None
         left = shape.HalfLogisticBell(
-            ShapeParams(bias_coords[:,:,None,0:1], tunable), 
-            ShapeParams(scale_coords[:,:,None,0:1], tunable), 
+            Coords(bias_coords[:,:,None,0:1], tunable), 
+            Coords(scale_coords[:,:,None,0:1], tunable), 
             False
         )
         if n_terms > 2:
             middle = shape.LogisticBell(
-                ShapeParams(bias_coords[:,:,1:-1,None],tunable), ShapeParams(scale_coords[:,:,1:-1,None], tunable)
+                Coords(bias_coords[:,:,1:-1,None],tunable), Coords(scale_coords[:,:,1:-1,None], tunable)
             )
-        right = shape.HalfLogisticBell(ShapeParams(bias_coords[:,:,-1:,None], tunable), ShapeParams(scale_coords[:,:,-1:,None], tunable), True)
+        right = shape.HalfLogisticBell(Coords(bias_coords[:,:,-1:,None], tunable), Coords(scale_coords[:,:,-1:,None], tunable), True)
 
         return LogisticFuzzifier(left, right, middle)
 
@@ -648,10 +648,10 @@ class SigmoidFuzzifier(ShapeFuzzifier):
     ):
         biases = validate_terms(biases, scales)
         validate_n_points(biases, scales, n_points=1)
-        biases_params = ShapeParams(biases, tunable)
+        biases_params = Coords(biases, tunable)
         if isinstance(scales, float):
 
-            scales = ShapeParams(
+            scales = Coords(
                 generate_repeat_params(biases_params.n_terms, scales, biases_params.n_vars), tunable
             )
         sigmoid = shape.Sigmoid(biases, scales)
@@ -665,7 +665,7 @@ class SigmoidFuzzifier(ShapeFuzzifier):
         tunable: bool=False
     ):
         sigmoid = shape.Sigmoid(
-            ShapeParams(bias_coords[:,:,:,None], tunable), ShapeParams(scale_coords[:,:,:,None], tunable)
+            Coords(bias_coords[:,:,:,None], tunable), Coords(scale_coords[:,:,:,None], tunable)
         )
         return SigmoidFuzzifier(sigmoid)
 
@@ -715,7 +715,7 @@ class RampFuzzifier(ShapeFuzzifier):
     ):
         points = validate_terms(points)
         validate_n_points(points, 2)
-        point_params = ShapeParams(points, tunable)
+        point_params = Coords(points, tunable)
         ramp = shape.Ramp(point_params, tunable)
         return RampFuzzifier(
             ramp
@@ -736,7 +736,7 @@ class RampFuzzifier(ShapeFuzzifier):
         """
         
         ramp = shape.Ramp(
-            ShapeParams(stride_coordinates(coords, n_terms, 1, 2, 2), tunable)
+            Coords(stride_coordinates(coords, n_terms, 1, 2, 2), tunable)
         )
         return RampFuzzifier(ramp)
 
@@ -793,7 +793,7 @@ class StepFuzzifier(ShapeFuzzifier):
         # TODO: Add more validation code
         points = validate_terms(points)
         validate_n_points(points, 1)
-        point_params = ShapeParams(points)
+        point_params = Coords(points)
         step = shape.Step(point_params, tunable)
         return StepFuzzifier(
             step
@@ -813,7 +813,7 @@ class StepFuzzifier(ShapeFuzzifier):
             StepFuzzifier: the created StepFuzzifier
         """
         step = shape.Step(
-            ShapeParams(stride_coordinates(coords, n_terms, 1, 1, 1), tunable)
+            Coords(stride_coordinates(coords, n_terms, 1, 1, 1), tunable)
         )
         return StepFuzzifier(step)
 

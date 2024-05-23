@@ -14,7 +14,7 @@ class TestHypothesis(object):
         x = torch.rand(2, 3, 4, 2)
         m = torch.rand(2, 3, 4)
         
-        logistic = _shapes.LogisticBell.from_combined(_shapes.ShapeParams(x))
+        logistic = _shapes.LogisticBell.from_combined(_shapes.Coords(x))
         hypothesis = _conversion.MeanCoreHypothesis()
         assert (hypothesis([logistic], m).hypo == x[:,:,:,0]).all()
 
@@ -23,7 +23,7 @@ class TestHypothesis(object):
         x = torch.rand(2, 3, 4, 2)
         m = torch.rand(2, 3, 4)
         
-        logistic = _shapes.LogisticBell.from_combined(_shapes.ShapeParams(x))
+        logistic = _shapes.LogisticBell.from_combined(_shapes.Coords(x))
         hypothesis = _conversion.CentroidHypothesis()
         assert (hypothesis([logistic], m).hypo == x[:,:,:,0]).all()
 
@@ -32,7 +32,7 @@ class TestHypothesis(object):
         x = torch.rand(2, 3, 4, 2)
         m = torch.rand(2, 3, 4)
         
-        logistic = _shapes.LogisticBell.from_combined(_shapes.ShapeParams(x))
+        logistic = _shapes.LogisticBell.from_combined(_shapes.Coords(x))
         hypothesis = _conversion.AreaHypothesis()
         assert (hypothesis([logistic], m).hypo.shape == torch.Size([2, 3, 4]))
     
