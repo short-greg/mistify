@@ -271,7 +271,7 @@ class IsoscelesTrapezoidFuzzifier(ShapeFuzzifier):
             truncate (bool, optional): Whether to truncate or scale. Defaults to False.
         """
         super().__init__(
-            polygon_set(left, middle, right, tunable)
+            polygon_set(left, middle, right), tunable
         )
 
     @classmethod
@@ -609,17 +609,17 @@ class LogisticFuzzifier(ShapeFuzzifier):
     ):
         middle = None
         left = shape.HalfLogisticBell(
-            bias_coords[:,:,None,0:1], 
-            scale_coords[:,:,None,0:1], 
+            bias_coords[:,:,None,0], 
+            scale_coords[:,:,None,0], 
             False
         )
         if n_terms > 2:
             middle = shape.LogisticBell(
-                bias_coords[:,:,1:-1,None], scale_coords[:,:,1:-1,None]
+                bias_coords[:,:,1:-1], scale_coords[:,:,1:-1]
             )
         right = shape.HalfLogisticBell(
-            bias_coords[:,:,-1:,None], 
-            scale_coords[:,:,-1:,None], True)
+            bias_coords[:,:,-1:], 
+            scale_coords[:,:,-1:], True)
 
         return LogisticFuzzifier(left, right, middle, tunable)
 
@@ -665,7 +665,7 @@ class SigmoidFuzzifier(ShapeFuzzifier):
         tunable: bool=False
     ):
         sigmoid = shape.Sigmoid(
-            bias_coords[:,:,:,None], scale_coords[:,:,:,None]
+            bias_coords, scale_coords
         )
         return SigmoidFuzzifier(sigmoid, tunable)
 
@@ -812,7 +812,7 @@ class StepFuzzifier(ShapeFuzzifier):
             StepFuzzifier: the created StepFuzzifier
         """
         step = shape.Step(
-            stride_coordinates(coords, n_terms, 1, 1, 1)
+            stride_coordinates(coords, n_terms, 1, 1, 1).squeeze(-1)
         )
         return StepFuzzifier(step, tunable)
 
