@@ -1,8 +1,6 @@
 from mistify import fuzzify
 import torch
 
-import torch
-
 
 class TestIsoscelesFuzzyConverter:
     
