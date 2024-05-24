@@ -587,34 +587,63 @@ class Reverse(Transform):
         return self.transform(Y)
 
 
+# TODO: update so lower and upper can be none
+
 class PieceRange(nn.Module):
 
-    def __init__(self, pieces: torch.Tensor, lower: float=0., upper: float=1.0, tunable: bool=False):
+    def __init__(self, x: torch.Tensor, dx: torch.Tensor, lower: float=0., upper: float=1.0, tunable: bool=False):
         """Use to create a range of values for the piecewise computation
 
         Args:
-            n_pieces (int): The number of pieces in the range
-            n_features (int, optional): Number of features - If none, use the same value for all featurse. Defaults to None.
             lower (float, optional): The lower bound on the range. Defaults to 0..
             upper (float, optional): The upper bound on the rane. Defaults to 1.0.
             tunable (bool, optional): Whether the parameters can be tuned. Defaults to False.
         """
         super().__init__()
-        if pieces.dim() == 1:
-            pieces = pieces[None, None]
+
+        if (dx <= 0).any():
+            raise ValueError('DX must be greater than 0')
+        if (dx.shape[:-1] != x.shape[:-1]):
+            raise ValueError('DX must have the same shape as X except for the last dimension')
+        if (x.shape[-1] != 1):
+            raise ValueError('X must have one element in the final dimension')
+
+        dx = torch.log(torch.exp(dx) - 1)
+
+        if x.dim() == 1:
+            x = x[None, None]
+            dx = dx[None, None]
             self._n_features = None
         else:
-            pieces = pieces[None]
-            self._n_features = pieces.size(1)
+            x = x[None]
+            dx = dx[None]
+            self._n_features = x.size(1)
 
         if tunable:
-            self._pieces = torch.nn.parameter.Parameter(pieces)
+            self._x = torch.nn.parameter.Parameter(x)
+            self._dx = torch.nn.parameter.Parameter(dx)
         else:
-            self._pieces = pieces
+            self._x = x
+            self._dx = dx
         self._tunable = tunable
         self._lower = lower
         self._upper = upper
         self._diff = self._upper - self._lower
+
+    @property
+    def n_pieces(self) -> int:
+        return self._dx.size(-1)
+    
+    def pieces(self) -> torch.Tensor:
+
+        dx = torch.nn.functional.softplus(self._dx).cumsum(-1)
+        x = torch.cat(
+            [self._x, dx + self._x], dim=-1
+        ) - self._lower
+        
+        change = (self._upper - self._lower) / (x[...,-1:] - x[...,0:1])
+        
+        return x * change + self._lower
 
     @classmethod
     def linspace(self, n_pieces: int, n_features: int=None, lower: float=0., upper: float=1.0, tunable: bool=False):
@@ -622,80 +651,88 @@ class PieceRange(nn.Module):
         pieces = torch.linspace(lower, upper, n_pieces + 1)
         if n_features is not None:
             pieces = pieces[None].repeat(n_features, 1)
+        x = pieces[...,0:1]
+        dx = pieces[...,1:] - pieces[...,:-1]
 
-        return PieceRange(pieces, lower, upper, tunable)
-
-    @classmethod
-    def expand(self, pieces: torch.Tensor, n_features: int, lower: float=0., upper: float=1., tunable: bool=False):
-        pieces = pieces[None].repeat(n_features, 1)[None]
-        return PieceRange(pieces, lower, upper, tunable)
+        return PieceRange(x, dx, lower, upper, tunable)
 
     @property
-    def n_pieces(self) -> int:
-        return self._pieces.size(-1)
+    def upper(self) -> float:
+        return self._upper
     
-    def pieces(self) -> torch.Tensor:
-        """
+    @property
+    def lower(self) -> float:
+        return self._lower
 
-        Returns:
-            torch.Tensor: The pieces making upt hte piecewise transform
-        """
-        if not self._tunable:
-            return self._pieces # * self._diff + self._lower
+    # @classmethod
+    # def expand(self, x: torch.Tensor, dx: torch.Tensor, n_features: int, lower: float=0., upper: float=1., tunable: bool=False):
+    #     x = x[None].repeat(n_features, 1)[None]
+    #     dx = dx[None].repeat(n_features, )
+    #     return PieceRange(pieces, lower, upper, tunable)
+
+
+    # def pieces(self) -> torch.Tensor:
+    #     """
+
+    #     Returns:
+    #         torch.Tensor: The pieces making upt hte piecewise transform
+    #     """
+    #     if not self._tunable:
+    #         return self._pieces # * self._diff + self._lower
         
-        pieces = torch.cumsum(torch.nn.functional.softplus(self._pieces), dim=-1)
-        max_ = pieces.max(dim=-1, keepdim=True)[0]
-        min_ = pieces.min(dim=-1, keepdim=True)[0]
-        return ((pieces - min_) / (max_ - min_ + 1e-6)) * self._diff + self._lower
+    #     pieces = torch.cumsum(torch.nn.functional.softplus(self._pieces), dim=-1)
+    #     max_ = pieces.max(dim=-1, keepdim=True)[0]
+    #     min_ = pieces.min(dim=-1, keepdim=True)[0]
+    #     return ((pieces - min_) / (max_ - min_ + 1e-6)) * self._diff + self._lower
     
-    def diff(self, x: torch.Tensor) -> typing.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """helper method to determine the difference between two points in the 
-        function
+    # def diff(self, x: torch.Tensor) -> typing.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    #     """helper method to determine the difference between two points in the 
+    #     function
 
-        Args:
-            x (torch.Tensor): The input
+    #     Args:
+    #         x (torch.Tensor): The input
 
-        Returns:
-            typing.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: pairs of points
-        """
-        x = x.unsqueeze(-1)
-        pieces = self.pieces()
-        lower = pieces[:,:,:-1]
-        upper = pieces[:,:,1:]
-        within = ((x >= lower) & (x <= upper)).type_as(x)
-        chosen = within.argmax(dim=-1, keepdim=True)
-        result = within * x
-        return result.gather(-1, chosen), chosen
+    #     Returns:
+    #         typing.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: pairs of points
+    #     """
+    #     x = x.unsqueeze(-1)
+    #     pieces = self.pieces()
+    #     lower = pieces[:,:,:-1]
+    #     upper = pieces[:,:,1:]
+    #     within = ((x >= lower) & (x <= upper)).type_as(x)
+    #     chosen = within.argmax(dim=-1, keepdim=True)
+    #     result = within * x
+    #     return result.gather(-1, chosen), chosen
 
-    def oob(self, x: torch.Tensor) -> torch.BoolTensor:
-        """
-        Args:
-            x (torch.Tensor): Whether x is out of bounds
+    # def oob(self, x: torch.Tensor) -> torch.BoolTensor:
+    #     """
+    #     Args:
+    #         x (torch.Tensor): Whether x is out of bounds
 
-        Returns:
-            torch.BoolTensor: Whether 
-        """
-        return ((x < self._lower) | (x > self._upper)).type_as(x)
+    #     Returns:
+    #         torch.BoolTensor: Whether 
+    #     """
+    #     return ((x < self._lower) | (x > self._upper)).type_as(x)
 
-    def range(self, ind: torch.LongTensor) -> torch.Tensor:
-        """
-        Args:
-            ind (torch.LongTensor): The indices to choose
+    # def range(self, ind: torch.LongTensor) -> torch.Tensor:
+    #     """
+    #     Args:
+    #         ind (torch.LongTensor): The indices to choose
 
-        Returns:
-            torch.Tensor: The lower and upper bound for those indices
-        """
-        pieces = self.pieces()
-        lower = pieces[:,:,:-1]
-        upper = pieces[:,:,1:]
-        if self._n_features is None:
-            lower = lower.repeat(ind.shape[0], ind.shape[1], 1)
-            upper = upper.repeat(ind.shape[0], ind.shape[1], 1)
-        else:
-            lower = lower.repeat(ind.shape[0], 1, 1)
-            upper = upper.repeat(ind.shape[0], 1, 1)
+    #     Returns:
+    #         torch.Tensor: The lower and upper bound for those indices
+    #     """
+    #     pieces = self.pieces()
+    #     lower = pieces[:,:,:-1]
+    #     upper = pieces[:,:,1:]
+    #     if self._n_features is None:
+    #         lower = lower.repeat(ind.shape[0], ind.shape[1], 1)
+    #         upper = upper.repeat(ind.shape[0], ind.shape[1], 1)
+    #     else:
+    #         lower = lower.repeat(ind.shape[0], 1, 1)
+    #         upper = upper.repeat(ind.shape[0], 1, 1)
 
-        return upper.gather(-1, ind).squeeze(dim=-1), lower.gather(-1, ind).squeeze(dim=-1)
+    #     return upper.gather(-1, ind).squeeze(dim=-1), lower.gather(-1, ind).squeeze(dim=-1)
 
 
 class Piecewise(Transform):
@@ -730,15 +767,32 @@ class Piecewise(Transform):
         Returns:
             torch.Tensor: The output
         """
-        out_of_bounds = self.x_range.oob(x)
-        x_diff, ind = self.x_range.diff(x)
-        upper_x, lower_x = self.x_range.range(ind)
-        upper, lower = self.y_range.range(ind)
-        
-        m = (upper - lower) / (upper_x - lower_x + self.eps)
-        value = (x_diff.squeeze(-1) - lower_x) * m + lower
+        x = x[...,None]
+        x_pieces = self.x_range.pieces()
+        y_pieces = self.y_range.pieces()
 
-        return (value * (1 - out_of_bounds)) + x * out_of_bounds
+        slope = (y_pieces[...,1:] - y_pieces[...,:-1]) / (x_pieces[...,1:] - x_pieces[...,:-1])
+
+        # (2, 1) => 1
+        # (3, 1) => 2
+        roffset = (self.y_range.upper - self.x_range.upper)
+        loffset = (self.y_range.lower - self.x_range.lower)
+        loob = ((x < x_pieces[...,0:1]) * (x + loffset)).squeeze(-1)
+        roob = ((x > x_pieces[...,-1:]) * (x + roffset)).squeeze(-1)
+
+        return (
+            ((x - x_pieces[...,:-1]) * slope + y_pieces[...,:-1]) * ((x >= x_pieces[...,:-1]) & (x <= x_pieces[...,1:]))
+        ).sum(dim=-1) + loob + roob
+
+        # out_of_bounds = self.x_range.oob(x)
+        # x_diff, ind = self.x_range.diff(x)
+        # upper_x, lower_x = self.x_range.range(ind)
+        # upper, lower = self.y_range.range(ind)
+        
+        # m = (upper - lower) / (upper_x - lower_x + self.eps)
+        # value = (x_diff.squeeze(-1) - lower_x) * m + lower
+
+        # return (value * (1 - out_of_bounds)) + x * out_of_bounds
 
     def reverse(self, y: torch.Tensor) -> torch.Tensor:
         """Compute the reverse of the piecewise linear function
@@ -749,13 +803,28 @@ class Piecewise(Transform):
         Returns:
             torch.Tensor: The input
         """
-        out_of_bounds = self.y_range.oob(y)
-        y_diff, ind = self.y_range.diff(y)
-        upper_y, lower_y = self.y_range.range(ind)
-        upper, lower = self.x_range.range(ind)
-        m = (upper - lower) / (upper_y - lower_y + self.eps)
-        value = (y_diff.squeeze(-1) - lower_y) * m + lower
-        return (value * (1 - out_of_bounds)) + y * out_of_bounds
+        y = y[...,None]
+        x_pieces = self.x_range.pieces()
+        y_pieces = self.y_range.pieces()
+
+        slope = (x_pieces[...,1:] - x_pieces[...,:-1]) / (y_pieces[...,1:] - y_pieces[...,:-1])
+
+        roffset = (self.x_range.upper - self.y_range.upper)
+        loffset = (self.x_range.lower - self.y_range.lower)
+        loob = ((y < y_pieces[...,0:1]) * (y + loffset)).squeeze(-1)
+        roob = ((y > y_pieces[...,-1:]) * (y + roffset)).squeeze(-1)
+        
+        return (
+            ((y - y_pieces[...,:-1]) * slope + x_pieces[...,:-1]) * ((y >= y_pieces[...,:-1]) & (y <= y_pieces[...,1:]))
+        ).sum(dim=-1) + loob + roob
+    
+        # out_of_bounds = self.y_range.oob(y)
+        # y_diff, ind = self.y_range.diff(y)
+        # upper_y, lower_y = self.y_range.range(ind)
+        # upper, lower = self.x_range.range(ind)
+        # m = (upper - lower) / (upper_y - lower_y + self.eps)
+        # value = (y_diff.squeeze(-1) - lower_y) * m + lower
+        # return (value * (1 - out_of_bounds)) + y * out_of_bounds
 
     @classmethod
     def linspace(
