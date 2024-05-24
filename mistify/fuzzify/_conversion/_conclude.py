@@ -114,7 +114,6 @@ class WeightedPAverageConc(Conclusion):
             torch.Tensor: the weighted average of the hypotheses
         """
         w = self.layer_weightf(self.layer_weight)[None]
-        print(w[0, 0])
         return (
             torch.sum(hypo_m.hypo * w, dim=-1) 
             / torch.sum(w, dim=-1)

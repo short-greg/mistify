@@ -35,7 +35,6 @@ def logistic_invert(y: torch.Tensor, bias: torch.Tensor, scale: torch.Tensor) ->
     """
     y = torch.clamp(y, 1e-7, 1.0)
     s = 2 * torch.sqrt(1 - y) + 2
-    print(y, s)
     x2 = torch.log((-y + s) / y)
     return bias - scale * x2, bias + scale * x2
 
