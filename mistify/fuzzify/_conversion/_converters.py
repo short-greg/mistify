@@ -231,7 +231,7 @@ class IsoscelesFuzzifier(ShapeFuzzifier):
 
     @classmethod
     def from_linspace(
-        cls, n_terms: int, 
+        cls, n_terms: int, n_vars: int=None,
         flat_edges: bool=False, tunable: bool=False
     ) -> 'IsoscelesFuzzifier':
         """Create the IsoscelesFuzzy converter from coordinates
@@ -244,9 +244,9 @@ class IsoscelesFuzzifier(ShapeFuzzifier):
             IsoscelesFuzzifier
         """
         if flat_edges:
-            coords = generate_spaced_params(n_terms + 2)
+            coords = generate_spaced_params(n_terms + 2, in_features=n_vars)
         else:
-            coords = generate_spaced_params(n_terms)
+            coords = generate_spaced_params(n_terms, in_features=n_vars)
         return IsoscelesFuzzifier.from_coords(
             coords, n_terms, 
             flat_edges, tunable
@@ -323,7 +323,7 @@ class IsoscelesTrapezoidFuzzifier(ShapeFuzzifier):
 
     @classmethod
     def from_linspace(
-        cls, n_terms: int, 
+        cls, n_terms: int, n_vars: int=None,
         flat_edges: bool=False, tunable: bool=False
     ) -> 'IsoscelesTrapezoidFuzzifier':
         """Create the IsoscelesTrapezoidFuzzifierconverter from coordinates
@@ -336,9 +336,9 @@ class IsoscelesTrapezoidFuzzifier(ShapeFuzzifier):
             IsoscelesTrapezoidFuzzifier
         """
         if flat_edges:
-            coords = generate_spaced_params((n_terms - 2) * 2 + 4)
+            coords = generate_spaced_params((n_terms - 2) * 2 + 4, in_features=n_vars)
         else:
-            coords = generate_spaced_params((n_terms - 2) * 2 + 2)
+            coords = generate_spaced_params((n_terms - 2) * 2 + 2, in_features=n_vars)
         return IsoscelesTrapezoidFuzzifier.from_coords(
             coords, n_terms, 
             flat_edges, tunable
@@ -412,7 +412,7 @@ class TrapezoidFuzzifier(ShapeFuzzifier):
 
     @classmethod
     def from_linspace(
-        cls, n_terms: int, 
+        cls, n_terms: int, n_vars: int=None,
         flat_edges: bool=False, tunable: bool=False
     ):
         """Create the TrapezoidFuzzifier converter from coordinates
@@ -425,9 +425,9 @@ class TrapezoidFuzzifier(ShapeFuzzifier):
             TrapezoidFuzzifier
         """
         if flat_edges:
-            coords = generate_spaced_params((n_terms - 2) * 2 + 4)
+            coords = generate_spaced_params((n_terms - 2) * 2 + 4, in_features=n_vars)
         else:
-            coords = generate_spaced_params((n_terms - 2) * 2 + 2)
+            coords = generate_spaced_params((n_terms - 2) * 2 + 2, in_features=n_vars)
         return TrapezoidFuzzifier.from_coords(
             coords, n_terms,
             flat_edges, tunable
@@ -501,7 +501,7 @@ class TriangleFuzzifier(ShapeFuzzifier):
 
     @classmethod
     def from_linspace(
-        cls, n_terms: int,
+        cls, n_terms: int, n_vars: int=None,
         flat_edges: bool=False, tunable: bool=False
     ):
         """Create the TriangleFuzzifier converter from coordinates
@@ -514,9 +514,9 @@ class TriangleFuzzifier(ShapeFuzzifier):
             TriangleFuzzifier
         """
         if flat_edges:
-            coords = generate_spaced_params(n_terms + 2)
+            coords = generate_spaced_params(n_terms + 2, in_features=n_vars)
         else:
-            coords = generate_spaced_params(n_terms)
+            coords = generate_spaced_params(n_terms, in_features=n_vars)
         return TriangleFuzzifier.from_coords(
             coords, n_terms,
             flat_edges, tunable
@@ -559,9 +559,9 @@ class SquareFuzzifier(ShapeFuzzifier):
 
     @classmethod
     def from_linspace(
-        cls, n_terms: int, tunable: bool=False
+        cls, n_terms: int, n_vars: int=None, tunable: bool=False
     ):
-        coords = generate_spaced_params(n_terms + 1)
+        coords = generate_spaced_params(n_terms + 1, n_features=n_vars)
         return SquareFuzzifier.from_coords(
             coords, n_terms, tunable
         )
@@ -625,11 +625,11 @@ class LogisticFuzzifier(ShapeFuzzifier):
 
     @classmethod
     def from_linspace(
-        cls, n_terms: int, tunable: bool=False
+        cls, n_terms: int, n_vars: int=None, tunable: bool=False
     ):
-        bias_coords = generate_spaced_params(n_terms)
+        bias_coords = generate_spaced_params(n_terms, in_features=n_vars)
         width = 1.0 / 2 * (n_terms - 1.0)
-        scale_coords = generate_repeat_params(n_terms, width)
+        scale_coords = generate_repeat_params(n_terms, width, in_features=n_vars)
         return LogisticFuzzifier.from_coords(
             bias_coords, scale_coords, n_terms, tunable
         )
@@ -671,11 +671,11 @@ class SigmoidFuzzifier(ShapeFuzzifier):
 
     @classmethod
     def from_linspace(
-        cls, n_terms: int, tunable: bool=False
+        cls, n_terms: int, n_vars: int=None, tunable: bool=False
     ):
-        bias_coords = generate_spaced_params(n_terms + 2)[:,:,1:-1]
+        bias_coords = generate_spaced_params(n_terms + 2, in_features=n_vars)[:,:,1:-1]
         width = 1.0 / (2 * (n_terms + 1))
-        scale_coords = generate_repeat_params(n_terms, width)
+        scale_coords = generate_repeat_params(n_terms, width, in_features=n_vars)
 
         return SigmoidFuzzifier.from_coords(
             bias_coords, scale_coords, tunable
@@ -742,7 +742,7 @@ class RampFuzzifier(ShapeFuzzifier):
 
     @classmethod
     def from_linspace(
-        cls, n_terms: int, tunable: bool=False
+        cls, n_terms: int, n_vars: int=None, tunable: bool=False
     ) -> 'RampFuzzifier':
         """Create the converter from a linspace with n terms
 
@@ -752,7 +752,7 @@ class RampFuzzifier(ShapeFuzzifier):
         Returns:
             RampFuzzifier The resulting Fuzzifier using ramp functions
         """
-        coords = generate_spaced_params(n_terms + 2)
+        coords = generate_spaced_params(n_terms + 2, in_features=n_vars)
         return RampFuzzifier.from_coords(
             coords, n_terms, tunable
         )
@@ -818,7 +818,7 @@ class StepFuzzifier(ShapeFuzzifier):
 
     @classmethod
     def from_linspace(
-        cls, n_terms: int, tunable: bool=False
+        cls, n_terms: int, n_vars: int=None, tunable: bool=False
     ) -> 'StepFuzzifier':
         """Create the StepFuzzifier from coordinates
 
@@ -828,7 +828,7 @@ class StepFuzzifier(ShapeFuzzifier):
         Returns:
             StepFuzzifier: the created StepFuzzifier
         """
-        coords = generate_spaced_params(n_terms + 2)[:,:,1:-1]
+        coords = generate_spaced_params(n_terms + 2, in_features=n_vars)[:,:,1:-1]
         
         return StepFuzzifier.from_coords(
             coords, n_terms, tunable
