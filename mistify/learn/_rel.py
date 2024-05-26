@@ -115,7 +115,9 @@ class MinMaxRel(Rel):
 
         return 1 - torch.min(
             x_comp, t_comp
-        ).sum(dim=dim, keepdim=True) / (torch.sum(x_comp, dim=dim, keepdim=True) + 1e-7)
+        ).sum(dim=dim, keepdim=True) / (
+            torch.sum(x_comp, dim=dim, keepdim=True) + 1e-7
+        )
 
 
 class MaxProdRel(Rel):
@@ -163,13 +165,44 @@ class MinSumRel(Rel):
 
 def align_sort(x1: torch.Tensor, x2: torch.Tensor, dim: int, descending: bool=False) -> torch.Tensor:
 
-    _, ind = x1.sort(dim, descending)
-    return x2.gather(dim, ind)
+    x1_sort, _ = x1.sort(dim)
+    _, x2_ind = x2.sort(dim)
+
+    x_t = torch.empty_like(x1)
+    x_t.scatter_(dim, x2_ind, x1_sort)
+    return x_t
+
+    # return x1_sort.gather(dim, x2_ind)
+
+    # x1_sort, x1_ind = x1.sort(dim, descending)
+    # x2, x2_ind = x2.sort(dim, descending)
+
+    # a = torch.arange(x2.size(dim))
+    # r = []
+    # if dim < 0:
+    #     dim = x2.dim() + dim
+    # for i, s in enumerate(x2.shape):
+    #     if i == dim:
+    #         print('I = dim')
+    #         r.append(1)
+    #     else:
+    #         r.append(s)
+    #         a = a.unsqueeze(i)
+    # a = a.repeat(r)
+
+
+    inverted_index = torch.empty_like(x2_ind)
+    inverted_index.scatter_(0, x2_ind, a)
+    return x1_sort.detach().gather(dim, inverted_index)
 
 
 class AlignLoss(XCriterion):
 
-    def __init__(self, base_loss: nn.Module, neuron: LogicalNeuron, x_rel: Rel=None, w_rel: Rel=None, x_weight: float=1.0, w_weight: float=1.0):
+    def __init__(
+        self, base_loss: nn.Module, neuron: LogicalNeuron, 
+        x_rel: Rel=None, w_rel: Rel=None, 
+        x_weight: float=1.0, w_weight: float=1.0
+    ):
         """Use the outputs using w_rel and x_rel as regularizers for the loss. 
         Based on which are more related to the output
 
@@ -207,16 +240,13 @@ class AlignLoss(XCriterion):
         base_loss = self.base_loss(y, t)
         if self.x_rel is not None:
             x_rel = self.x_rel(self.neuron.w(), t)
-            aligned = align_sort(x.detach(), x_rel.detach(), dim=-1)
-            # print((x - aligned).pow(2).mean(), x.shape, aligned.shape)
-            base_loss = base_loss + self.x_weight * (x - aligned).pow(2).mean()
+            x_t = align_sort(x.detach(), x_rel.detach(), dim=-1)
+            base_loss = base_loss + self.x_weight * (x - x_t).pow(2).mean()
         if self.w_rel is not None:
             w = self.neuron.w()
             w_rel = self.w_rel(x, t)
-            aligned = align_sort(w.detach(), w_rel.detach(), dim=-1)
-            # print((w - aligned).pow(2).mean(), w.shape, aligned.shape)
-
-            base_loss = base_loss + self.w_weight * (w - aligned).pow(2).mean()
+            w_t = align_sort(w.detach(), w_rel.detach(), dim=-1)
+            base_loss = base_loss + self.w_weight * (w - w_t).pow(2).mean()
         return base_loss
 
 

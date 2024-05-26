@@ -115,8 +115,7 @@ class WeightedPAverageConc(Conclusion):
         """
         w = self.layer_weightf(self.layer_weight)[None]
         return (
-            torch.sum(hypo_m.hypo * w, dim=-1) 
-            / torch.sum(w, dim=-1)
+            torch.sum(hypo_m.hypo * w, dim=-1)
         )
 
 

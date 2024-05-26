@@ -258,9 +258,13 @@ class SmoothMinMax(And):
     def __init__(
         self, in_features: int, out_features: int, 
         n_terms: int = None, pop_size: int=None, wf: 'WeightF'=None,
-        a: float=None
+        a: float=None, sub1: bool=False
     ) -> None:
-        super().__init__(in_features, out_features, n_terms, pop_size, (SmoothUnion(a=a), SmoothInterOn(dim=-2, a=a)), wf)
+        super().__init__(
+            in_features, out_features, 
+            n_terms, pop_size, (SmoothUnion(a=a), SmoothInterOn(dim=-2, a=a)), 
+            wf, sub1
+        )
         self._a = a
 
     @property
@@ -275,6 +279,18 @@ class SmoothMinMax(And):
         self._f = AndF(
             SmoothUnion(a=a), SmoothInterOn(dim=-2, a=a)
         )
+
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
+        """
+
+        Args:
+            m (torch.Tensor): The membership to get the output for
+
+        Returns:
+            torch.Tensor: The output of the membership
+        """
+        w = self.w()
+        return self._f(m, w)
 
 
 class MaxProd(Or):
@@ -292,9 +308,12 @@ class MinMax(And):
     def __init__(
         self, in_features: int, out_features: int, 
         n_terms: int = None, pop_size: int=None, wf: 'WeightF'=None,
-        g: G=None
+        g: G=None, sub1: bool=False
     ) -> None:
-        super().__init__(in_features, out_features, n_terms, pop_size, (Union(g=g), InterOn(dim=-2, g=g)), wf)
+        super().__init__(
+            in_features, out_features, n_terms, pop_size, 
+            (Union(g=g), InterOn(dim=-2, g=g)), wf, sub1=sub1
+        )
 
 
 class MinSum(And):
@@ -302,9 +321,12 @@ class MinSum(And):
     def __init__(
         self, in_features: int, out_features: int, 
         n_terms: int = None, pop_size: int=None, wf: 'WeightF'=None,
-        g: G=None
+        g: G=None, sub1: bool=False
     ) -> None:
-        super().__init__(in_features, out_features, n_terms, pop_size, (ProbUnion(), InterOn(dim=-2, g=g)), wf)
+        super().__init__(
+            in_features, out_features, n_terms, pop_size, 
+            (ProbUnion(), InterOn(dim=-2, g=g)), wf, sub1
+        )
 
 
 class WeightF(nn.Module):

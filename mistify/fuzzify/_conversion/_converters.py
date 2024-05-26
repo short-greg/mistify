@@ -18,6 +18,7 @@ from .._shapes import Shape, Coords, Composite
 from ._conclude import HypoM, Conclusion, ConcEnum
 from ._fuzzifiers import Fuzzifier, Defuzzifier
 from ..._base import Constrained
+from ..._functional import G
 
 
 class ShapeFuzzifier(Fuzzifier, Constrained):
@@ -711,19 +712,19 @@ class RampFuzzifier(ShapeFuzzifier):
 
     @classmethod
     def create(
-        cls, points: torch.Tensor, tunable: bool=False
+        cls, points: torch.Tensor, tunable: bool=False, g: G=None
     ):
         points = validate_terms(points)
         validate_n_points(points, 2)
         point_params = Coords(points)
-        ramp = shape.Ramp(point_params)
+        ramp = shape.Ramp(point_params, g)
         return RampFuzzifier(
             ramp, tunable
         )
 
     @classmethod
     def from_coords(
-        cls, coords: torch.Tensor, n_terms: int, tunable: bool=False
+        cls, coords: torch.Tensor, n_terms: int, tunable: bool=False, g: G=None
     ) -> 'RampFuzzifier':
         """Create the converter from coordinates. Each ramp function uses two coordinates with a stride of two
 
@@ -734,15 +735,14 @@ class RampFuzzifier(ShapeFuzzifier):
         Returns:
             RampFuzzifier: The resulting Fuzzifier using ramp functions
         """
-        
         ramp = shape.Ramp(
-            Coords(stride_coordinates(coords, n_terms, 1, 2, 2))
+            Coords(stride_coordinates(coords, n_terms, 1, 2, 2)), g
         )
         return RampFuzzifier(ramp, tunable)
 
     @classmethod
     def from_linspace(
-        cls, n_terms: int, n_vars: int=None, tunable: bool=False
+        cls, n_terms: int, n_vars: int=None, tunable: bool=False, g: G=None
     ) -> 'RampFuzzifier':
         """Create the converter from a linspace with n terms
 
@@ -754,7 +754,7 @@ class RampFuzzifier(ShapeFuzzifier):
         """
         coords = generate_spaced_params(n_terms + 2, in_features=n_vars)
         return RampFuzzifier.from_coords(
-            coords, n_terms, tunable
+            coords, n_terms, tunable, g
         )
 
     def defuzzifier(
@@ -767,6 +767,16 @@ class RampFuzzifier(ShapeFuzzifier):
         return ShapeDefuzzifier(
             self._composite, hypothesis, conclusion, truncate
         )
+    
+    @property
+    def g(self) -> G:
+        return self._composite[0].g
+    
+    @g.setter
+    def g(self, g: G) -> G:
+
+        self._composite[0].g = G
+        return g
 
 
 class StepFuzzifier(ShapeFuzzifier):

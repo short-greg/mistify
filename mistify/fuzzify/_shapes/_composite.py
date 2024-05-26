@@ -3,6 +3,7 @@ import typing
 
 # 3rd party
 import torch
+import torch.nn as nn
 
 # local
 from ._base import Nonmonotonic, Monotonic
@@ -27,7 +28,7 @@ class Composite(Nonmonotonic, Monotonic):
                 if n_vars != shape.n_vars:
                     raise ValueError('Number of variables must be the same for all shapes')
         super().__init__(n_vars=n_vars, n_terms=n_terms)
-        self._shapes = shapes
+        self._shapes = nn.ModuleList(shapes)
 
     @property
     def shapes(self) -> typing.List[Nonmonotonic]:
@@ -74,3 +75,6 @@ class Composite(Nonmonotonic, Monotonic):
         
         for shape in self._shapes:
             shape.constrain()
+
+    def __getitem__(self, idx: int) -> typing.Union[Monotonic, Nonmonotonic]:
+        return self._shapes[idx]

@@ -6,7 +6,7 @@ import torch
 
 # local
 from ._base import Coords, Monotonic
-from ...utils import unsqueeze
+from ..._functional import G
 from ... import _functional as functional
 
 
@@ -15,7 +15,7 @@ class Ramp(Monotonic):
     """
 
     def __init__(
-        self, coords: Coords, 
+        self, coords: Coords, g: G=None
     ):
         """Create a ramp function that has a lower bound and an upper bound
 
@@ -29,6 +29,7 @@ class Ramp(Monotonic):
         super().__init__(
             coords.shape[1], coords.shape[2]
         )
+        self.g = g
         self._coords = coords
 
     @property
@@ -49,9 +50,7 @@ class Ramp(Monotonic):
         Returns:
             Ramp: A ramp function
         """
-        return cls(
-            coords
-        )
+        return cls(coords)
 
     def constrain(self):
 
@@ -67,9 +66,10 @@ class Ramp(Monotonic):
         Returns:
             torch.Tensor: The membership
         """
-        x = unsqueeze(x)
+        x = x[...,None]
         coords = self._coords()
-        return functional.ramp(x, coords[...,0], coords[...,1])
+        m = functional.ramp(x, coords[...,0], coords[...,1], self.g)
+        return m
 
     def min_cores(self, m: torch.Tensor) -> torch.Tensor:
         """Calculates an average of the two points disregarding
