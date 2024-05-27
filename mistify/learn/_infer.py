@@ -138,18 +138,6 @@ class MaxMinSortedPredictorLoss(nn.Module):
         return self.reducer.reduce((sorted_w_vals - target_w_vals).pow(2), reduction_override=reduction_override)
 
 
-class MinMax(nn.Module):
-
-    def __init__(self, in_features: int, out_features: int):
-        super().__init__()
-        self.w = nn.parameter.Parameter(
-            torch.rand(in_features, out_features)
-        )
-    
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-
-        return torch.min(torch.max(x.unsqueeze(-1), self.w[None]), dim=-2)[0]
-
 
 class MinMaxLoss(XCriterion):
 
