@@ -2,6 +2,7 @@ from ._base import Polygon, Coords, replace, replace_slice
 from ...utils import unsqueeze
 import torch
 from ... import _functional as functional
+from ..._functional import G
 
 
 def trapezoid_area(a: torch.Tensor, b: torch.Tensor, height: torch.Tensor) -> torch.Tensor:
@@ -48,6 +49,10 @@ class Trapezoid(Polygon):
 
     PT = 4
 
+    def __init__(self, coords: Coords, g: G=None):
+        super().__init__(coords)
+        self.g = g
+
     def join(self, x: torch.Tensor) -> torch.Tensor:
         """Join calculates the membership value for each section of trapezoid and uses the maximimum value
         as the value
@@ -67,7 +72,7 @@ class Trapezoid(Polygon):
         # return torch.max(torch.max(m1, m2), m3)
 
         return functional.shape.trapezoid(
-            x, params[...,0], params[...,1], params[...,2], params[...,3]
+            x, params[...,0], params[...,1], params[...,2], params[...,3], g=self.g
         )
 
     def a(self, params: torch.Tensor=None) -> torch.Tensor:
@@ -172,6 +177,10 @@ class IsoscelesTrapezoid(Polygon):
 
     PT = 3
 
+    def __init__(self, coords: Coords, g: G=None):
+        super().__init__(coords)
+        self.g = g
+
     def join(self, x: torch.Tensor) -> 'torch.Tensor':
         """Calculates the membership value for each part of the isosceles
         trapezoid and takes the maximum
@@ -185,7 +194,7 @@ class IsoscelesTrapezoid(Polygon):
         x = x[...,None]
         params = self.coords()
         return functional.shape.isosceles_trapezoid(
-            x, params[...,0], params[...,1], params[...,2]
+            x, params[...,0], params[...,1], params[...,2], g=self.g
         )
     
     def a(self, params: torch.Tensor=None) -> torch.Tensor:
@@ -293,9 +302,10 @@ class RightTrapezoid(Polygon):
 
     PT = 3
 
-    def __init__(self, params: Coords, increasing: bool=True):
+    def __init__(self, params: Coords, increasing: bool=True, g: G=None):
         super().__init__(params)
         self.increasing = increasing
+        self.g = g
 
     def join(self, x: torch.Tensor) -> 'torch.Tensor':
         """Join calculates the membership value for each section of trapezoid and uses the maximimum value
@@ -309,7 +319,8 @@ class RightTrapezoid(Polygon):
         """
         params = self.coords()
         return functional.shape.right_trapezoid(
-            x[...,None], params[...,0], params[...,1], params[...,2], self.increasing
+            x[...,None], params[...,0], params[...,1], params[...,2], 
+            self.increasing, g=self.g
         )
     
     def a(self, params: torch.Tensor=None) -> torch.Tensor:

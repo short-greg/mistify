@@ -1,6 +1,8 @@
+from mistify.fuzzify._shapes._base import Coords
 from ._base import Polygon
 import torch
 from ... import _functional as functional
+from ..._functional import G
 from ...utils import unsqueeze
 
 
@@ -10,6 +12,10 @@ class Square(Polygon):
     """
 
     PT = 2
+
+    def __init__(self, coords: Coords, g: G=None):
+        super().__init__(coords)
+        self.g = g
 
     def join(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -22,7 +28,7 @@ class Square(Polygon):
         params = self._coords()
         x = unsqueeze(x)
         return functional.shape.square(
-            x, params[...,0], params[...,1]
+            x, params[...,0], params[...,1], g=self.g
         )
 
     def areas(self, m: torch.Tensor, truncate: bool = False) -> torch.Tensor:

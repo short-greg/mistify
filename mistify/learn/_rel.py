@@ -237,16 +237,23 @@ class AlignLoss(XCriterion):
         #     raise ValueError('Cannnot override the reduction for AlignLoss')
         
         x, y, t = x.f, y.f, t.f
+        t = t.clamp(0, 1)
         base_loss = self.base_loss(y, t)
+        # print('----')
+        # print(base_loss.item())
         if self.x_rel is not None:
             x_rel = self.x_rel(self.neuron.w(), t)
             x_t = align_sort(x.detach(), x_rel.detach(), dim=-1)
-            base_loss = base_loss + self.x_weight * (x - x_t).pow(2).mean()
+            x_loss = (x - x_t).pow(2).sum()
+            # print(x_loss.item())
+            base_loss = base_loss + self.x_weight * x_loss
         if self.w_rel is not None:
             w = self.neuron.w()
             w_rel = self.w_rel(x, t)
             w_t = align_sort(w.detach(), w_rel.detach(), dim=-1)
-            base_loss = base_loss + self.w_weight * (w - w_t).pow(2).mean()
+            w_loss = (w - w_t).pow(2).sum()
+            # print(w_loss.item())
+            base_loss = base_loss + self.w_weight * w_loss
         return base_loss
 
 

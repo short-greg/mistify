@@ -13,17 +13,17 @@ from .._shapes import Shape, Nonmonotonic, Monotonic
 
 
 @dataclass
-class HypoM:
+class HypoWeight:
     """Structure that defines a hypothesis and its weight
     """
 
     hypo: torch.Tensor
-    m: torch.Tensor
+    weight: torch.Tensor
 
     def __iter__(self) -> typing.Iterator[torch.Tensor]:
 
         yield self.hypo
-        yield self.m
+        yield self.weight
     
 
 class ShapeHypothesis(nn.Module):
@@ -35,7 +35,7 @@ class ShapeHypothesis(nn.Module):
         self.truncate = truncate
 
     @abstractmethod
-    def forward(self, *shapes: Shape) -> HypoM:
+    def forward(self, *shapes: Shape) -> HypoWeight:
         pass
 
 
@@ -43,7 +43,7 @@ class AreaHypothesis(ShapeHypothesis):
     """Use the area under the fuzzy set
     """
 
-    def forward(self, shapes: typing.List[Nonmonotonic], m: torch.Tensor) -> HypoM:
+    def forward(self, shapes: typing.List[Nonmonotonic], m: torch.Tensor) -> HypoWeight:
         
         i = 0
         result = []
@@ -53,7 +53,7 @@ class AreaHypothesis(ShapeHypothesis):
             )
 
             i += shape.n_terms
-        return HypoM(torch.cat(
+        return HypoWeight(torch.cat(
             result, dim=2
         ), m)
 
@@ -62,7 +62,7 @@ class MeanCoreHypothesis(ShapeHypothesis):
     """Use the mean value of the 'core' of the fuzzy set for the hypothesis
     """
 
-    def forward(self, shapes: typing.List[Nonmonotonic], m: torch.Tensor) -> HypoM:
+    def forward(self, shapes: typing.List[Nonmonotonic], m: torch.Tensor) -> HypoWeight:
 
         i = 0
         result = []
@@ -72,7 +72,7 @@ class MeanCoreHypothesis(ShapeHypothesis):
             )
 
             i += shape.n_terms
-        return HypoM(torch.cat(
+        return HypoWeight(torch.cat(
             result, dim=2
         ), m)
 
@@ -81,7 +81,7 @@ class MinCoreHypothesis(ShapeHypothesis):
     """Use the min value of the 'core' of the fuzzy set for the hypothesis. Use for 'Monotonic'
     """
 
-    def forward(self, shapes: typing.List[Monotonic], m: torch.Tensor) -> HypoM:
+    def forward(self, shapes: typing.List[Monotonic], m: torch.Tensor) -> HypoWeight:
 
         i = 0
         result = []
@@ -92,7 +92,7 @@ class MinCoreHypothesis(ShapeHypothesis):
 
             i += shape.n_terms
         
-        return HypoM(torch.cat(
+        return HypoWeight(torch.cat(
             result, dim=2
         ), m)
 
@@ -101,7 +101,7 @@ class CentroidHypothesis(ShapeHypothesis):
     """Use the centroid of the fuzzy set for the hypothesis
     """
 
-    def forward(self, shapes: typing.List[Nonmonotonic], m: torch.Tensor) -> HypoM:
+    def forward(self, shapes: typing.List[Nonmonotonic], m: torch.Tensor) -> HypoWeight:
         
         i = 0
         result = []
@@ -111,7 +111,7 @@ class CentroidHypothesis(ShapeHypothesis):
             )
 
             i += shape.n_terms
-        return HypoM(torch.cat(
+        return HypoWeight(torch.cat(
             result, dim=2
         ), m)
 

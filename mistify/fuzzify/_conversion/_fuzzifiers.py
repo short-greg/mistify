@@ -1,11 +1,10 @@
 from abc import abstractmethod, ABC
 import torch
-from torch import Tensor
 import torch.nn as nn
 from torch import clamp
 import torch.nn.functional
 
-from ._conclude import HypoM
+from ._conclude import HypoWeight
 
 
 class Fuzzifier(nn.Module, ABC):
@@ -42,16 +41,18 @@ class Defuzzifier(nn.Module):
         return self._n_terms
 
     @abstractmethod
-    def hypo(self, m: torch.Tensor) -> HypoM:
+    def hypo(self, m: torch.Tensor) -> HypoWeight:
         pass
 
     @abstractmethod
-    def conclude(self, value_weight: HypoM) -> torch.Tensor:
+    def conclude(self, value_weight: HypoWeight) -> torch.Tensor:
         pass
 
-    def forward(self, m: torch.Tensor, weight: torch.Tensor=None) -> torch.Tensor:
+    def forward(self, m: torch.Tensor, weight_override: torch.Tensor=None) -> torch.Tensor:
         
-        return self.conclude(self.hypo(m))
+        hypothesis = self.hypo(m)
+        hypothesis.weight = weight_override or hypothesis.weight
+        return self.conclude()
 
 
 class EmbeddingFuzzifier(Fuzzifier):

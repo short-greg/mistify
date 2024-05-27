@@ -40,7 +40,7 @@ def inter(x1: torch.Tensor, x2: torch.Tensor, g: G=None) -> torch.Tensor:
         return torch.min(x1, x2)
     return MinG.apply(x1, x2, g)
 
-def smooth_union(x: torch.Tensor, x2: torch.Tensor, a: float=None) -> torch.Tensor:
+def smooth_union(x: torch.Tensor, x2: torch.Tensor, a: float=None, eps: float=1e-7) -> torch.Tensor:
     """Smooth approximation to the max function of two tensors
 
     Args:
@@ -53,9 +53,20 @@ def smooth_union(x: torch.Tensor, x2: torch.Tensor, a: float=None) -> torch.Tens
     """
     if a is None:
         return torch.max(x, x2)
-    z1 = ((x + 1) ** a).detach()
-    z2 = ((x2 + 1) ** a).detach()
-    return (x * z1 + x2 * z2) / (z1 + z2)
+    
+    # combined = torch.cat([x[None], x2[None]], dim=0)
+    z1 = torch.exp(x * a)
+    z2 = torch.exp(x2 * a)
+    return (x * z1 + x2 * z2) / (z1 + z2 + eps)
+    # z2 = z1 / denominator
+
+    # return (x * z1)
+    
+    # return (z * combined).sum(dim=0)
+
+    # z1 = ((x + 1) ** a).detach()
+    # z2 = ((x2 + 1) ** a).detach()
+    # return (x * z1 + x2 * z2) / (z1 + z2)
 
 
 def smooth_union_on(x: torch.Tensor, dim: int, a: float=None, keepdim: bool=False) -> torch.Tensor:
@@ -71,8 +82,10 @@ def smooth_union_on(x: torch.Tensor, dim: int, a: float=None, keepdim: bool=Fals
     """
     if a is None:
         return torch.max(x, dim=dim, keepdim=keepdim)[0]
-    z = ((x + 1) ** a).detach()
-    return (x * z).sum(dim=dim, keepdim=keepdim) / z.sum(dim=dim, keepdim=keepdim)
+    # z = ((x + 1) ** a).detach()
+    # return (x * z).sum(dim=dim, keepdim=keepdim) / z.sum(dim=dim, keepdim=keepdim)
+    z = torch.softmax(x * a, dim=dim)
+    return (x * z).sum(dim=dim)
 
 
 def smooth_inter(x: torch.Tensor, x2: torch.Tensor, a: float=None) -> torch.Tensor:

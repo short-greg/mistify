@@ -1,5 +1,5 @@
 from ._conclude import (
-    HypoM, 
+    HypoWeight, 
     MaxConc, 
     Conclusion,
     MaxValueConc, 

@@ -3,8 +3,7 @@ import torch
 
 # local
 from ._base import Polygon, Coords, replace, insert
-from ._utils import calc_m_linear_increasing, calc_m_linear_decreasing, calc_x_linear_decreasing, calc_x_linear_increasing
-from ...utils import unsqueeze
+from ..._functional import G
 from ._trapezoid import trapezoid_centroid, trapezoid_area, trapezoid_mean_core
 from ... import _functional as functional
 
@@ -56,9 +55,10 @@ class RightTriangle(Polygon):
 
     PT = 2
 
-    def __init__(self, params: Coords, increasing: bool=True):
+    def __init__(self, params: Coords, increasing: bool=True, g: G=None):
         super().__init__(params)
         self.increasing = increasing
+        self.g = g
 
     def truncate(self, m: torch.Tensor) -> torch.Tensor:
 
@@ -84,7 +84,7 @@ class RightTriangle(Polygon):
         params = self._coords()
         x = x[...,None]
         return functional.shape.right_triangle(
-            x, params[...,0], params[...,1], self.increasing
+            x, params[...,0], params[...,1], self.increasing, g=self.g
         )
 
     def truncate(self, m: torch.Tensor) -> torch.Tensor:
@@ -152,6 +152,10 @@ class Triangle(Polygon):
 
     PT = 3
 
+    def __init__(self, coords: Coords, g: G=None):
+        super().__init__(coords)
+        self.g = g
+
     def join(self, x: torch.Tensor) -> torch.Tensor:
         """Join calculates the membership value for each section of triangle and uses the maximimum value
         as the value
@@ -165,7 +169,7 @@ class Triangle(Polygon):
         params = self._coords()
         x = x[...,None]
         return functional.shape.triangle(
-            x, params[...,0], params[...,1], params[...,2]
+            x, params[...,0], params[...,1], params[...,2], g=self.g
         )
 
     def truncate(self, m: torch.Tensor) -> torch.Tensor:
@@ -224,6 +228,10 @@ class IsoscelesTriangle(Polygon):
 
     PT = 2
 
+    def __init__(self, coords: Coords, g: G=None):
+        super().__init__(coords)
+        self.g = g
+
     def join(self, x: torch.Tensor) -> torch.Tensor:
         """Calculates the membership value for each part of the isosceles
         triangle and takes the maximum
@@ -237,7 +245,7 @@ class IsoscelesTriangle(Polygon):
         params = self._coords()
         x = x[...,None]
         return functional.shape.isosceles(
-            x, params[...,0], params[...,1]
+            x, params[...,0], params[...,1], g=self.g
         )
 
     def truncate(self, m: torch.Tensor) -> torch.Tensor:
