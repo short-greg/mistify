@@ -76,6 +76,11 @@ class LogicalNeuron(nn.Module, Constrained):
 
         pass
 
+    @property
+    @abstractmethod
+    def inner(self) -> typing.Callable:
+        pass
+
 
 class Or(LogicalNeuron):
     """An Or neuron implements a T-norm between the weights and the inputs 
@@ -126,6 +131,9 @@ class Or(LogicalNeuron):
     @property
     def f(self) -> typing.Callable:
         return self._f
+    
+    def inner(self, x: torch.Tensor) -> typing.Callable:
+        return self._f.inner(x, self.w())
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         """
@@ -200,6 +208,10 @@ class And(LogicalNeuron):
     @property
     def f(self) -> typing.Callable:
         return self._f
+
+    def inner(self, x: torch.Tensor) -> typing.Callable:
+
+        return self._f.inner(x, self.w())
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
         """

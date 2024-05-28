@@ -5,7 +5,8 @@ from ._conclude import (
     MaxValueConc, 
     WeightedMAverageConc,
     WeightedPAverageConc,
-    ConcEnum
+    ConcEnum,
+    FlattenConc
 )
 from ._fuzzifiers import (
     Fuzzifier, 

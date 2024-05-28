@@ -237,3 +237,47 @@ class TestAlignLoss:
 
         cost = loss(iou(x), iou(y), iou(t))
         assert cost.dim() == 0
+
+
+class TestPredictorLoss:
+
+    def test_agg_w_predictor(self):
+
+        max_min = MaxMin(
+            4, 5
+        )
+        agg = _rel.AggWPredictor(max_min, _rel.MaxMinRel(), False)
+        x = torch.rand(10, 4)
+        t = torch.rand(10, 5)
+        y = agg(x, t)
+        assert y.shape == t.shape
+
+    def test_agg_x_predictor(self):
+
+        max_min = MaxMin(
+            4, 5
+        )
+        agg = _rel.AggXPredictor(max_min, _rel.MaxMinRel(), False)
+        x = torch.rand(10, 4)
+        t = torch.rand(10, 5)
+        y = agg(x, t)
+        assert y.shape == t.shape
+
+    def test_(self):
+
+        max_min = MaxMin(
+            4, 5
+        )
+
+        loss = _rel.PredictorLoss(
+            max_min,
+            nn.MSELoss(),
+            _rel.MaxMinRel(),
+            _rel.MaxMinRel()
+        )
+
+        x = iou(torch.rand(10, 4))
+        t = iou(torch.rand(10, 5))
+        y = iou(max_min(x.f))
+        cost = loss(x, y, t)
+        assert cost.dim() == 0

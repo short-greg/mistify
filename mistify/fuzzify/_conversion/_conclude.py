@@ -21,8 +21,43 @@ class Conclusion(nn.Module):
         self._n_vars = n_vars
 
     @abstractmethod
-    def forward(self, hypo_m: HypoWeight) -> torch.Tensor:
+    def forward(self, hypo_weight: HypoWeight) -> torch.Tensor:
         pass
+
+    @property
+    def n_terms(self) -> int:
+        return self._n_terms
+    
+    @property
+    def n_vars(self) -> int:
+        return self._n_vars
+
+
+class FlattenConc(Conclusion):
+    """Class that defines several hypotheses 
+    """
+    def __init__(self, conclusion: 'Conclusion') -> None:
+        if conclusion.n_vars is None:
+            n_vars = None
+            n_terms = conclusion.n_terms
+        else:
+            n_terms = conclusion.n_terms * conclusion.n_vars
+            n_vars = 1
+        super().__init__(n_terms, n_vars)
+        self._conclusion = conclusion
+
+    def forward(self, hypo_weight: HypoWeight) -> torch.Tensor:
+        
+        shape = list(hypo_weight.hypo.shape)
+        shape[-2] = 1
+        shape[-1] = -1
+        hypo_weight = HypoWeight(
+            hypo_weight.hypo.view(shape),
+            hypo_weight.weight.view(shape)
+        )
+        return self._conclusion.forward(
+            hypo_weight
+        )
 
 
 class MaxValueConc(Conclusion):
@@ -128,8 +163,14 @@ class ConcEnum(Enum):
     weighted_p_average = WeightedPAverageConc
 
     @classmethod
-    def get(cls, conc: typing.Union[Conclusion, str], n_terms: int=None, n_vars: int=None) -> Conclusion:
+    def get(
+        cls, conc: typing.Union[Conclusion, str], 
+        n_terms: int=None, n_vars: int=None, 
+        flatten: bool=False
+    ) -> Conclusion:
 
         if isinstance(conc, str):
-            return ConcEnum[conc].value(n_terms, n_vars)
+            conc = ConcEnum[conc].value(n_terms, n_vars)
+        if flatten:
+            conc = FlattenConc(conc)
         return conc

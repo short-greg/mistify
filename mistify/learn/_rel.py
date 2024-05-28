@@ -163,6 +163,97 @@ class MinSumRel(Rel):
         ).sum(dim=dim, keepdim=True) / torch.sum(x_comp, dim=dim, keepdim=True)
 
 
+class AggWPredictor(nn.Module):
+
+    def __init__(self, neuron: LogicalNeuron, w_rel: Rel, use_max: bool=True):
+        super().__init__()
+        self.neuron = neuron
+        self.w_rel = WRel(w_rel)
+        self.use_max = use_max
+
+    def forward(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        
+        w_rel = self.w_rel(x, t)
+        inner = self.neuron.f.inner(x, w_rel)
+        if self.use_max:
+            _, ind = torch.max(inner, dim=-2, keepdim=True)
+        else:
+            _, ind = torch.min(inner, dim=-2, keepdim=True)
+
+        return self.neuron.inner(x).gather(-2, ind).squeeze(-2)
+
+
+# class AggWPredictor2(nn.Module):
+
+#     def __init__(self, neuron: LogicalNeuron, w_rel: Rel, use_max: bool=True):
+#         super().__init__()
+#         self.neuron = neuron
+#         self.w_rel = WRel(w_rel)
+#         self.use_max = use_max
+
+#     def forward(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        
+#         w_rel = self.w_rel(x, t)
+#         inner = self.neuron.f.inner(x, w_rel)
+#         if self.use_max:
+#             y, ind = torch.max(inner, dim=-2)
+#         else:
+#             y, ind = torch.min(inner, dim=-2)
+        
+#         (inner == y)
+
+#         return self.neuron.inner(x).gather(-2, ind)
+
+
+class AggXPredictor(nn.Module):
+
+    def __init__(self, neuron: LogicalNeuron, x_rel: Rel, use_max: bool=True):
+        super().__init__()
+        self.neuron = neuron
+        self.x_rel = XRel(x_rel)
+        self.use_max = use_max
+
+    def forward(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        
+        w = self.neuron.w()
+        x_rel = self.x_rel(w, t)
+        inner = self.neuron.f.inner(x_rel, w)
+        if self.use_max:
+            _, ind = torch.max(inner, dim=-2, keepdim=True)
+        else:
+            _, ind = torch.min(inner, dim=-2, keepdim=True)
+
+        return self.neuron.inner(x).gather(-2, ind).squeeze(-2)
+
+
+class PredictorLoss(XCriterion):
+
+    def __init__(
+        self, neuron: LogicalNeuron, base_loss: nn.Module, 
+        x_rel: Rel=None, w_rel: Rel=None, use_max: bool=True,
+        x_weight: float=1.0, w_weight: float=1.0
+    ):
+        super().__init__()
+        self.base_loss = base_loss
+        self.x_agg = AggXPredictor(neuron, x_rel, use_max) if x_rel is not None else None
+        self.w_agg = AggWPredictor(neuron, w_rel, use_max) if w_rel is not None else None
+        self.x_weight = x_weight
+        self.w_weight = w_weight
+
+    def forward(self, x: IO, y: IO, t: IO) -> torch.Tensor:
+
+        x, y, t = x.f, y.f, t.f
+
+        cost = self.base_loss(y, t)
+        if self.x_agg is not None:
+            y_x = self.x_agg(x, t)
+            cost = cost + self.x_weight * self.base_loss(y_x, t)
+        if self.w_agg is not None:
+            y_w = self.w_agg(x, t)
+            cost = cost + self.w_weight * self.base_loss(y_w, t)
+        return cost
+
+
 def align_sort(x1: torch.Tensor, x2: torch.Tensor, dim: int, descending: bool=False) -> torch.Tensor:
 
     x1_sort, _ = x1.sort(dim)
@@ -191,9 +282,9 @@ def align_sort(x1: torch.Tensor, x2: torch.Tensor, dim: int, descending: bool=Fa
     # a = a.repeat(r)
 
 
-    inverted_index = torch.empty_like(x2_ind)
-    inverted_index.scatter_(0, x2_ind, a)
-    return x1_sort.detach().gather(dim, inverted_index)
+    # inverted_index = torch.empty_like(x2_ind)
+    # inverted_index.scatter_(0, x2_ind, a)
+    # return x1_sort.detach().gather(dim, inverted_index)
 
 
 class AlignLoss(XCriterion):

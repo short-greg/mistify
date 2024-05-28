@@ -122,6 +122,10 @@ class AndF(LogicalF):
             self.union(x.unsqueeze(-1), w[None]), dim=dim
         )
 
+    def inner(self, x: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
+        
+        return self.union(x.unsqueeze(-1), x2[None])
+
 
 class OrF(LogicalF):
 
@@ -146,3 +150,7 @@ class OrF(LogicalF):
         return self.union_on(
             self.inter(x.unsqueeze(-1), w[None]), dim=dim
         )
+
+    def inner(self, x: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
+        
+        return self.inter(x.unsqueeze(-1), x2[None])

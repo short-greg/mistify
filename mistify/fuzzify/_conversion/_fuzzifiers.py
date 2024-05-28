@@ -52,7 +52,7 @@ class Defuzzifier(nn.Module):
         
         hypothesis = self.hypo(m)
         hypothesis.weight = weight_override or hypothesis.weight
-        return self.conclude()
+        return self.conclude(hypothesis)
 
 
 class EmbeddingFuzzifier(Fuzzifier):
