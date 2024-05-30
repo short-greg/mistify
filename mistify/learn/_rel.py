@@ -1,14 +1,9 @@
 from zenkai.kaku._io2 import IO as IO
-from ..infer import Or, And
 import torch.nn as nn
 import torch
-import typing
-from functools import partial
 from abc import abstractmethod, ABC
 from ..infer import LogicalNeuron
-# from zenkai.kikai import WrapNN, WrapState
-from typing_extensions import Self
-from zenkai import XCriterion, Criterion
+from zenkai import XCriterion
 
 
 class Rel(nn.Module, ABC):
@@ -181,28 +176,6 @@ class AggWPredictor(nn.Module):
             _, ind = torch.min(inner, dim=-2, keepdim=True)
 
         return self.neuron.inner(x).gather(-2, ind).squeeze(-2)
-
-
-# class AggWPredictor2(nn.Module):
-
-#     def __init__(self, neuron: LogicalNeuron, w_rel: Rel, use_max: bool=True):
-#         super().__init__()
-#         self.neuron = neuron
-#         self.w_rel = WRel(w_rel)
-#         self.use_max = use_max
-
-#     def forward(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
-        
-#         w_rel = self.w_rel(x, t)
-#         inner = self.neuron.f.inner(x, w_rel)
-#         if self.use_max:
-#             y, ind = torch.max(inner, dim=-2)
-#         else:
-#             y, ind = torch.min(inner, dim=-2)
-        
-#         (inner == y)
-
-#         return self.neuron.inner(x).gather(-2, ind)
 
 
 class AggXPredictor(nn.Module):
@@ -391,3 +364,26 @@ class RelLoss(XCriterion):
             yw = self.neuron.f(x, w_rel.detach())
             base_loss = base_loss + self.w_weight * self.base_loss(yw, t)
         return base_loss
+
+
+
+# class AggWPredictor2(nn.Module):
+
+#     def __init__(self, neuron: LogicalNeuron, w_rel: Rel, use_max: bool=True):
+#         super().__init__()
+#         self.neuron = neuron
+#         self.w_rel = WRel(w_rel)
+#         self.use_max = use_max
+
+#     def forward(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        
+#         w_rel = self.w_rel(x, t)
+#         inner = self.neuron.f.inner(x, w_rel)
+#         if self.use_max:
+#             y, ind = torch.max(inner, dim=-2)
+#         else:
+#             y, ind = torch.min(inner, dim=-2)
+        
+#         (inner == y)
+
+#         return self.neuron.inner(x).gather(-2, ind)

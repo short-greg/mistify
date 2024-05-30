@@ -47,7 +47,7 @@ def triangle(
     x_base = x
     x = x_base.clone()
     oob = (x < left) | (x > right)
-    if g is not None:
+    if g is not None and x.requires_grad:
         x.register_hook(partial(_shape_pre_hook, x=x, oob=oob, state=state, g=g))
 
     left_val = height / (mid - left) * (x - left)
@@ -57,7 +57,7 @@ def triangle(
     left_val[right_side] = right_val[right_side]
 
     left_val[oob] = 0.0
-    if g is not None:
+    if g is not None and x.requires_grad:
         left_val.register_hook(partial(_shape_post_hook, state=state))
     return left_val
 
@@ -85,7 +85,7 @@ def right_triangle(
     x_base = x
     x = x_base.clone()
     oob = (x < left) | (x > mid)
-    if g is not None:
+    if g is not None and x.requires_grad:
         x.register_hook(partial(_shape_pre_hook, x=x, oob=oob, state=state, g=g))
 
     if increasing:
@@ -95,7 +95,7 @@ def right_triangle(
     
     val[oob] = 0.0
 
-    if g is not None:
+    if g is not None and x.requires_grad:
         val.register_hook(partial(_shape_post_hook, state=state))
     return val
 
@@ -232,7 +232,7 @@ def trapezoid(
     x = x_base.clone()
 
     oob = (x < left) | (x > right)
-    if g is not None:
+    if g is not None and x.requires_grad:
         x.register_hook(
             partial(_shape_pre_hook, x=x,
                     oob=oob, state=state, 
@@ -247,7 +247,7 @@ def trapezoid(
     y = left_val
     y[oob] = 0.0
 
-    if g is not None:
+    if g is not None and x.requires_grad:
         y.register_hook(partial(_shape_post_hook, state=state))
     return y
 
@@ -295,12 +295,11 @@ def right_trapezoid(
     Returns:
         torch.Tensor: The point on the trapezoid
     """
-
     state = {}
     x_base = x
     x = x_base.clone()
     oob = (x < left) | (x > right)
-    if g is not None:
+    if g is not None and x.requires_grad:
         x.register_hook(
             partial(_shape_pre_hook, x=x,
                     oob=oob, state=state, 
@@ -315,7 +314,7 @@ def right_trapezoid(
     val[mid_val] = height
     val[oob] = 0.0
 
-    if g is not None:
+    if g is not None and x.requires_grad:
         val.register_hook(partial(_shape_post_hook, state=state))
     return val
 
@@ -466,12 +465,12 @@ def square(
     x_base = x
     x = x_base.clone()
     oob = True
-    if g is not None:
+    if g is not None and x.requires_grad:
         x.register_hook(partial(_shape_pre_hook, x=x, oob=oob, state=state, g=g))
 
     result = ((x >= left) & (x <= right)) * height
 
-    if g is not None:
+    if g is not None and x.requires_grad:
         result.register_hook(partial(_shape_post_hook, state=state))
     return result
 
