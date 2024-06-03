@@ -1,12 +1,9 @@
 """
 
-
 """
 from abc import abstractmethod
 from enum import Enum
-
 import typing
-
 from ._hypo import HypoWeight
 import torch
 import torch.nn as nn

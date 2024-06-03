@@ -48,9 +48,7 @@ class TestConclusion(object):
         
         weighted_conc = _conversion.WeightedPAverageConc(4, 3)
         weight = weighted_conc.layer_weightf(weighted_conc.layer_weight)
-        print(
-            weight, value_weight.hypo
-        )
+
         assert torch.isclose(
             weighted_conc(value_weight),
             (torch.sum(value_weight.hypo * weight, dim=-1) 

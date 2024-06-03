@@ -236,9 +236,27 @@ class MaxMin(Or):
     def __init__(
         self, in_features: int, out_features: int, 
         n_terms: int = None, pop_size: int=None, wf: 'WeightF'=None,
-        g: G=None
+        g: typing.Union[typing.Tuple[G, G], G]=None
     ) -> None:
-        super().__init__(in_features, out_features, n_terms, pop_size, (Inter(g=g), UnionOn(dim=-2, g=g)), wf)
+        """Create an Or neuron
+
+        Args:
+            in_features (int): The in features
+            out_features (int): The out features
+            n_terms (int, optional): The number of terms. Defaults to None.
+            pop_size (int, optional): The population size. Defaults to None.
+            wf (WeightF, optional): The weight function to use. Defaults to None.
+            g (typing.Union[typing.Tuple[G, G], G], optional): The g to use, if tuple, will be inner, outer. Defaults to None.
+        """
+        if isinstance(g, typing.Tuple):
+            inner_g, outer_g = g
+        else:
+            inner_g, outer_g = g, g
+        super().__init__(
+            in_features, out_features, 
+            n_terms, pop_size, 
+            (Inter(g=inner_g), UnionOn(dim=-2, g=outer_g)), 
+            wf)
 
 
 class SmoothMaxMin(Or):
@@ -312,7 +330,10 @@ class MaxProd(Or):
         n_terms: int = None, pop_size: int=None, wf: 'WeightF'=None,
         g: G=None
     ) -> None:
-        super().__init__(in_features, out_features, n_terms, pop_size, (ProbInter(), UnionOn(dim=-2, g=g)), wf)
+        super().__init__(
+            in_features, out_features, n_terms, 
+            pop_size, (ProbInter(), UnionOn(dim=-2, g=g)), wf
+        )
 
 
 class MinMax(And):
@@ -320,11 +341,26 @@ class MinMax(And):
     def __init__(
         self, in_features: int, out_features: int, 
         n_terms: int = None, pop_size: int=None, wf: 'WeightF'=None,
-        g: G=None, sub1: bool=False
+        g: typing.Union[typing.Tuple[G, G], G]=None, sub1: bool=False
     ) -> None:
+        """Create an And neuron
+
+        Args:
+            in_features (int): The in features
+            out_features (int): The out features
+            n_terms (int, optional): The number of terms. Defaults to None.
+            pop_size (int, optional): The population size. Defaults to None.
+            wf (WeightF, optional): The weight function to use. Defaults to None.
+            g (typing.Union[typing.Tuple[G, G], G], optional): The g to use, if tuple, will be inner, outer. Defaults to None.
+            sub1 (bool, optional): Whether to subtract by one. Defaults to False.
+        """
+        if isinstance(g, typing.Tuple):
+            inner_g, outer_g = g
+        else:
+            inner_g, outer_g = g, g
         super().__init__(
             in_features, out_features, n_terms, pop_size, 
-            (Union(g=g), InterOn(dim=-2, g=g)), wf, sub1=sub1
+            (Union(g=inner_g), InterOn(dim=-2, g=outer_g)), wf, sub1=sub1
         )
 
 
