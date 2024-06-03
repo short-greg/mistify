@@ -1,7 +1,8 @@
 from ._utils import (
     check_contains, 
-    resize_to, 
+    resize_dim_to, 
     unsqueeze,
     EnumFactory,
-    reduce_as
+    reduce_as,
+    resize_to
 )

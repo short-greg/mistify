@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional
 
 # local
-from ...utils._utils import resize_to, unsqueeze
+from ...utils._utils import resize_dim_to, unsqueeze
 from ..._base import Constrained
 
 
@@ -396,9 +396,9 @@ def insert(insert_to: torch.Tensor, to_insert: torch.Tensor, idx: int, to_unsque
     """
     to_insert = to_insert if not to_unsqueeze else unsqueeze(to_insert)
 
-    mine = resize_to(insert_to, to_insert)
+    mine = resize_dim_to(insert_to, to_insert)
     if equalize_to is not None:
-        mine = resize_to(mine, equalize_to, 1)
+        mine = resize_dim_to(mine, equalize_to, 1)
     # if not (0 <= idx <= mine.size(3)):
     #     raise ValueError(f'Argument idx must be in range of [0, {mine.size(3)}] not {idx}')
     
@@ -421,9 +421,9 @@ def replace(
         ShapeParams: The ShapeParams with the value replaced
     """
     to_insert = to_insert if not to_unsqueeze else unsqueeze(to_insert)
-    mine = resize_to(insert_to, to_insert)
+    mine = resize_dim_to(insert_to, to_insert)
     if equalize_to is not None:
-        mine = resize_to(mine, equalize_to, 1)
+        mine = resize_dim_to(mine, equalize_to, 1)
 
     return torch.concat([mine[...,:idx], to_insert, mine[...,idx+1:]], dim=3)
 
@@ -446,9 +446,9 @@ def replace_slice(
     """
     to_insert = to_insert if not to_unsqueeze else unsqueeze(to_insert)
     
-    mine = resize_to(insert_to, to_insert)
+    mine = resize_dim_to(insert_to, to_insert)
     if equalize_to is not None:
-        mine = resize_to(mine, equalize_to, 1)
+        mine = resize_dim_to(mine, equalize_to, 1)
     return torch.concat([mine[...,:pt_range[0]], to_insert, mine[...,pt_range[1]+1:]], dim=3)
 
 

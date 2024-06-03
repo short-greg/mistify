@@ -138,7 +138,6 @@ class MaxMinSortedPredictorLoss(nn.Module):
         return self.reducer.reduce((sorted_w_vals - target_w_vals).pow(2), reduction_override=reduction_override)
 
 
-
 class MinMaxLoss(XCriterion):
 
     def __init__(self, minmax: And, reduction: str='mean'):
@@ -195,6 +194,8 @@ class MinMaxPredictorLoss(nn.Module):
 
         # find out which of the xs
         # correspond to 
+
+        # Get the firs 
         score = 1 - (positives.sum(
             dim=0, keepdim=True
         )) / x_comp.sum(dim=0, keepdim=True)

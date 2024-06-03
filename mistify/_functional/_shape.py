@@ -2,6 +2,7 @@ from ._m import TENSOR_FLOAT
 from functools import partial
 import torch
 from ._m import G
+from .. import utils
 
 
 def _shape_post_hook(grad, state):
@@ -10,25 +11,89 @@ def _shape_post_hook(grad, state):
     return grad
 
 
+# I don't think this is correct
+# Instead of this, include a function to 
+
 def _shape_pre_hook(grad, x: torch.Tensor, oob, g: G, state):
     
-    out_grad = state['grad']
+    # out_grad = state['grad']
+    # if oob is True:
+    #     grad[:] = out_grad[:]
+    # else:
+    #     grad[oob] = out_grad[oob]
+    # if g is not None:
     grad = grad.clone()
-    if oob is True:
-        grad[:] = out_grad[:]
-    else:
-        grad[oob] = out_grad[oob]
+    target_shape = grad.shape
+    grad = utils.resize_to(grad, oob)
 
-    if g is not None:
-        grad = g(x, grad, oob)
+    grad = g(x, grad, oob)
+    grad = utils.reduce_as(grad, target_shape)
     return grad
+
+
+class LimitRange(torch.autograd.Function):
+
+    @staticmethod
+    def forward(
+        ctx, y: torch.Tensor, x: torch.Tensor, value: float, g: G, 
+        lte, gte, lt, gt, both
+    ) -> torch.Tensor:
+
+        x = x.clone()
+        y = y.clone()
+        print(lte, lt, gte, gt)
+        left = None
+        right = None
+        oob = None
+        if gte is not None:
+            right = x >= gte
+        elif gt is not None:
+            right = x > gt
+
+        if lte is not None:
+            left = (x <= lte)
+        elif lt is not None:
+            left = (x < lt)
+        if left is not None and right is not None:
+            oob = (left & right) if both else (left | right)
+        elif left is not None:
+            oob = left
+        elif right is not None:
+            oob = right
+        else:
+            raise ValueError(
+                'Invalid range must define at least one inequality'
+            )
+        y = utils.resize_to(y, oob)
+        y[oob] = value
+        ctx.save_for_backward(y, x, oob)
+        ctx.g = g
+        return y
+
+    @staticmethod
+    def backward(ctx, *grads) -> torch.Tensor:
+
+        y, x, oob = ctx.saved_tensors
+        
+        if ctx.g is not None:
+            grad = ctx.g(y, grads[0], oob)
+        else:
+            grad = grads[0]
+        y = utils.reduce_as(y, x)
+        return grad, None, None, None, None, None, None, None, None
+
+
+def limit_range(y: torch.Tensor, x: torch.Tensor, value: float, g: G, lte=None, gte=None, lt=None, gt=None, both: bool=False) -> torch.Tensor:
+
+    return LimitRange.apply(y, x, value, g, lte, gte, lt, gt, both)
+
 
 
 def triangle(
     x: torch.Tensor, left: TENSOR_FLOAT, mid: TENSOR_FLOAT, 
     right: TENSOR_FLOAT, height: TENSOR_FLOAT=1., g: G=None,
 ) -> torch.Tensor:
-    """The right triangle function
+    """The triangle function
 
     Args:
         x (torch.Tensor): The input
@@ -43,22 +108,25 @@ def triangle(
     Returns:
         torch.Tensor: The output
     """
-    state = {}
-    x_base = x
-    x = x_base.clone()
-    oob = (x < left) | (x > right)
-    if g is not None and x.requires_grad:
-        x.register_hook(partial(_shape_pre_hook, x=x, oob=oob, state=state, g=g))
+    # state = {}
+    # x_base = x
+    # x = x_base.clone()
+    # oob = (x < left) | (x > right)
+    # if g is not None and x.requires_grad:
+    #     x.register_hook(partial(_shape_pre_hook, x=x, oob=oob, state=state, g=g))
 
     left_val = height / (mid - left) * (x - left)
     right_val = -height / (right - mid) * (x - mid) + height
     
     right_side = x >= mid
     left_val[right_side] = right_val[right_side]
+    print(left_val)
+    left_val = limit_range(left_val, x, 0.0, g, lt=left, gt=right)
+    print(left_val)
+    # left_val[oob] = 0.0
 
-    left_val[oob] = 0.0
-    if g is not None and x.requires_grad:
-        left_val.register_hook(partial(_shape_post_hook, state=state))
+    # if g is not None and x.requires_grad:
+    #     left_val.register_hook(partial(_shape_post_hook, state=state))
     return left_val
 
 
@@ -81,22 +149,23 @@ def right_triangle(
         torch.Tensor: The output
     """
 
-    state = {}
+    # state = {}
     x_base = x
     x = x_base.clone()
-    oob = (x < left) | (x > mid)
-    if g is not None and x.requires_grad:
-        x.register_hook(partial(_shape_pre_hook, x=x, oob=oob, state=state, g=g))
+    # oob = (x < left) | (x > mid)
+    # if g is not None and x.requires_grad:
+    #     x.register_hook(partial(_shape_pre_hook, x=x, oob=oob, state=state, g=g))
 
     if increasing:
         val = height / (mid - left) * (x - left)
     else:
         val = -(height / (mid - left)) * (x - left) + height
     
-    val[oob] = 0.0
+    val = limit_range(val, x, 0.0, g, lt=left, gt=mid)
+    # val[oob] = 0.0
 
-    if g is not None and x.requires_grad:
-        val.register_hook(partial(_shape_post_hook, state=state))
+    # if g is not None and x.requires_grad:
+    #     val.register_hook(partial(_shape_post_hook, state=state))
     return val
 
 
@@ -227,28 +296,34 @@ def trapezoid(
         torch.Tensor: The trapezoid output
     """
 
-    state = {}
+    # state = {}
     x_base = x
     x = x_base.clone()
 
-    oob = (x < left) | (x > right)
-    if g is not None and x.requires_grad:
-        x.register_hook(
-            partial(_shape_pre_hook, x=x,
-                    oob=oob, state=state, 
-                    g=g))
+    # oob = (x < left) | (x > right)
+    # if g is not None and x.requires_grad:
+    #     x.register_hook(
+    #         partial(_shape_pre_hook, x=x,
+    #                 oob=oob, state=state, 
+    #                 g=g))
     left_val = height / (mid1 - left) * (x - left)
     right_val = -height / (right - mid2) * (x - mid2) + height
     
     right_side = x >= mid2
-    mid_val = (x >= mid1) & (x <= mid2)
+    # mid_val = (x >= mid1) & (x <= mid2)
     left_val[right_side] = right_val[right_side]
-    left_val[mid_val] = height
-    y = left_val
-    y[oob] = 0.0
+    # left_val[mid_val] = height
+    y = limit_range(
+        left_val, x, height, g, gte=mid1, lte=mid2, both=True
+    )
+    y = limit_range(
+        y, x, 0.0, g, lt=left, gt=right
+    )
+    # y = left_val
+    # y[oob] = 0.0
 
-    if g is not None and x.requires_grad:
-        y.register_hook(partial(_shape_post_hook, state=state))
+    # if g is not None and x.requires_grad:
+    #     y.register_hook(partial(_shape_post_hook, state=state))
     return y
 
 
@@ -295,27 +370,30 @@ def right_trapezoid(
     Returns:
         torch.Tensor: The point on the trapezoid
     """
-    state = {}
+    # state = {}
     x_base = x
     x = x_base.clone()
-    oob = (x < left) | (x > right)
-    if g is not None and x.requires_grad:
-        x.register_hook(
-            partial(_shape_pre_hook, x=x,
-                    oob=oob, state=state, 
-                    g=g))
+    # oob = (x < left) | (x > right)
+    # if g is not None and x.requires_grad:
+    #     x.register_hook(
+    #         partial(_shape_pre_hook, x=x,
+    #                 oob=oob, state=state, 
+    #                 g=g))
     if increasing:
         val = height / (mid - left) * (x - left)
-        mid_val = (x >= mid) & (x <= right)
+        # mid_val = (x >= mid) & (x <= right)
+        val = limit_range(val, x, height, g, gte=mid, lte=right, both=True)
     else:
         val = -height / (right - mid) * (x - mid) + height
-        mid_val = (x >= left) & (x <= mid)
-    
-    val[mid_val] = height
-    val[oob] = 0.0
+        print(val)
+        val = limit_range(val, x, height, g, gte=left, lte=mid, both=True)
+        # mid_val = (x >= left) & (x <= mid)
+    # val[mid_val] = height
+    val = limit_range(val, x, 0.0, g, lt=left, gt=right)
+    # val[oob] = 0.0
 
-    if g is not None and x.requires_grad:
-        val.register_hook(partial(_shape_post_hook, state=state))
+    # if g is not None and x.requires_grad:
+    #     val.register_hook(partial(_shape_post_hook, state=state))
     return val
 
 
@@ -461,17 +539,19 @@ def square(
     Returns:
         torch.Tensor: The output
     """
-    state = {}
+    # state = {}
     x_base = x
     x = x_base.clone()
-    oob = True
-    if g is not None and x.requires_grad:
-        x.register_hook(partial(_shape_pre_hook, x=x, oob=oob, state=state, g=g))
+    # oob = True
+    # if g is not None and x.requires_grad:
+    #     x.register_hook(partial(_shape_pre_hook, x=x, oob=oob, state=state, g=g))
 
-    result = ((x >= left) & (x <= right)) * height
+    result = limit_range(x, x, height, g, lte=right, gte=left, both=True)
+    result = limit_range(x, x, 0.0, g, lt=left, gt=right)
+    # result = ((x >= left) & (x <= right)) * height
 
-    if g is not None and x.requires_grad:
-        result.register_hook(partial(_shape_post_hook, state=state))
+    # if g is not None and x.requires_grad:
+    #     result.register_hook(partial(_shape_post_hook, state=state))
     return result
 
 

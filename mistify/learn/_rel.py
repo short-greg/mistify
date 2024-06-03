@@ -9,7 +9,6 @@ from zenkai import XCriterion
 class Rel(nn.Module, ABC):
     """Function to use for predicting the relation between two values
     """
-
     @abstractmethod
     def forward(self, x: torch.Tensor, t: torch.Tensor, dim: int) -> torch.Tensor:
         pass
@@ -113,6 +112,88 @@ class MinMaxRel(Rel):
         ).sum(dim=dim, keepdim=True) / (
             torch.sum(x_comp, dim=dim, keepdim=True) + 1e-7
         )
+
+
+class MinMaxRelX(Rel):
+    """The relation for a "MinMax" function
+    """
+    def __init__(self):
+
+        super().__init__()
+        self.rel = MinMaxRel()
+
+    def forward(self, x: torch.Tensor, w: torch.Tensor, t: torch.Tensor, dim: int=0) -> torch.Tensor:
+        """
+        Args:
+            x (torch.Tensor): The input
+            t (torch.Tensor): The target
+            dim (int, optional): The dimension to calculate the rel with. Defaults to 0.
+
+        Returns:
+            torch.Tensor: The relation
+        """
+        w = w[...,None]
+        x = x.unsqueeze(-1)
+        t = t.unsqueeze(-2)
+        
+        positives = torch.min(1 - w, 1 - t)
+        relx = self.relx(x, t)
+        inner_x = self.neuron.f.inner(relx, w)
+        yx = inner_x.min(dim=-2)[0]
+        chosen_yx = ((yx == inner_x)) * inner_x
+    
+        cur_x = 1 - ((1 - chosen_yx.sum(dim=0, keepdim=True)) / (
+            (1 - chosen_yx.sum(dim=0, keepdim=True))
+            + positives.sum(dim=0, keepdim=True)
+        ))
+
+        inner_validx = torch.argmin(
+            torch.max(cur_x, w), dim=-2, keepdim=True
+        )
+        inner = self.neuron.inner(x)
+        return inner.gather(-2, inner_validx)
+
+
+class MinMaxRelW(Rel):
+    """The relation for a "MinMax" function
+    """
+    def __init__(self):
+
+        super().__init__()
+        self.rel = MinMaxRel()
+
+    def forward(self, x: torch.Tensor, w: torch.Tensor, t: torch.Tensor, dim: int=0) -> torch.Tensor:
+        """
+        Args:
+            x (torch.Tensor): The input
+            t (torch.Tensor): The target
+            dim (int, optional): The dimension to calculate the rel with. Defaults to 0.
+
+        Returns:
+            torch.Tensor: The relation
+        """
+        w = w[...,None]
+        x = x.unsqueeze(-1)
+        t = t.unsqueeze(-2)
+        positives = torch.min(1 - x, 1 - t)
+        relw = self.rel(x, t)
+        inner_w = self.neuron.f.inner(x, relw)
+        yw = inner_w.min(dim=-2)[0]
+        chosen_yw = (
+            (yw == inner_w)
+        ) * inner_w
+    
+        cur_w = 1 - ((1 - chosen_yw.sum(dim=0, keepdim=True)) / (
+            (1 - chosen_yw.sum(dim=0, keepdim=True))
+            + positives.sum(dim=0, keepdim=True)
+        ))
+
+        inner_validx = torch.argmin(
+            torch.max(x, cur_w), 
+            dim=-2, keepdim=True
+        )
+        inner = self.neuron.inner(x)
+        return inner.gather(-2, inner_validx)
 
 
 class MaxProdRel(Rel):

@@ -47,15 +47,24 @@ class AreaHypothesis(ShapeHypothesis):
         
         i = 0
         result = []
+        centroids = []
         for shape in shapes:
             result.append(
                 shape.areas(m[:,:,i:shape.n_terms + i], self.truncate)
             )
+            centroids.append(
+                shape.centroids(m[:,:,i:shape.n_terms + i], self.truncate)
+            )
 
             i += shape.n_terms
-        return HypoWeight(torch.cat(
+
+        weight = torch.cat(
             result, dim=2
-        ), m)
+        )
+        hypo = torch.cat(
+            centroids, dim=2
+        )
+        return HypoWeight(hypo, weight)
 
 
 class MeanCoreHypothesis(ShapeHypothesis):
