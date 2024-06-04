@@ -6,6 +6,7 @@ from ._infer import (
 from ._rel import (
     Rel, RelLoss, MaxMinRel, MinMaxRel, 
     MinSumRel, MaxProdRel, XRel, WRel,
-    AlignLoss, align_sort
+    AlignLoss, align_sort, AggXPredictor, MinMaxRelX,
+    MinMaxPredictorLoss, MinMaxRelW, AggWPredictor
 )
 from ._fit import PostFit, PreFit

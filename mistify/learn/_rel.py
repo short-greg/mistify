@@ -2,7 +2,7 @@ from zenkai.kaku._io2 import IO as IO
 import torch.nn as nn
 import torch
 from abc import abstractmethod, ABC
-from ..infer import LogicalNeuron
+from ..infer import LogicalNeuron, MinMax
 from zenkai import XCriterion
 
 
@@ -117,12 +117,13 @@ class MinMaxRel(Rel):
 class MinMaxRelX(Rel):
     """The relation for a "MinMax" function
     """
-    def __init__(self):
+    def __init__(self, neuron: MinMax):
 
         super().__init__()
-        self.rel = MinMaxRel()
+        self.relx = MinMaxRel()
+        self.neuron = neuron
 
-    def forward(self, x: torch.Tensor, w: torch.Tensor, t: torch.Tensor, dim: int=0) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         """
         Args:
             x (torch.Tensor): The input
@@ -132,37 +133,40 @@ class MinMaxRelX(Rel):
         Returns:
             torch.Tensor: The relation
         """
-        w = w[...,None]
+        w = self.neuron.w()
+        w = w[None]
         x = x.unsqueeze(-1)
         t = t.unsqueeze(-2)
         
         positives = torch.min(1 - w, 1 - t)
-        relx = self.relx(x, t)
-        inner_x = self.neuron.f.inner(relx, w)
-        yx = inner_x.min(dim=-2)[0]
+        relx = self.relx.forward(w, t, -1)
+        inner_x = self.neuron.f.inner(relx.squeeze(-1), w.squeeze(0))
+        yx = inner_x.min(dim=-2, keepdim=True)[0]
         chosen_yx = ((yx == inner_x)) * inner_x
     
-        cur_x = 1 - ((1 - chosen_yx.sum(dim=0, keepdim=True)) / (
-            (1 - chosen_yx.sum(dim=0, keepdim=True))
-            + positives.sum(dim=0, keepdim=True)
+        cur_x = 1 - ((1 - chosen_yx.sum(dim=-1, keepdim=True)) / (
+            (1 - chosen_yx.sum(dim=-1, keepdim=True))
+            + positives.sum(dim=-1, keepdim=True)
         ))
 
         inner_validx = torch.argmin(
             torch.max(cur_x, w), dim=-2, keepdim=True
         )
-        inner = self.neuron.inner(x)
-        return inner.gather(-2, inner_validx)
+        inner = self.neuron.inner(x.squeeze(-1))
+        y = inner.gather(-2, inner_validx)
+        return y.squeeze(-2)
 
 
 class MinMaxRelW(Rel):
     """The relation for a "MinMax" function
     """
-    def __init__(self):
+    def __init__(self, neuron: MinMax):
 
         super().__init__()
         self.rel = MinMaxRel()
+        self.neuron = neuron
 
-    def forward(self, x: torch.Tensor, w: torch.Tensor, t: torch.Tensor, dim: int=0) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, t: torch.Tensor, dim: int=0) -> torch.Tensor:
         """
         Args:
             x (torch.Tensor): The input
@@ -172,17 +176,18 @@ class MinMaxRelW(Rel):
         Returns:
             torch.Tensor: The relation
         """
-        w = w[...,None]
+        w = self.neuron.w()
+        w = w[None]
         x = x.unsqueeze(-1)
         t = t.unsqueeze(-2)
         positives = torch.min(1 - x, 1 - t)
-        relw = self.rel(x, t)
-        inner_w = self.neuron.f.inner(x, relw)
-        yw = inner_w.min(dim=-2)[0]
+        relw = self.rel(x, t, 0)
+        inner_w = self.neuron.f.inner(x.squeeze(-1), relw.squeeze(0))
+        yw = inner_w.min(dim=-2, keepdim=True)[0]
+
         chosen_yw = (
             (yw == inner_w)
         ) * inner_w
-    
         cur_w = 1 - ((1 - chosen_yw.sum(dim=0, keepdim=True)) / (
             (1 - chosen_yw.sum(dim=0, keepdim=True))
             + positives.sum(dim=0, keepdim=True)
@@ -192,8 +197,10 @@ class MinMaxRelW(Rel):
             torch.max(x, cur_w), 
             dim=-2, keepdim=True
         )
-        inner = self.neuron.inner(x)
-        return inner.gather(-2, inner_validx)
+
+        inner = self.neuron.inner(x.squeeze(-1))
+        y = inner.gather(-2, inner_validx)
+        return y.squeeze(-2)
 
 
 class MaxProdRel(Rel):
@@ -305,6 +312,33 @@ class PredictorLoss(XCriterion):
         if self.w_agg is not None:
             y_w = self.w_agg(x, t)
             cost = cost + self.w_weight * self.base_loss(y_w, t)
+        return cost
+
+
+class MinMaxPredictorLoss(XCriterion):
+
+    def __init__(
+        self, neuron: MinMax, base_loss: nn.Module, 
+        x_weight: float=1.0, w_weight: float=1.0
+    ):
+        super().__init__()
+        self.base_loss = base_loss
+        self.x_predictor = MinMaxRelX(neuron)
+        self.w_predictor = MinMaxRelW(neuron)
+        self.x_weight = x_weight
+        self.w_weight = w_weight
+
+    def forward(self, x: IO, y: IO, t: IO) -> torch.Tensor:
+
+        x, y, t = x.f, y.f, t.f
+
+        y2 = self.x_predictor(x, t)
+        y3 = self.w_predictor(x, t)
+
+        cost = self.base_loss(y, t)
+        cost2 = self.base_loss(y2, t)
+        cost3 = self.base_loss(y3, t)
+        cost = cost + self.x_weight * cost2 + self.w_weight * cost3
         return cost
 
 

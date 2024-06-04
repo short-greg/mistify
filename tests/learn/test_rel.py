@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from mistify.learn import _rel
-from mistify.infer import MaxMin
+from mistify.infer import MaxMin, MinMax
 from zenkai import iou
 
 
@@ -33,6 +33,52 @@ class TestMaxMinRel:
         rel = _rel.MaxMinRel()
         w_rel = rel(x[...,None], t[:,:,None], 0).squeeze(0)
         assert w_rel.shape == torch.Size([3, 4, 5])
+
+
+class TestMinMaxRelW:
+
+    def test_max_min_rel_outputs_correct_size_with_w(self):
+
+        x = torch.rand(6, 4)
+        t = torch.rand(6, 5)
+
+        neuron = MinMax(4, 5)
+        rel = _rel.MinMaxRelW(neuron)
+
+        y = rel(x, t)
+        assert y.shape == torch.Size([6, 5])
+
+    def test_max_min_rel_outputs_correct_size_with_x_with_terms(self):
+
+        x = torch.rand(6, 3, 4)
+        t = torch.rand(6, 3, 5)
+
+        neuron = MinMax(4, 5, n_terms=3)
+        rel = _rel.MinMaxRelW(neuron)
+        y = rel(x, t)
+        assert y.shape == torch.Size([6, 3, 5])
+
+
+class TestMinMaxRelX:
+
+    def test_max_min_rel_outputs_correct_size_with_w(self):
+
+        x = torch.rand(6, 4)
+        t = torch.rand(6, 5)
+
+        neuron = MinMax(4, 5)
+        rel = _rel.MinMaxRelX(neuron)
+        y = rel(x, t)
+        assert y.shape == torch.Size([6, 5])
+
+    def test_max_min_rel_outputs_correct_size_with_x_with_terms(self):
+
+        x = torch.rand(6, 3, 4)
+        t = torch.rand(6, 3, 5)
+        neuron = MinMax(4, 5, n_terms=3)
+        rel = _rel.MinMaxRelX(neuron)
+        y = rel(x, t)
+        assert y.shape == torch.Size([6, 3, 5])
 
 
 class TestXRel:
