@@ -8,6 +8,9 @@ from ._conclude import (
     ConcEnum,
     FlattenConc
 )
+from ._aggregate import (
+    var_normalize
+)
 from ._fuzzifiers import (
     Fuzzifier, 
     EmbeddingFuzzifier,

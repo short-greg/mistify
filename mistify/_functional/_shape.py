@@ -41,7 +41,6 @@ class LimitRange(torch.autograd.Function):
 
         x = x.clone()
         y = y.clone()
-        print(lte, lt, gte, gt)
         left = None
         right = None
         oob = None
@@ -120,9 +119,7 @@ def triangle(
     
     right_side = x >= mid
     left_val[right_side] = right_val[right_side]
-    print(left_val)
     left_val = limit_range(left_val, x, 0.0, g, lt=left, gt=right)
-    print(left_val)
     # left_val[oob] = 0.0
 
     # if g is not None and x.requires_grad:
