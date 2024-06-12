@@ -10,18 +10,18 @@ pip install mistify
 
 ## Brief Overview
 
-Mistify consists of several subpackages
+Mistify consists of subpackages for inference operations, fuzzification and defuzzification, and preprocessing and postprocessing. It incldes 
 
-- **mistify**: Contains the core functions used for fuzzification and inference.
-- **mistify.fuzzify**: Modules for building fuzzifiers and defuzzifiers. Contains a variety of shapes or other fuzzification and defuzzification modules to use.
+- **mistify**: The core functions used for fuzzification and inference.
+- **mistify.fuzzify**: Modules for building fuzzifiers and defuzzifiers. Has a variety of shapes or other fuzzification and defuzzification modules to use.
 - **mistify.infer**: Modules for performing inference operations such as Or Neurons, Intersections, Activations etc.
 - **mistify.process**: Modules for preprocessing or postprocessing on the data to input into the fuzzy system
 - **mistify.systems**: Modules for building systems more easily.
-- **mistify.utils**: Contains utilities used by other modules in Mistify. 
+- **mistify.utils**: Utilities used by other modules in Mistify. 
 
 ## Usage
 
-Mistify's primary prupose is to build neurofuzzy systems. They can be built using Pytorch's 
+Mistify's primary prupose is to build neurofuzzy systems or fuzzy neural networks using the the framework of PyTorch. 
 
 Here is a (non-working) example that uses alternating Or and And neurons.
 ```bash
@@ -38,7 +38,7 @@ class FuzzySystem(nn.Module):
         OrNeuron = BuildOr().no_wf().union_on().prob_inter()
 
         # 
-        self.fuzzifier = mistify.fuzzify.SigmoidFuzzyConverter.from_linspace(
+        self.fuzzifier = mistify.fuzzify.SigmoidFuzzifier.from_linspace(
             n_terms, 'min_core', 'average'
         )
         self.flatten = FlattenCat()
@@ -53,7 +53,7 @@ class FuzzySystem(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
-        m = self.fuzzifier.fuzzify(x)
+        m = self.fuzzifier(x)
         m = self.flatten(m)
         m = self.layer1(m)
         m = self.layer2(m)
