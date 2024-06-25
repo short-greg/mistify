@@ -92,6 +92,10 @@ class WeightedMAverageConc(Conclusion):
     """Take the weighted average of all the hypotheses
     """
 
+    def __init__(self, n_terms: int, n_vars: int = None, eps: float=1e-7) -> None:
+        super().__init__(n_terms, n_vars)
+        self.eps = eps
+
     def forward(self, hypo_m: HypoWeight) -> torch.Tensor:
         """
         Args:
@@ -102,7 +106,7 @@ class WeightedMAverageConc(Conclusion):
         """
         return (
             torch.sum(hypo_m.hypo * hypo_m.weight, dim=-1) 
-            / torch.sum(hypo_m.weight, dim=-1)
+            / (torch.sum(hypo_m.weight, dim=-1) + self.eps)
         )
 
 
