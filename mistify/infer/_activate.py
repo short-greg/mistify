@@ -1,5 +1,5 @@
 # 1st party
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 
 # 3rd party
 import torch.nn as nn
@@ -9,14 +9,21 @@ import torch
 from .._functional import clamp, G
 
 
-class MembershipAct(nn.Module):
+class MembershipAct(nn.Module, ABC):
+    """Abstract base class for the membership
+    """
 
     def __init__(self, n_terms: int=None):
+        """Create the membership activation
+
+        Args:
+            n_terms (int, optional): The number of terms for the activation. Defaults to None.
+        """
         super().__init__()
         self._n_terms = n_terms
     
     @abstractmethod
-    def forward(self, m: torch.Tensor):
+    def forward(self, m: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError
 
 
@@ -26,7 +33,7 @@ class Descale(MembershipAct):
     """
 
     def __init__(self, lower_bound: float):
-        """Create a 
+        """Create a descaling activation
 
         Args:
             lower_bound (float): The threshold 
@@ -158,8 +165,18 @@ class Hedge(nn.Module):
         self._batch_dim = 2 if n_vars is False else 3
         self.g = g
 
+    # TODO: Determine if this is necessary
     def align(self, w: torch.Tensor, m: torch.Tensor, dim: int=1) -> torch.Tensor:
+        """Align the membership
 
+        Args:
+            w (torch.Tensor): The value to align to
+            m (torch.Tensor): The membership
+            dim (int, optional): The dimension. Defaults to 1.
+
+        Returns:
+            torch.Tensor: The 
+        """
         shape = [1] * m.dim()
         shape[dim] = 0
 
@@ -169,7 +186,14 @@ class Hedge(nn.Module):
         return dim
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
+        """Use the hedge on the membership
 
+        Args:
+            m (torch.Tensor): The input
+
+        Returns:
+            torch.Tensor: The hedged membership
+        """
         if m.dim() == self._batch_dim:
             w = self._w[None]
         else:

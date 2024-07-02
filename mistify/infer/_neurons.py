@@ -47,38 +47,59 @@ def validate_weight_range(w: torch.Tensor, min_value: float, max_value: float) -
 
 
 def validate_binary_weight(w: torch.Tensor, neg_value: float=0.0, pos_value: float=1.0) -> int:
-    """
+    """Validate that the weight is either 0 or 1
 
     Args:
-        w (torch.Tensor): _description_
-        neg_value (float, optional): _description_. Defaults to 0.0.
-        pos_value (float, optional): _description_. Defaults to 1.0.
+        w (torch.Tensor): The weight to validate
+        neg_value (float, optional): The negative value of the binary representation. Defaults to 0.0.
+        pos_value (float, optional): The positive value of the binary representation. Defaults to 1.0.
 
     Returns:
-        int: _description_
+        int: The number of invalid entries in w
     """
     return ((w != neg_value) & (w != pos_value)).float().sum().item()
 
 
 class LogicalNeuron(nn.Module, Constrained):
+    """Neuron to implement a logical function
+    """
 
     @abstractmethod
     def w(self) -> torch.Tensor:
+        """Get the weight of the neuron
+
+        Returns:
+            torch.Tensor: The weight of the neuron
+        """
         pass
 
     @abstractmethod
     def init_weight(self, f: typing.Callable[[torch.Tensor], torch.Tensor]=None):
+        """
+
+        Args:
+            f (typing.Callable[[torch.Tensor], torch.Tensor], optional): Initialize the weight. Defaults to None.
+        """
         pass
 
     @property
     @abstractmethod
     def f(self) -> typing.Callable:
+        """Get the function the logical neuron wraps
 
+        Returns:
+            typing.Callable: The logical function
+        """
         pass
 
     @property
     @abstractmethod
     def inner(self) -> typing.Callable:
+        """Get the "inner" function of the LogicalNeruon
+
+        Returns:
+            typing.Callable: The inner function
+        """
         pass
 
 
@@ -120,19 +141,41 @@ class Or(LogicalNeuron):
         self.init_weight()
 
     def w(self) -> torch.Tensor:
+        """Compute the weight function
+
+        Returns:
+            torch.Tensor: The weight
+        """
         return self.wf(self.weight_base)
 
     def init_weight(self, f: typing.Callable[[torch.Tensor], torch.Tensor]=None):
+        """_summary_
 
+        Args:
+            f (typing.Callable[[torch.Tensor], torch.Tensor], optional): . Defaults to None.
+        """
         if f is None:
             f = torch.rand_like
         self.weight_base.data = f(self.weight_base.data)
 
     @property
     def f(self) -> typing.Callable:
+        """The function
+
+        Returns:
+            typing.Callable: The function
+        """
         return self._f
     
     def inner(self, x: torch.Tensor) -> typing.Callable:
+        """The inner function
+
+        Args:
+            x (torch.Tensor): The input
+
+        Returns:
+            typing.Callable: The 
+        """
         return self._f.inner(x, self.w())
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
@@ -147,9 +190,11 @@ class Or(LogicalNeuron):
         w = self.w()
         return self._f(m, w)
 
-    def constrain(self):
+    def constrain(self, lower: float=0., upper=1.):
+        """Constrain the weight between two values
+        """
         self.weight.data = torch.clamp(
-            self.weight.data, 0, 1
+            self.weight.data, lower, upper
         )
 
 
@@ -194,27 +239,48 @@ class And(LogicalNeuron):
         self.init_weight()
 
     def w(self) -> torch.Tensor:
+        """Get the weight after passing through the weigth function
+
+        Returns:
+            torch.Tensor: The weight
+        """
         w = self.wf(self.weight_base)
         if self.sub1:
             return 1 - w
         return w
 
     def init_weight(self, f: typing.Callable[[torch.Tensor], torch.Tensor]=None):
+        """Initialize the weight
 
+        Args:
+            f (typing.Callable[[torch.Tensor], torch.Tensor], optional): Initialize the weight. Defaults to None.
+        """
         if f is None:
             f = torch.rand_like
         self.weight_base.data = f(self.weight_base.data)
     
     @property
     def f(self) -> typing.Callable:
+        """The logical function used by And
+
+        Returns:
+            typing.Callable: The function
+        """
         return self._f
 
     def inner(self, x: torch.Tensor) -> typing.Callable:
+        """The inner function for the And neuron
 
+        Args:
+            x (torch.Tensor): The input
+
+        Returns:
+            typing.Callable: The 
+        """
         return self._f.inner(x, self.w())
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
-        """
+        """Compute the And function using m
 
         Args:
             m (torch.Tensor): The membership to get the output for
@@ -225,9 +291,11 @@ class And(LogicalNeuron):
         w = self.w()
         return self._f(m, w)
 
-    def constrain(self):
+    def constrain(self, lower: float=0.0, upper: float=1.0):
+        """Constrain the weight between two values
+        """
         self.weight.data = torch.clamp(
-            self.weight.data, 0, 1
+            self.weight.data, lower, upper
         )
 
 
@@ -266,30 +334,64 @@ class SmoothMaxMin(Or):
         n_terms: int = None, pop_size: int=None, wf: 'WeightF'=None,
         a: float=None
     ) -> None:
+        """Create a mooth Or neuron
+
+        Args:
+            in_features (int): The number of input features
+            out_features (int): The number of output features
+            n_terms (int, optional): The number of terms. Defaults to None.
+            pop_size (int, optional): The number of individuals to use. Defaults to None.
+            wf (WeightF, optional): The weight function to use. Defaults to None.
+            a (float, optional): The degree of hardness (larger values are "harder"). Defaults to None.
+        """
         super().__init__(in_features, out_features, n_terms, pop_size, (SmoothInter(a=a), SmoothUnionOn(dim=-2, a=a)), wf)
         self._a = a
 
     @property
     def a(self) -> float:
+        """Get the degree of hardness
 
+        Returns:
+            float: The degree of hardness
+        """
         return self._a
     
     @a.setter
     def a(self, a: float) -> float:
+        """Set the degree of hardness
 
+        Args:
+            a (float): The hardness (larger values are harder)
+
+        Returns:
+            float: the hardness
+        """
         self._a = a
         self._f = OrF(
             SmoothInter(a=a), SmoothUnionOn(dim=-2, a=a)
         )
+        return a
 
 
 class SmoothMinMax(And):
+    """A smooth And function that uses the softmin and softmax functions
+    """
 
     def __init__(
         self, in_features: int, out_features: int, 
         n_terms: int = None, pop_size: int=None, wf: 'WeightF'=None,
         a: float=None, sub1: bool=False
     ) -> None:
+        """Create a smooth And neuron
+
+        Args:
+            in_features (int): The number of input features
+            out_features (int): The number of output features
+            n_terms (int, optional): The number of terms. Defaults to None.
+            pop_size (int, optional): The number of individuals to use. Defaults to None.
+            wf (WeightF, optional): The weight function to use. Defaults to None.
+            a (float, optional): The degree of hardness (larger values are "harder"). Defaults to None.
+        """
         super().__init__(
             in_features, out_features, 
             n_terms, pop_size, (SmoothUnion(a=a), SmoothInterOn(dim=-2, a=a)), 
@@ -299,19 +401,31 @@ class SmoothMinMax(And):
 
     @property
     def a(self) -> float:
+        """Get the degree of hardness
 
+        Returns:
+            float: The degree of hardness
+        """
         return self._a
     
     @a.setter
     def a(self, a: float) -> float:
+        """Set the degree of hardness
 
+        Args:
+            a (float): The hardness (larger values are harder)
+
+        Returns:
+            float: the hardness
+        """
         self._a = a
         self._f = AndF(
             SmoothUnion(a=a), SmoothInterOn(dim=-2, a=a)
         )
+        return a
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
-        """
+        """Compute the And using m
 
         Args:
             m (torch.Tensor): The membership to get the output for
@@ -324,12 +438,24 @@ class SmoothMinMax(And):
 
 
 class MaxProd(Or):
+    """An Or Neuron that uses the product for the inner function and max for the aggregation
+    """
 
     def __init__(
         self, in_features: int, out_features: int, 
         n_terms: int = None, pop_size: int=None, wf: 'WeightF'=None,
         g: G=None
     ) -> None:
+        """Create a MaxProd neruon
+
+        Args:
+            in_features (int): The number of input features
+            out_features (int): The number of output features
+            n_terms (int, optional): The number of terms. Defaults to None.
+            pop_size (int, optional): The number of individuals to use. Defaults to None.
+            wf (WeightF, optional): The weight function to use. Defaults to None.
+            g (G, optional): The straight-through-estimator to use. Defaults to None.
+        """
         super().__init__(
             in_features, out_features, n_terms, 
             pop_size, (ProbInter(), UnionOn(dim=-2, g=g)), wf
@@ -337,6 +463,8 @@ class MaxProd(Or):
 
 
 class MinMax(And):
+    """An And neuron that uses max for the inner function and min for the aggregate function
+    """
 
     def __init__(
         self, in_features: int, out_features: int, 
@@ -365,12 +493,24 @@ class MinMax(And):
 
 
 class MinSum(And):
-
+    """And neuron that uses the probabilistic sum for the inner function and 
+    """
     def __init__(
         self, in_features: int, out_features: int, 
         n_terms: int = None, pop_size: int=None, wf: 'WeightF'=None,
         g: G=None, sub1: bool=False
     ) -> None:
+        """Create an And neuron using min and probabilistic sum
+
+        Args:
+            in_features (int): The input features
+            out_features (int): The number of output features
+            n_terms (int, optional): The number of terms. Defaults to None.
+            pop_size (int, optional): The population size. Defaults to None.
+            wf (WeightF, optional): The weight function. Defaults to None.
+            g (G, optional): The straight through estimator to use. Defaults to None.
+            sub1 (bool, optional): Whether to subtract the weight by one. Defaults to False.
+        """
         super().__init__(
             in_features, out_features, n_terms, pop_size, 
             (ProbUnion(), InterOn(dim=-2, g=g)), wf, sub1
@@ -378,6 +518,8 @@ class MinSum(And):
 
 
 class WeightF(nn.Module):
+    """Calculate the weight function
+    """
 
     @abstractmethod
     def forward(self, w: torch.Tensor) -> torch.Tensor:
@@ -385,56 +527,125 @@ class WeightF(nn.Module):
 
 
 class ClampWeightF(WeightF):
+    """Weight function that clamps the weight between two values
+    """
 
     def __init__(self, min_val: float=0.0, max_val: float=1.0, g: G=None):
+        """Create a clamp weight function
+
+        Args:
+            min_val (float, optional): The min value for the clamp. Defaults to 0.0.
+            max_val (float, optional): The max value for the clamp. Defaults to 1.0.
+            g (G, optional): The straight through estimator. Defaults to None.
+        """
         super().__init__()
         self.min_val = min_val
         self.max_val = max_val
         self.g = g
 
     def forward(self, w: torch.Tensor) -> torch.Tensor:
+        """Clamp the weight between two values
+
+        Args:
+            w (torch.Tensor): The weight
+
+        Returns:
+            torch.Tensor: The clamped weight
+        """
         return functional.clamp(w, self.min_val, self.max_val, self.g)
 
 
 class Sub1WeightF(WeightF):
+    """Take the complement of the weights
+    """
 
     def forward(self, w: torch.Tensor) -> torch.Tensor:
+        """Compute the complement of the weight
+
+        Args:
+            w (torch.Tensor): The weight to update
+
+        Returns:
+            torch.Tensor: The weight
+        """
         return (1 - w)
 
 
 class BooleanWeightF(WeightF):
+    """A weight function that maps the weight to either 0 or 1
+    """
 
     def __init__(self, g: G=None):
+        """The boolean weight function
+        Args:
+            g (G, optional): The straight-through-estimator to use. Defaults to None.
+        """
         super().__init__()
         self.g = g
 
     def forward(self, w: torch.Tensor) -> torch.Tensor:
+        """Compute the binarized weight
+
+        Args:
+            w (torch.Tensor): The weight function
+
+        Returns:
+            torch.Tensor: The weight
+        """
         return functional.binarize(w, self.g)
 
 
 class SignWeightF(WeightF):
+    """A weight function that maps the weight to either -1 or 1
+    """
 
     def __init__(self, g: G=None):
+        """The sign weight function
+        Args:
+            g (G, optional): The straight-through-estimator to use. Defaults to None.
+        """
         super().__init__()
         self.g = g
 
     def forward(self, w: torch.Tensor) -> torch.Tensor:
+        """Compute the signed weight
+
+        Args:
+            w (torch.Tensor): The weight function
+
+        Returns:
+            torch.Tensor: The weight
+        """
         return functional.signify(w, self.g)
 
 
 class NullWeightF(WeightF):
+    """A null weight function that does nothing
+    """
 
     def forward(self, w: torch.Tensor) -> torch.Tensor:
+        """Does nothing as it is a null weight
+
+        Args:
+            w (torch.Tensor): the input weight
+
+        Returns:
+            torch.Tensor: the weight
+        """
         return w
 
 
-class Sub1WeightF(WeightF):
-
-    def forward(self, w: torch.Tensor) -> torch.Tensor:
-        return (1 - w)
-
-
 class SigmoidWeightF(nn.Module):
+    """A sigmoid weight function that does nothing
+    """
 
     def forward(self, w: torch.Tensor) -> torch.Tensor:
+        """Calculate the weight by taking the sigmoid
+
+        Args:
+            w (torch.Tensor): The weight
+
+        Returns:
+            torch.Tensor: The weight after sigmoiding
+        """
         return torch.sigmoid(w)

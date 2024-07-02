@@ -1,10 +1,11 @@
 # 1st party
-from abc import ABC, abstractmethod
+from abc import abstractmethod
+import typing
 
 # 3rd party
 import torch
 
-import torch
+# local
 from ..utils import reduce_as
 
 
@@ -58,20 +59,34 @@ class MulG(G):
 
 class BindG(G):
 
-    def __init__(self, val: float):
+    def __init__(
+        self, val: typing.Union[typing.Tuple[float, float], float]
+    ):
         """Bind the gradient based on the value of x
         (This one ignores oob)
 
         Args:
             val (float): The value to bind by
         """
+        if isinstance(val, typing.Tuple):
+            self.lower, self.upper = val
+        else:
+            self.upper = val
+            self.lower = -self.upper
 
-        self.val = val
+    def __call__(self, x: torch.Tensor, grad: torch.Tensor, oob: torch.Tensor=None) -> torch.Tensor:
+        """Use the Bind
 
-    def __call__(self, x: torch.Tensor, grad: torch.Tensor, oob: torch.Tensor=None):
-        
+        Args:
+            x (torch.Tensor): The input value
+            grad (torch.Tensor): The output gradient
+            oob (torch.Tensor, optional): Whether it is out of bounds. Defaults to None.
+
+        Returns:
+            torch.Tensor: the gradient
+        """
         grad = grad.clone()
-        oob = (x < -self.val) | (x > self.val)
+        oob = (x < self.lower) | (x > self.upper)
         grad[oob] = 0.0
         return grad
 

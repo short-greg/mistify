@@ -11,6 +11,7 @@ from ._grad import (
     SignG, G
 )
 
+
 def binarize(x: torch.Tensor, g: G=None) -> torch.Tensor:
     """Convenience function to use the straight through estimator for binary
 
@@ -21,7 +22,7 @@ def binarize(x: torch.Tensor, g: G=None) -> torch.Tensor:
         torch.Tensor: The binarized tensor
     """
     if g is None:
-        clip = None
+        return (x >= 0.0).type_as(x)
     return BinaryG.apply(x, g)
 
 
@@ -107,13 +108,3 @@ def to_signed(boolean: torch.Tensor) -> torch.Tensor:
         torch.Tensor: The signed tensor
     """
     return (boolean * 2) - 1
-
-
-# class Argmax(nn.Module):
-
-#     def __init__(self, dim=-1):
-#         super().__init__()
-#         self._dim = dim
-
-#     def forward(self, x: torch.Tensor) -> torch.LongTensor:
-#         return torch.argmax(x, dim=-1)
