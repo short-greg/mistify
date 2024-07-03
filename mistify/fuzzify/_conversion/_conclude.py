@@ -13,12 +13,26 @@ class Conclusion(nn.Module):
     """Class that defines several hypotheses 
     """
     def __init__(self, n_terms: int, n_vars: int=None) -> None:
+        """Create a conclusion
+
+        Args:
+            n_terms (int): The number of terms
+            n_vars (int, optional): The number of vars. Defaults to None.
+        """
         super().__init__()
         self._n_terms = n_terms
         self._n_vars = n_vars
 
     @abstractmethod
     def forward(self, hypo_weight: HypoWeight) -> torch.Tensor:
+        """Make a conclusion based on the hypothesis and weight
+
+        Args:
+            hypo_weight (HypoWeight): The hypothesis and weight
+
+        Returns:
+            torch.Tensor: The conclusion
+        """
         pass
 
     @property
@@ -44,7 +58,15 @@ class FlattenConc(Conclusion):
         self._conclusion = conclusion
 
     def forward(self, hypo_weight: HypoWeight) -> torch.Tensor:
-        
+        """Decorate the conclusion by flattening the variables before concluding
+
+        Args:
+            hypo_weight (HypoWeight): The hypothesis and weight
+
+        Returns:
+            torch.Tensor: The conclusion
+        """
+
         shape = list(hypo_weight.hypo.shape)
         shape[-2] = 1
         shape[-1] = -1
@@ -62,7 +84,8 @@ class MaxValueConc(Conclusion):
     """
 
     def forward(self, hypo_m: HypoWeight) -> torch.Tensor:
-        """
+        """Use the max value to get the conclusion
+
         Args:
             hypo_w (HypoW): The hypotheses and their weights
 
@@ -77,7 +100,7 @@ class MaxConc(Conclusion):
     """
 
     def forward(self, hypo_m: HypoWeight) -> torch.Tensor:
-        """
+        """Make the conclusion based on the max membership
         Args:
             hypo_weight (HypoM): The hypotheses and weights
 
@@ -97,7 +120,7 @@ class WeightedMAverageConc(Conclusion):
         self.eps = eps
 
     def forward(self, hypo_m: HypoWeight) -> torch.Tensor:
-        """
+        """Use the average of the weighted average of the hypotheses to get the conclusion
         Args:
             hypo_weight (HypoM): The hypotheses and weights
 
@@ -115,7 +138,7 @@ class AverageConc(Conclusion):
     """
 
     def forward(self, hypo_m: HypoWeight) -> torch.Tensor:
-        """
+        """Use the average of the hypotheses and weights to get the conclusion
         Args:
             hypo_weight (HypoM): The hypotheses and weights
 
@@ -142,7 +165,7 @@ class WeightedPAverageConc(Conclusion):
         self.layer_weightf = nn.Softmax(dim=-1)
 
     def forward(self, hypo_m: HypoWeight) -> torch.Tensor:
-        """
+        """Use the weighted average of parameters to get the conclusion
         Args:
             hypo_weight (HypoM): The hypotheses and weights
 
@@ -169,6 +192,17 @@ class ConcEnum(Enum):
         n_terms: int=None, n_vars: int=None, 
         flatten: bool=False
     ) -> Conclusion:
+        """Get the conclusion based on the enum
+
+        Args:
+            conc (typing.Union[Conclusion, str]): The conclusion
+            n_terms (int, optional): The number of terms. Defaults to None.
+            n_vars (int, optional): The number of vars. Defaults to None.
+            flatten (bool, optional): Whether to flatten. Defaults to False.
+
+        Returns:
+            Conclusion: The conclusion
+        """
 
         if isinstance(conc, str):
             conc = ConcEnum[conc].value(n_terms, n_vars)

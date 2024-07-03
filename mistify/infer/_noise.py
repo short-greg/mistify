@@ -60,7 +60,7 @@ class GaussianClampNoise(nn.Module):
         self.dim = dim
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
-        """
+        """Add gaussian noise to m that will be clamped
 
         Args:
             m: (torch.Tensor): the input
@@ -97,7 +97,7 @@ class ExpNoise(nn.Module):
         self.dim = dim
 
     def forward(self, m: torch.Tensor) -> torch.Tensor:
-        """
+        """Add exponential noise to m
 
         Args:
             m (torch.Tensor): the input

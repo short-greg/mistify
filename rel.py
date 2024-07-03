@@ -377,8 +377,8 @@ class Reconstructor(nn.Module):
         y = self.linear1(y)
         y = self.batch_norm(y)
         y = self.leaky_relu(y)
-        y = self.linear2(y)
-        return torch.sigmoid(y)
+        return self.linear2(y)
+        # return torch.sigmoid(y)
 
 
 class MinMaxLearner(zenkai.LearningMachine):
@@ -481,7 +481,8 @@ class MinMaxTPLearner(zenkai.LearningMachine):
         reduction: str='mean', rel_reduction: str='mean'
     ):
         super().__init__()
-        self.min_max = MinMax(in_features, out_features)
+        self.min_max = SmoothSTEMaxMin(in_features, out_features, a=8)
+
         self.min_max_loss = MinMaxLoss(
             self.min_max, reduction, 
             rel_reduction, x_weight, w_weight
@@ -489,6 +490,8 @@ class MinMaxTPLearner(zenkai.LearningMachine):
         self.reconstructor = Reconstructor(
             in_features // 2, out_features, out_features * 2, in_features
         )
+        self.noise = 0.025
+        # 
 
     @property
     def x_weight(self):
@@ -519,22 +522,32 @@ class MinMaxTPLearner(zenkai.LearningMachine):
 
     def accumulate(self, x: zenkai.IO, t: zenkai.IO, state: zenkai.State, **kwargs):
         t = torch.clamp(t.f, 0, 1)
-        loss = self.min_max_loss(x.f, state._y.f, t) * 0.5
-        x_prime = self.reconstructor(x.f, state._y.f.detach())
-        loss = loss + (x_prime - x.f.detach()).pow(2).mean()
-        print(x_prime[0], x.f[0])
+        # loss = self.min_max_loss(x.f, state._y.f, t) * 0.5
+        loss = 0.5 * (state._y.f - t.detach()).pow(2).sum()
+        noisy_x = x.f + torch.randn_like(x.f) * self.noise
+        x_prime = self.reconstructor(noisy_x, state._y.f.detach()) + noisy_x.detach()
+        rec_loss = (x_prime - x.f.detach()).pow(2).mean()
+        # print(rec_loss.item())
+        loss = loss + rec_loss
+
+        # print(x_prime[0], x.f[0])
         loss.backward()
 
     def step_x(self, x: zenkai.IO, t: zenkai.IO, state: zenkai.State, **kwargs) -> zenkai.IO:
         with torch.no_grad():
             x_prime_t = self.reconstructor(
                 x.f, t.f
-            )
+            ) 
             x_prime_y = self.reconstructor(
                 x.f, state._y.f
             )
-            dy = (x_prime_y - x_prime_t)
-            return x.acc_dx([dy], lr=0.01)
+            self.noise = (
+                0.25 * (x_prime_t - x.f).pow(2).sum(dim=0, keepdim=True).pow(0.5)
+            ) + 0.75 * self.noise
+            # dy = (x_prime_y - x_prime_t)
+            # return x.acc_dx([dy], lr=0.01)
+            
+            return x.acc_dx([x_prime_t - x_prime_y])
 
     def forward_nn(self, x: zenkai.IO, state: zenkai.State, **kwargs) -> typing.Union[Tuple, typing.Any]:
         

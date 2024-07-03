@@ -90,6 +90,15 @@ class UnionOn(UnionOnBase):
         self.g = g
 
     def forward(self, m: torch.Tensor, dim: int=None) -> torch.Tensor:
+        """Calculate the hard union
+
+        Args:
+            m (torch.Tensor): The input
+            dim (int, optional): The dimension. Defaults to None.
+
+        Returns:
+            torch.Tensor: The union on the dimension
+        """
         return self._f(m, g=self.g, keepdim=self.keepdim, dim=self.dim if dim is None else dim)
 
 
@@ -111,6 +120,15 @@ class ProbUnionOn(UnionOnBase):
         super().__init__(_functional.prob_union_on, dim, keepdim)
 
     def forward(self, m: torch.Tensor, dim: int=None) -> torch.Tensor:
+        """Calculate the probabilistic union
+
+        Args:
+            m (torch.Tensor): The input
+            dim (int, optional): The dimension. Defaults to None.
+
+        Returns:
+            torch.Tensor: The union on the dimension
+        """
         return self._f(m, dim=self.dim if dim is None else dim)
 
 
@@ -133,6 +151,15 @@ class SmoothUnionOn(UnionOnBase):
         self.a = a
 
     def forward(self, m: torch.Tensor, dim: int=None) -> torch.Tensor:
+        """Calculate the smooth union
+
+        Args:
+            m (torch.Tensor): The input
+            dim (int, optional): The dimension. Defaults to None.
+
+        Returns:
+            torch.Tensor: The union on the dimension
+        """
         return self._f(m, a=self.a, keepdim=self.keepdim, dim=self.dim if dim is None else dim)
 
 
@@ -155,6 +182,15 @@ class BoundedUnionOn(UnionOnBase):
         self.g = g
 
     def forward(self, m: torch.Tensor, dim: int=None) -> torch.Tensor:
+        """Calculate the bounded union
+
+        Args:
+            m (torch.Tensor): The input
+            dim (int, optional): The dimension. Defaults to None.
+
+        Returns:
+            torch.Tensor: The union on the dimension
+        """
         return self._f(m, g=self.g, keepdim=self.keepdim, dim=self.dim if dim is None else dim)
 
 
@@ -178,6 +214,15 @@ class InterOn(InterOnBase):
         self.g = g
 
     def forward(self, m: torch.Tensor, dim: int=None) -> torch.Tensor:
+        """Calculate the hard intersection
+
+        Args:
+            m (torch.Tensor): The input
+            dim (int, optional): The dimension. Defaults to None.
+
+        Returns:
+            torch.Tensor: The intersection on the dimension
+        """
         dim = dim or self.dim
         return self._f(m, g=self.g,keepdim=self.keepdim,  dim=self.dim if dim is None else dim)
 
@@ -200,6 +245,15 @@ class ProbInterOn(InterOnBase):
         super().__init__(_functional.prob_inter_on, dim, keepdim)
 
     def forward(self, m: torch.Tensor, dim: int=None) -> torch.Tensor:
+        """Calculate the probabilistic intersection
+
+        Args:
+            m (torch.Tensor): The input
+            dim (int, optional): The dimension. Defaults to None.
+
+        Returns:
+            torch.Tensor: The intersection on the dimension
+        """
         return self._f(m, keepdim=self.keepdim, dim=self.dim if dim is None else dim)
 
 
@@ -222,7 +276,19 @@ class SmoothInterOn(InterOnBase):
         self.a = a
 
     def forward(self, m: torch.Tensor, dim: int=None) -> torch.Tensor:
-        return self._f(m, a=self.a, keepdim=self.keepdim, dim=self.dim if dim is None else dim)
+        """Calculate the smooth interssection on a dimension 
+
+        Args:
+            m (torch.Tensor): The input
+            dim (int, optional): The dimension. Defaults to None.
+
+        Returns:
+            torch.Tensor: The intersection on the dimension
+        """
+        return self._f(
+            m, a=self.a, keepdim=self.keepdim, 
+            dim=self.dim if dim is None else dim
+        )
 
 
 class BoundedInterOn(InterOnBase):
