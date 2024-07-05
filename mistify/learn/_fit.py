@@ -1,5 +1,9 @@
-import torch
+# 1st party
 import logging
+
+# 3rd party
+import torch
+
 
 
 class PostFit(object):

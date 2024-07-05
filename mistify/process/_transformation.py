@@ -435,6 +435,8 @@ class CumLogistic(LogisticBase):
 
 
 class SigmoidParam(LogisticBase):
+    """A parameterized sigmoid transformation
+    """
 
     def __init__(self, n_features: int):
         """Use a parameterized sigmoid for the transform
@@ -448,20 +450,36 @@ class SigmoidParam(LogisticBase):
         )
 
     def reverse(self, y: torch.Tensor) -> torch.Tensor:
+        """Calculate the inverse of the sigmoid
 
+        Args:
+            y (torch.Tensor): The output to invert
+
+        Returns:
+            torch.Tensor: the inverted sigmoid
+        """
         return (torch.logit(y) * self._scale) + self._loc
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Calculate the parameterized sigmoid
 
+        Args:
+            x (torch.Tensor): The input
+
+        Returns:
+            torch.Tensor: The sigmoid's output
+        """
         return torch.sigmoid(
             (x - self._loc) / self._scale
         )
 
 
 class MinMaxScaler(Transform):
+    """Transformation that uses a Min and Max
+    """
 
     def __init__(self, lower: torch.Tensor=0.0, upper: torch.Tensor=1.0):
-        """
+        """Create a MinMax scaler specifying the lower and upper bounds
 
         Args:
             lower (torch.Tensor): The lower value for scaling
@@ -478,7 +496,7 @@ class MinMaxScaler(Transform):
 
     @property
     def lower(self) -> torch.Tensor:
-        """
+        """The lower bound on the min max scaler
         Returns:
             torch.Tensor: The lower bound for the scale
         """
@@ -486,7 +504,7 @@ class MinMaxScaler(Transform):
 
     @property
     def upper(self) -> torch.Tensor:
-        """
+        """The upper bound on the min max scaler
         Returns:
             torch.Tensor: The upper bound for the scale
         """
@@ -529,9 +547,11 @@ class MinMaxScaler(Transform):
 
 
 class Reverse(Transform):
+    """Decorator to invert the transform 
+    """
 
     def __init__(self, transform: Transform):
-        """
+        """Wrap a transform to invert it
 
         Args:
             transform (Transform): The transform to reverse
@@ -634,6 +654,11 @@ class PieceRange(nn.Module):
 
     @property
     def n_pieces(self) -> int:
+        """Get the number of  pieces
+
+        Returns:
+            int: The number of pieces
+        """
         return self._dx.size(-1)
     
     def pieces(self) -> torch.Tensor:
@@ -676,14 +701,26 @@ class PieceRange(nn.Module):
 
     @property
     def upper(self) -> float:
+        """Get the upper bound
+
+        Returns:
+            float: the upper bound
+        """
         return self._upper
     
     @property
     def lower(self) -> float:
+        """Get the lower bound
+
+        Returns:
+            float: the lower bound
+        """
         return self._lower
 
 
 class Piecewise(Transform):
+    """A Piecewise function
+    """
 
     def __init__(self, x_range: PieceRange, y_range: PieceRange, eps: float=1e-6):
         """Linear piecewise transform. Use to do flexible non-linear transformations 

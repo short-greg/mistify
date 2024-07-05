@@ -12,7 +12,7 @@ from ._grad import (
 )
 
 
-def binarize(x: torch.Tensor, g: G=None) -> torch.Tensor:
+def heaviside(x: torch.Tensor, g: G=None) -> torch.Tensor:
     """Convenience function to use the straight through estimator for binary
 
     Args:
@@ -66,7 +66,7 @@ def threshold(x: torch.Tensor, threshold: torch.Tensor, g: G=None) -> torch.Tens
         torch.Tensor: The thresholded value
     """
     adjusted = x - threshold
-    return binarize(adjusted, g)
+    return heaviside(adjusted, g)
 
 
 def ramp(x: torch.Tensor, lower: torch.Tensor, upper: torch.Tensor, g: G=None) -> torch.Tensor:

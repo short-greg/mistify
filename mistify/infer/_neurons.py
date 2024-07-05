@@ -592,7 +592,7 @@ class BooleanWeightF(WeightF):
         Returns:
             torch.Tensor: The weight
         """
-        return functional.binarize(w, self.g)
+        return functional.heaviside(w, self.g)
 
 
 class SignWeightF(WeightF):

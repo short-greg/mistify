@@ -5,7 +5,7 @@ from . import signed
 from . import fuzzy
 
 from ._m import (
-    binarize, to_boolean, signify, 
+    heaviside, to_boolean, signify, 
     to_signed, clamp, ramp, threshold
 )
 from ._grad import (

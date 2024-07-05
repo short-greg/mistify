@@ -50,27 +50,64 @@ class ShapeFuzzifier(Fuzzifier, Constrained):
             conclusion: typing.Union[Conclusion, str]="max",
             truncate: bool=False
     ) -> Defuzzifier:
-        
+        """Create a defuzzifier from the fuzzifier
+
+        Args:
+            hypothesis (typing.Union[ShapeHypothesis, str], optional): The hypothesis to use. Defaults to "area".
+            conclusion (typing.Union[Conclusion, str], optional): The conclusion to use. Defaults to "max".
+            truncate (bool, optional): Whether to truncate (True) or scale (False). Defaults to False.
+
+        Returns:
+            Defuzzifier: The ShapeDefuzzifier that wraps the fuzzifier
+        """
         return ShapeDefuzzifier(
             self._composite, hypothesis, conclusion, truncate
         )
 
     def fuzzify(self, x: torch.Tensor) -> torch.Tensor:
+        """Fuzzify the input
+
+        Args:
+            x (torch.Tensor): The input
+
+        Returns:
+            torch.Tensor: The membership
+        """
         return self._composite.join(x)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Fuzzify the input
+
+        Args:
+            x (torch.Tensor): The input
+
+        Returns:
+            torch.Tensor: The membership
+        """
         return self.fuzzify(x)
 
     def constrain(self):
+        """Constrain the fuzzifier
+        """
         self._composite.constrain()
 
 
 class ShapeDefuzzifier(Defuzzifier):
+    """ShapeDefuzzifier uses a composite shape in order to defuzzify
+    """
 
     def __init__(
         self, composite: Composite, hypothesis: ShapeHypothesis='area', 
         conclusion: Conclusion='max', truncate: bool=False
     ):
+        """Create a ShapeDefuzzifier 
+
+        Args:
+            composite (Composite): The shape used for defuzzification
+            hypothesis (ShapeHypothesis, optional): The hypothesis to use for defuzzificaiton. Defaults to 'area'.
+            conclusion (Conclusion, optional): The conclusion to use for defuzzification. Defaults to 'max'.
+            truncate (bool, optional): Whether to truncate (True) or scale (False). Defaults to False.
+        """
         super().__init__(composite.n_terms, composite.n_vars)
         self._composite = composite
         self._hypothesis = HypothesisEnum.get(hypothesis)
@@ -89,9 +126,26 @@ class ShapeDefuzzifier(Defuzzifier):
         return self._conclusion(hypo_weight)
 
     def hypo(self, m: torch.Tensor) -> HypoWeight:
+        """Calculate the hypotheses for defuzzifying the membership and their weights
+
+        Args:
+            m (torch.Tensor): The membership
+
+        Returns:
+            HypoWeight: The hypothesis along with its weight (in general the membership)
+        """
         return self._hypothesis(self._composite.shapes, m)
     
     def forward(self, m: torch.Tensor, weight_override: torch.Tensor=None) -> torch.Tensor:
+        """Defuzzify the membership
+
+        Args:
+            m (torch.Tensor): The membership
+            weight_override (torch.Tensor, optional): The tensor to override the weight with. Defaults to None.
+
+        Returns:
+            torch.Tensor: The defuzzified membership tensor
+        """
         hypothesis = self.hypo(m)
         hypothesis.weight = weight_override or hypothesis.weight
         return self.conclude(hypothesis)
@@ -113,8 +167,12 @@ def polygon_set(left: shape.Shape, middle: shape.Shape, right: shape.Shape) -> t
     return [left, middle, right]
 
 
-def validate_terms(*xs: torch.Tensor):
-    
+def validate_terms(*xs: torch.Tensor) -> typing.List[torch.Tensor]:
+    """Validate the number of terms
+
+    Returns:
+        typing.List[torch.Tensor]: Each membership tensor after being validated
+    """
     # Think more about this
     dim = None
     n_terms = None
@@ -141,7 +199,15 @@ def validate_terms(*xs: torch.Tensor):
 
 
 def validate_n_points(*xs: torch.Tensor, n_points: int=None, ignore_none: bool=True):
+    """Validate the number of points for the shape
 
+    Args:
+        n_points (int, optional): The number of points necessary for the shape. Defaults to None.
+        ignore_none (bool, optional): Whether to ignore if the number of points is none. Defaults to True.
+
+    Raises:
+        RuntimeError: If the number of points for the shape is not valid
+    """
     for x in xs:
         if ignore_none and x is None:
             continue
@@ -156,7 +222,19 @@ def validate_right_trapezoid(*xs: torch.Tensor):
             raise RuntimeError(f'Number of points for shape must be two (triangle) or three (trapezoid)')
 
 
-def flat_edges(x: torch.Tensor, base_size: int):
+def flat_edges(x: torch.Tensor, base_size: int) -> bool:
+    """Get whether the edges for a shape are flat
+
+    Args:
+        x (torch.Tensor): The shape tensor
+        base_size (int): The base size for the tensor
+
+    Raises:
+        RuntimeError: The shape size is invalid
+
+    Returns:
+        bool: If the edges are flat
+    """
 
     if x.size(-1) == base_size:
         return False
@@ -189,7 +267,19 @@ class IsoscelesFuzzifier(ShapeFuzzifier):
     def create(
         cls, left: torch.Tensor, right: torch.Tensor, middle: torch.Tensor=None, 
         tunable: bool=False, g: G=None
-    ):
+    ) -> 'IsoscelesFuzzifier':
+        """Create an IsoscelesFuzzifier from shapes defined by tensors
+
+        Args:
+            left (torch.Tensor): The tensor for the left shape
+            right (torch.Tensor): The tensor for the right shape
+            middle (torch.Tensor, optional): The tensor for the middle shape(s). Defaults to None.
+            tunable (bool, optional): WHether the shape parameters can be updated. Defaults to False.
+            g (G, optional): The gradient estimator to use. Defaults to None.
+
+        Returns:
+            IsoscelesFuzzifier: The new fuzzifier
+        """
         left, right, middle = validate_terms(left, right, middle)
         validate_n_points(middle, n_points=2)
         validate_right_trapezoid(left, right)
@@ -263,7 +353,7 @@ class IsoscelesTrapezoidFuzzifier(ShapeFuzzifier):
         right: typing.Union[shape.RightTrapezoid, shape.RightTriangle],
         middle: shape.IsoscelesTrapezoid=None, tunable: bool=False
     ):
-        """
+        """Create an IsoscelesTrapezoidFuzzifier
 
         Args:
             left (typing.Union[shape.DecreasingRightTrapezoid, shape.DecreasingRightTriangle]): The shape on the left
@@ -281,7 +371,19 @@ class IsoscelesTrapezoidFuzzifier(ShapeFuzzifier):
     def create(
         cls, left: torch.Tensor, right: torch.Tensor, middle: torch.Tensor=None, 
         tunable: bool=False, g: G=None
-    ):
+    ) -> 'IsoscelesTrapezoidFuzzifier':
+        """Create an IsoscelesFuzzifier from shapes defined by tensors
+
+        Args:
+            left (torch.Tensor): The tensor for the left shape
+            right (torch.Tensor): The tensor for the right shape
+            middle (torch.Tensor, optional): The tensor for the middle shape(s). Defaults to None.
+            tunable (bool, optional): Whether the shape parameters can be updated. Defaults to False.
+            g (G, optional): The gradient estimator to use. Defaults to None.
+
+        Returns:
+            IsoscelesTrapezoidFuzzifier: The new fuzzifier
+        """
         left, right, middle = validate_terms(left, right, middle)
         validate_n_points(middle, n_points=3)
         validate_right_trapezoid(left, right)
@@ -355,7 +457,7 @@ class TrapezoidFuzzifier(ShapeFuzzifier):
         right: typing.Union[shape.RightTrapezoid, shape.RightTriangle],
         middle: shape.Trapezoid=None, tunable: bool=False
     ):
-        """
+        """Create the TrapezoidFuzzifier
 
         Args:
             left (typing.Union[shape.RightTrapezoid, shape.RightTriangle]): The shape on the left
@@ -370,7 +472,19 @@ class TrapezoidFuzzifier(ShapeFuzzifier):
     def create(
         cls, left: torch.Tensor, right: torch.Tensor, middle: torch.Tensor=None, 
         tunable: bool=False, g: G=None
-    ):
+    ) -> 'TrapezoidFuzzifier':
+        """Create a TrapezoidFuzzifier from shapes defined by tensors
+
+        Args:
+            left (torch.Tensor): The tensor for the left shape
+            right (torch.Tensor): The tensor for the right shape
+            middle (torch.Tensor, optional): The tensor for the middle shape(s). Defaults to None.
+            tunable (bool, optional): Whether the shape parameters can be updated. Defaults to False.
+            g (G, optional): The gradient estimator to use. Defaults to None.
+
+        Returns:
+            TrapezoidFuzzifier: The new fuzzifier
+        """
         left, right, middle = validate_terms(left, right, middle)
         validate_n_points(middle, n_points=4)
         validate_right_trapezoid(left, right)
@@ -444,7 +558,7 @@ class TriangleFuzzifier(ShapeFuzzifier):
         right: typing.Union[shape.RightTrapezoid, shape.RightTriangle],
         middle: shape.IsoscelesTriangle=None, tunable: bool=False
     ):
-        """
+        """Create a TriangleFuzzifier
 
         Args:
             left (typing.Union[shape.RightTrapezoid, shape.RightTriangle]): The shape on the left
@@ -459,7 +573,18 @@ class TriangleFuzzifier(ShapeFuzzifier):
     def create(
         cls, left: torch.Tensor, right: torch.Tensor, middle: torch.Tensor=None, 
         tunable: bool=False
-    ):
+    ) -> 'TriangleFuzzifier':
+        """Create the TriangleFuzzifier from shapes defined by tensors
+
+        Args:
+            left (torch.Tensor): The tensor for the left shape
+            right (torch.Tensor): The tensor for the right shape
+            middle (torch.Tensor, optional): The tensor for the middle shape(s). Defaults to None.
+            tunable (bool, optional): Whether the shape parameters can be updated. Defaults to False.
+
+        Returns:
+            TriangleFuzzifier: The new fuzzifier
+        """
         left, right, middle = validate_terms(left, right, middle)
         validate_n_points(middle, n_points=3)
         validate_right_trapezoid(left, right)
@@ -527,6 +652,8 @@ class TriangleFuzzifier(ShapeFuzzifier):
 
 
 class SquareFuzzifier(ShapeFuzzifier):
+    """Create a SquareFuzzifier
+    """
 
     def __init__(
         self, 
@@ -544,7 +671,17 @@ class SquareFuzzifier(ShapeFuzzifier):
     @classmethod
     def create(
         cls, params: torch.Tensor, tunable: bool=False, g: G=None
-    ):
+    ) -> 'SquareFuzzifier':
+        """Create a SquareFuzzifier from parameters defining the shape
+
+        Args:
+            params (torch.Tensor): The params for the square fuzzifier
+            tunable (bool, optional): Whehter to update the shape parameters. Defaults to False.
+            g (G, optional): The gradient estimator if used. Defaults to None.
+
+        Returns:
+            SquareFuzzifier: The square fuzzifier
+        """
         params = validate_terms(params)
         
         validate_n_points(params, n_points=2)
@@ -556,14 +693,36 @@ class SquareFuzzifier(ShapeFuzzifier):
     @classmethod
     def from_coords(
         cls, coords: torch.Tensor, n_terms: int, tunable: bool=False, g: G=None
-    ):
+    ) -> 'SquareFuzzifier':
+        """Create a SquareFuzzifier from coords
+
+        Args:
+            coords (torch.Tensor): The coords to create the fuzzifier from
+            n_terms (int): The number of terms
+            tunable (bool, optional): Whehter to update the shape parameters. Defaults to False.
+            g (G, optional): The gradient estimator. Defaults to None.
+
+        Returns:
+            SquareFuzzifier: The SquareFuzzifier
+        """
         square = shape.Square(Coords(stride_coordinates(coords[:,:,:], n_terms, 2, 2)), g=g)
         return SquareFuzzifier(square, tunable)
 
     @classmethod
     def from_linspace(
         cls, n_terms: int, n_vars: int=None, tunable: bool=False, g: G=None
-    ):
+    ) -> 'SquareFuzzifier':
+        """Create a SquareFuzzifier from a linspace
+
+        Args:
+            n_terms (int): The number of terms
+            n_vars (int, optional): The number of variables. Defaults to None.
+            tunable (bool, optional): Whehter to update the shape parameters. Defaults to False.
+            g (G, optional): The gradient estimator. Defaults to None.
+
+        Returns:
+            SquareFuzzifier: The SquareFuzzifier to create
+        """
         coords = generate_spaced_params(n_terms + 1, n_features=n_vars)
         return SquareFuzzifier.from_coords(
             coords, n_terms, tunable, g
@@ -593,7 +752,21 @@ class LogisticFuzzifier(ShapeFuzzifier):
         cls, left_scales: torch.Tensor, left_biases: torch.Tensor, right_scales: torch.Tensor, right_biases: torch.Tensor, 
         middle_scales: torch.Tensor=None, middle_biases: torch.Tensor=None,
         tunable: bool=False
-    ):
+    ) -> 'LogisticFuzzifier':
+        """Create a LogisticFuzzifier using shape paramteres
+
+        Args:
+            left_scales (torch.Tensor): The scale parameters for the left side
+            left_biases (torch.Tensor): The bias parameters for the left side
+            right_scales (torch.Tensor): The scale parameters for the right side
+            right_biases (torch.Tensor): The bias parameters for the right side
+            middle_scales (torch.Tensor, optional): The scale parameters for the middle. Defaults to None.
+            middle_biases (torch.Tensor, optional): The bias parameters for the middle. Defaults to None.
+            tunable (bool, optional): Whether the shape parameters can be updated. Defaults to False.
+
+        Returns:
+            LogisticFuzzifier: The LogisticFuzzifier
+        """
         left, right, middle = validate_terms(left_scales, right_scales, left_scales, left_biases, middle_scales, middle_biases)
         validate_n_points(left, middle, right, n_points=1)
         left = shape.HalfLogisticBell(left_biases, left_scales, True)
@@ -609,7 +782,18 @@ class LogisticFuzzifier(ShapeFuzzifier):
     def from_coords(
         cls, bias_coords: torch.Tensor, scale_coords: torch.Tensor, n_terms: int,
         tunable: bool=False
-    ):
+    ) -> 'LogisticFuzzifier':
+        """Create a LogisticFuzzifier from coords
+
+        Args:
+            bias_coords (torch.Tensor): The coordinates for the bias parameters
+            scale_coords (torch.Tensor): The coordinates for the scale parameters
+            n_terms (int): The number of terms
+            tunable (bool, optional): Whether to update the shape parameters. Defaults to False.
+
+        Returns:
+            LogisticFuzzifier: the logistic fuzzifier
+        """
         middle = None
         left = shape.HalfLogisticBell(
             bias_coords[:,:,None,0], 
@@ -629,7 +813,17 @@ class LogisticFuzzifier(ShapeFuzzifier):
     @classmethod
     def from_linspace(
         cls, n_terms: int, n_vars: int=None, tunable: bool=False
-    ):
+    ) -> 'LogisticFuzzifier':
+        """Create a LogisticFuzzifier from a linspace
+
+        Args:
+            n_terms (int): The number of terms
+            n_vars (int, optional): The number of vars. Defaults to None.
+            tunable (bool, optional): Whether to update the shape parameters. Defaults to False.
+
+        Returns:
+            LogisticFuzzifier: the logistic fuzzifier
+        """
         bias_coords = generate_spaced_params(n_terms, in_features=n_vars)
         width = 1.0 / 2 * (n_terms - 1.0)
         scale_coords = generate_repeat_params(n_terms, width, in_features=n_vars)
@@ -639,10 +833,18 @@ class LogisticFuzzifier(ShapeFuzzifier):
 
 
 class SigmoidFuzzifier(ShapeFuzzifier):
+    """SigmoidFuzzifier uses a series of sigmoids for fuzzification. 
+    """
 
     def __init__(
         self, sigmoid: shape.Sigmoid=None, tunable: bool=False
     ):
+        """Create a SigmoidFuzzifier
+
+        Args:
+            sigmoid (shape.Sigmoid, optional): The sigmoid to use. Defaults to None.
+            tunable (bool, optional): Whether to update the shape parameters. Defaults to False.
+        """
         super().__init__(
             [sigmoid], tunable
         )
@@ -651,7 +853,17 @@ class SigmoidFuzzifier(ShapeFuzzifier):
     def create(
         cls, biases: torch.Tensor, scales: typing.Union[torch.Tensor, float],
         tunable: bool=False
-    ):
+    ) -> 'SigmoidFuzzifier':
+        """Create a SigmoidFuzzifier from biases and scales
+
+        Args:
+            biases (torch.Tensor): The biases for the sigmoid
+            scales (typing.Union[torch.Tensor, float]): The scales for the sigmoid
+            tunable (bool, optional): Whether the sigmoid parameters can be tuned. Defaults to False.
+
+        Returns:
+            SigmoidFuzzifier: The resulting sigmoid fuzzifier
+        """
         biases = validate_terms(biases, scales)
         validate_n_points(biases, scales, n_points=1)
         if isinstance(scales, float):
@@ -667,6 +879,16 @@ class SigmoidFuzzifier(ShapeFuzzifier):
         cls, bias_coords: torch.Tensor, scale_coords: torch.Tensor,
         tunable: bool=False
     ):
+        """Create a SigmoidFuzzifier from bias and scale coords
+
+        Args:
+            bias_coords (torch.Tensor): The biases for the sigmoid
+            scale_coords (torch.Tensor): The scales for the sigmoid
+            tunable (bool, optional): Whether the sigmoid parameters can be tuned. Defaults to False.
+
+        Returns:
+            SigmoidFuzzifier: The resulign SigmoidFuzzifier
+        """
         sigmoid = shape.Sigmoid(
             bias_coords, scale_coords
         )
@@ -675,7 +897,17 @@ class SigmoidFuzzifier(ShapeFuzzifier):
     @classmethod
     def from_linspace(
         cls, n_terms: int, n_vars: int=None, tunable: bool=False
-    ):
+    ) -> 'SigmoidFuzzifier':
+        """Create a SigmoidFuzzifier from 
+
+        Args:
+            n_terms (int): The number of terms
+            n_vars (int, optional): The number of variables. Defaults to None.
+            tunable (bool, optional): Whether the parameters are tunable. Defaults to False.
+
+        Returns:
+            SigmoidFuzzifier: The resulting SigmoidFuzzifier
+        """
         bias_coords = generate_spaced_params(n_terms + 2, in_features=n_vars)[:,:,1:-1]
         width = 1.0 / (2 * (n_terms + 1))
         scale_coords = generate_repeat_params(n_terms, width, in_features=n_vars)
@@ -690,6 +922,16 @@ class SigmoidFuzzifier(ShapeFuzzifier):
             conclusion: typing.Union[Conclusion, str]="average",
             truncate: bool=False
     ) -> Defuzzifier:
+        """Create a Defuzzifier for the Sigmoid
+
+        Args:
+            hypothesis (typing.Union[ShapeHypothesis, str], optional): The hypothesis to use. Defaults to "min_core".
+            conclusion (typing.Union[Conclusion, str], optional): The conclusion to sue. Defaults to "average".
+            truncate (bool, optional): Whether to truncate (True) or scale (False). Defaults to False.
+
+        Returns:
+            Defuzzifier: The resulting defuzzifier
+        """
         
         return ShapeDefuzzifier(
             self._composite, hypothesis, conclusion, truncate

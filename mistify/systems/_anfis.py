@@ -15,8 +15,13 @@ class Sugeno(nn.Module):
         self, in_features: int, out_features: int, out_terms: int, 
         fuzzifier: Fuzzifier
     ):
-        """Create a system that implements ANFIS
+        """Create an Sugeno model
 
+        Args:
+            in_features (int): The number of in features
+            out_features (int): The number of out features
+            out_terms (int): The number of out terms
+            fuzzifier (Fuzzifier): The fuzzifier to use for fuzzification
         """
         super().__init__()
         self._and = And(in_features * fuzzifier.n_terms, out_features * out_terms)

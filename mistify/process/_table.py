@@ -13,7 +13,7 @@ class ColProcessor(ABC, nn.Module):
     """
 
     def __init__(self, module: nn.Module, columns: typing.Union[str, typing.List[str]]):
-        """
+        """Create a processor to handle a column
 
         Args:
             module (nn.Module): The module to process the columns with
@@ -25,6 +25,16 @@ class ColProcessor(ABC, nn.Module):
 
     @abstractmethod
     def prepare(self, table, dtype: torch.dtype=torch.float32, device="cpu") -> torch.Tensor:
+        """Prepare the data for processing
+
+        Args:
+            table: The table to process
+            dtype (torch.dtype, optional): The dtype to change too. Defaults to torch.float32.
+            device (str, optional): The device to output to. Defaults to "cpu".
+
+        Returns:
+            torch.Tensor: The prepared data
+        """
         pass
 
     def process(self, x: torch.Tensor) -> torch.Tensor:
@@ -39,7 +49,7 @@ class ColProcessor(ABC, nn.Module):
         return self._module(x)
     
     def forward(self, table, dtype: torch.dtype, device: typing.Union[str, torch.device]) -> torch.Tensor:
-        """
+        """Process the column
 
         Args:
             table : The table to retrieve the column from
@@ -57,7 +67,7 @@ class PandasColProcessor(ColProcessor):
     """
 
     def prepare(self, table: pd.DataFrame, dtype: torch.dtype=torch.float32, device="cpu") -> torch.Tensor:
-        """
+        """Prepare the data for processing
 
         Args:
             table (pd.DataFrame): Pandas dataframe
@@ -90,7 +100,6 @@ class TableProcessor(nn.Module):
             column_processors (ColumnProcessor): The list of processors
             flatten (bool, optional): Whehter to flatten the processed. Defaults to False.
         """
-
         super().__init__()
         self._column_processors = column_processors
         self._flatten = flatten

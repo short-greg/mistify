@@ -4,7 +4,7 @@ import torch
 
 # local
 from .._functional import (
-    binarize, signify, clamp, BindG
+    heaviside, signify, clamp, BindG, G
 )
 
 
@@ -37,7 +37,7 @@ class Sign(nn.Module):
     """The Sign module
     """
 
-    def __init__(self, grad: bool = True):
+    def __init__(self, grad: bool = True, g: G=BindG):
         """Create a Sign module
 
         Args:
@@ -45,16 +45,27 @@ class Sign(nn.Module):
         """
         super().__init__()
         self._grad = grad
+        if g is BindG:
+            g = BindG(1.0)
+        self.g = g
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return signify(x, BindG(1.0))
+        """_summary_
+
+        Args:
+            x (torch.Tensor): _description_
+
+        Returns:
+            torch.Tensor: _description_
+        """
+        return signify(x, self.g)
 
 
-class Boolean(nn.Module):
-    """The step function
+class Heaviside(nn.Module):
+    """The heaviside step function
     """
 
-    def __init__(self, grad: bool = True):
+    def __init__(self, grad: bool = True, g: G=BindG):
         """Instantiate the step function
 
         Args:
@@ -62,6 +73,9 @@ class Boolean(nn.Module):
         """
         super().__init__()
         self._grad = grad
+        if g is BindG:
+            g = BindG(0.0, 1.0)
+        self.g = g
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Binarize the input
@@ -72,24 +86,33 @@ class Boolean(nn.Module):
         Returns:
             torch.Tensor: The binarized input
         """
-        return binarize(x, BindG(0.0, 1.0))
+        return heaviside(x, self.g)
 
 
 class Clamp(nn.Module):
     """Clamps the input between two values
     """
 
-    def __init__(self, lower: float=-1.0, upper: float=1.0):
+    def __init__(self, lower: float=-1.0, upper: float=1.0, g: G=None):
         """Create a clamp module
 
         Args:
             lower (float, optional): The lower value in the range. Defaults to -1.0.
             upper (float, optional): The upper value in the range. Defaults to 1.0.
-            grad (bool, optional): Wht. Defaults to True.
+            g (G, optional): The gradient estimator to use. Defaults to True.
         """
         super().__init__()
         self._lower = lower
         self._upper = upper
+        self.g = g
 
-    def forward(self, x: torch.Tensor):
-        return clamp(x, self._lower, self._upper)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Take the clamp of the input
+
+        Args:
+            x (torch.Tensor): the input
+
+        Returns:
+            torch.Tensor: The clamped input
+        """
+        return clamp(x, self._lower, self._upper, self.g)

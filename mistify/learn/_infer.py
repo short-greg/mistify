@@ -1,12 +1,14 @@
+# 3rd party
 import torch.nn as nn
 import torch
+import zenkai
+import torch.nn as nn
+import torch
+
+# local
+from ..infer import Or, And, InterOnBase, UnionOnBase
 import zenkai
 from zenkai import XCriterion
-
-import torch.nn as nn
-import torch
-import zenkai
-from ..infer import Or, And, InterOnBase, UnionOnBase
 
 
 class MaxMinLoss(nn.Module):

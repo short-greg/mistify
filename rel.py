@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.utils.data
 import numpy as np
 from mistify import smooth_inter_on, smooth_union_on
-
+from mistify import inter_on, inter, union, union_on, MulG
 
 class MinMax(nn.Module):
 
@@ -40,6 +40,39 @@ class MaxMin(nn.Module):
             x[...,None], self.weight[None]
         ), dim=-2)[0]
 
+
+class MinMaxG(nn.Module):
+
+    def __init__(self, in_features: int, out_features: int):
+
+        super().__init__()
+        self.weight = nn.parameter.Parameter(torch.rand(
+            in_features, out_features
+        ))
+        self.g = MulG(0.01)
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+
+        return inter_on(union(
+            x[...,None], self.weight[None], g=self.g
+        ), dim=-2, g=self.g)
+
+
+class MaxMinG(nn.Module):
+
+    def __init__(self, in_features: int, out_features: int):
+
+        super().__init__()
+        self.weight = nn.parameter.Parameter(torch.rand(
+            in_features, out_features
+        ))
+        self.g = MulG(0.01)
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+
+        return union_on(inter(
+            x[...,None], self.weight[None], g=self.g
+        ), dim=-2, g=self.g)
 
 
 class SmoothSTEMinMax(nn.Module):
@@ -392,6 +425,10 @@ class MinMaxLearner(zenkai.LearningMachine):
         super().__init__()
         # self.min_max = MinMax(in_features, out_features)
         self.min_max = SmoothSTEMinMax(in_features, out_features, a, adjust=False)
+        # self.min_max = MinMaxG(
+        #     in_features, out_features
+        # )
+
         self.min_max_hard = MinMax(in_features, out_features)
         self.min_max_hard.weight = self.min_max.weight
         self.min_max_loss = MinMaxLoss(
@@ -433,7 +470,8 @@ class MinMaxLearner(zenkai.LearningMachine):
 
     def accumulate(self, x: zenkai.IO, t: zenkai.IO, state: zenkai.State, **kwargs):
         t = torch.clamp(t.f, 0, 1)
-        loss = self.min_max_loss(x.f, state._y.f, t) * 0.5
+        loss = (state._y.f - t).pow(2).sum() * 0.5
+        # loss = self.min_max_loss(x.f, state._y.f, t) * 0.5
         loss.backward()
 
     def step_x(self, x: zenkai.IO, t: zenkai.IO, state: zenkai.State, **kwargs) -> zenkai.IO:
@@ -478,11 +516,17 @@ class MinMaxTPLearner(zenkai.LearningMachine):
     def __init__(
         self, in_features: int, out_features: int, 
         x_weight: float=1.0, w_weight: float=1.0,
-        reduction: str='mean', rel_reduction: str='mean'
+        reduction: str='mean', rel_reduction: str='mean',
+        a: float=8
     ):
         super().__init__()
-        self.min_max = SmoothSTEMaxMin(in_features, out_features, a=8)
+        self.min_max = SmoothSTEMinMax(
+            in_features, out_features, a=a
+        )
 
+        # self.min_max = MinMaxG(
+        #     in_features, out_features
+        # ) 
         self.min_max_loss = MinMaxLoss(
             self.min_max, reduction, 
             rel_reduction, x_weight, w_weight
@@ -491,6 +535,7 @@ class MinMaxTPLearner(zenkai.LearningMachine):
             in_features // 2, out_features, out_features * 2, in_features
         )
         self.noise = 0.025
+        self.y_noise = 0.025
         # 
 
     @property
@@ -522,10 +567,12 @@ class MinMaxTPLearner(zenkai.LearningMachine):
 
     def accumulate(self, x: zenkai.IO, t: zenkai.IO, state: zenkai.State, **kwargs):
         t = torch.clamp(t.f, 0, 1)
-        # loss = self.min_max_loss(x.f, state._y.f, t) * 0.5
-        loss = 0.5 * (state._y.f - t.detach()).pow(2).sum()
+        loss = self.min_max_loss(x.f, state._y.f, t) * 0.5
+        # loss = 0.5 * (state._y.f - t.detach()).pow(2).mean()
         noisy_x = x.f + torch.randn_like(x.f) * self.noise
-        x_prime = self.reconstructor(noisy_x, state._y.f.detach()) + noisy_x.detach()
+        x_prime = self.reconstructor(
+            noisy_x, state._y.f.detach()
+        ) + noisy_x.detach()
         rec_loss = (x_prime - x.f.detach()).pow(2).mean()
         # print(rec_loss.item())
         loss = loss + rec_loss
@@ -541,13 +588,16 @@ class MinMaxTPLearner(zenkai.LearningMachine):
             x_prime_y = self.reconstructor(
                 x.f, state._y.f
             )
+            self.y_noise = 0.25 * (
+                (state._y.f - t.f).pow(2).sum(dim=0, keepdim=True).pow(0.5)
+            ) + 0.75 * self.y_noise
             self.noise = (
                 0.25 * (x_prime_t - x.f).pow(2).sum(dim=0, keepdim=True).pow(0.5)
             ) + 0.75 * self.noise
             # dy = (x_prime_y - x_prime_t)
             # return x.acc_dx([dy], lr=0.01)
             
-            return x.acc_dx([x_prime_t - x_prime_y])
+            return x.acc_dx([x_prime_t])
 
     def forward_nn(self, x: zenkai.IO, state: zenkai.State, **kwargs) -> typing.Union[Tuple, typing.Any]:
         
@@ -563,12 +613,17 @@ class MaxMinLearner(zenkai.LearningMachine):
         a: float=4
     ):
         super().__init__()
-        self.max_min = SmoothSTEMaxMin(in_features, out_features, a=a, adjust=False)
-        self.max_min_hard = MinMax(in_features, out_features)
-        self.max_min_hard.weight = self.max_min.weight
-        self.max_min_loss = MaxMinLoss(
-            self.max_min_hard, reduction, rel_reduction, x_weight, w_weight
+        self.max_min = SmoothSTEMaxMin(
+            in_features, out_features, a=a, adjust=False
         )
+        # self.max_min = MaxMinG(
+        #     in_features, out_features
+        # )
+        # self.max_min_hard = MinMax(in_features, out_features)
+        # self.max_min_hard.weight = self.max_min.weight
+        # self.max_min_loss = MaxMinLoss(
+        #     self.max_min_hard, reduction, rel_reduction, x_weight, w_weight
+        # )
         # self.max_min = MaxMin(in_features, out_features)
 
         # self.k = 32
@@ -607,7 +662,9 @@ class MaxMinLearner(zenkai.LearningMachine):
     def accumulate(self, x: zenkai.IO, t: zenkai.IO, state: zenkai.State, **kwargs):
         
         t = torch.clamp(t.f, 0, 1)
-        loss = self.max_min_loss(x.f, state._y.f, t) * 0.5
+
+        loss = (state._y.f - t).pow(2).sum() * 0.5
+        # loss = self.max_min_loss(x.f, state._y.f, t) * 0.5
         loss.backward()
 
     def step_x(self, x: zenkai.IO, t: zenkai.IO, state: zenkai.State, **kwargs) -> zenkai.IO:
