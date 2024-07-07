@@ -351,6 +351,7 @@ def expand_as(x: torch.Tensor, ref: torch.Tensor, dim: int=-1) -> torch.Tensor:
     r[dim] = ref.size(dim)
     return x.repeat(r)
 
+
 class MaxOnG(torch.autograd.Function):
     """Use to clip the grad between two values
     Useful for smooth maximum/smooth minimum
@@ -382,13 +383,13 @@ class MaxOnG(torch.autograd.Function):
             t = t.unsqueeze(ctx.dim)
 
         grad_input = expand_as(grad_output, x, ctx.dim)
-        # r = [1] * x.dim()
-        # r[ctx.dim] = x.size(ctx.dim)
-        # grad_input = grad_output.repeat(r)
-        
+
+        base_cond = x != y
+        grad_input[base_cond] = 0.0
+
         if ctx.g is not None:
 
-            less_than = (expand_as(y, x, ctx.dim) < t)
+            less_than = expand_as(y < t, x, ctx.dim)
             greater_than = (y > t) & (x > t)
 
             less_than_adj = expand_as(-torch.relu(t - y), x, ctx.dim)
@@ -396,7 +397,7 @@ class MaxOnG(torch.autograd.Function):
 
             grad_input[less_than] = less_than_adj[less_than]
             grad_input[greater_than] = greater_than_adj[greater_than]
-            grad_input = ctx.g(x, grad_input, less_than | greater_than)        
+            grad_input = ctx.g(x, grad_input, base_cond &  (less_than | greater_than))        
             
             # currently this is a bit inefficient
             # less_than_t = torch.min(torch.relu(t - x), grad_output)
@@ -413,10 +414,6 @@ class MaxOnG(torch.autograd.Function):
             # min_diff = (x - t).min(dim=ctx.dim, keepdim=True)[0].abs()
             # condition2 = (x < t) & condition
             # grad_input[condition2] = -torch.min(min_diff, torch.relu(t - x))[condition2]
-        else:
-            base_cond = x != y
-            print(grad_input.shape, base_cond.shape)
-            grad_input[base_cond] = 0.0
 
         return grad_input, None, None, None
 
@@ -447,7 +444,7 @@ class MinOnG(torch.autograd.Function):
     
         x, y = ctx.saved_tensors
         t = y - grad_output
-    
+
         if not ctx.keepdim:
             grad_output = grad_output.unsqueeze(ctx.dim)
             y = y.unsqueeze(ctx.dim)
@@ -455,20 +452,27 @@ class MinOnG(torch.autograd.Function):
 
         grad_input = expand_as(grad_output, x, ctx.dim)
 
+        base_cond = x != y
+        grad_input[base_cond] = 0.0
         if ctx.g is not None:
 
             less_than = (y < t) & (x < t)
-            greater_than = (expand_as(y, x, ctx.dim) > t)
-
-            less_than_adj = torch.relu(t - x)
-            greater_than_adj = expand_as(torch.relu(y - t), x, ctx.dim)
-
-            print(less_than.shape, grad_input.shape, less_than_adj.shape)
-            grad_input[less_than] = -less_than_adj[less_than]
-            # print(greater_than.shape, grad_input.shape, greater_than_adj.shape)
+            greater_than = expand_as(
+                y > t, x, ctx.dim
+            )
+            less_than_adj = -torch.relu(t - x)
+            greater_than_adj = expand_as(
+                torch.relu(y - t), 
+                x, ctx.dim
+            )
+            grad_input[less_than] = less_than_adj[less_than]
             grad_input[greater_than] = greater_than_adj[greater_than]
-            grad_input = ctx.g(x, grad_input, less_than | greater_than)       
+            grad_input = ctx.g(
+                x, grad_input, base_cond & (less_than | greater_than)
+            ) #  )       
             
+            # print(less_than.shape, grad_input.shape, less_than_adj.shape)
+            # print(greater_than.shape, grad_input.shape, greater_than_adj.shape)
             # condition = (x > y)
             # grad_input[condition] = -torch.relu(t - x)[condition]
 
@@ -494,9 +498,5 @@ class MinOnG(torch.autograd.Function):
             # # grad_input[condition2] = torch.min(min_diff, torch.relu(x - t))[condition2]
 
             # grad_input = ctx.g(x, grad_input, cond)
-        else:
-            base_cond = x != y
-            print(base_cond.shape, grad_input.shape)
-            grad_input[base_cond] = 0.0
 
         return grad_input, None, None, None
