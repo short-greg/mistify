@@ -161,30 +161,30 @@ class TestClampG:
         assert ((x.grad[oob] <= 0.01) & (x.grad[oob] >= -0.01)).all()
 
 
-class TestMaxG:
+# class TestMaxG:
 
-    def test_max_g(self):
+#     def test_max_g(self):
 
-        x = torch.randn(3, 3, requires_grad=True)
-        x2 = torch.randn(3, 3, requires_grad=True)
-        x.retain_grad()
-        x2.retain_grad()
-        y = F.MaxG.apply(x, x2)
-        y.sum().backward()
-        assert (x.grad != 0.0).any()
+#         x = torch.randn(3, 3, requires_grad=True)
+#         x2 = torch.randn(3, 3, requires_grad=True)
+#         x.retain_grad()
+#         x2.retain_grad()
+#         y = F.MaxG.apply(x, x2)
+#         y.sum().backward()
+#         assert (x.grad != 0.0).any()
 
 
-class TestMinG:
+# class TestMinG:
 
-    def test_min_g(self):
+#     def test_min_g(self):
 
-        x = torch.randn(3, 3, requires_grad=True)
-        x2 = torch.randn(3, 3, requires_grad=True)
-        x.retain_grad()
-        x2.retain_grad()
-        y = F.MinG.apply(x, x2)
-        y.sum().backward()
-        assert (x.grad != 0.0).any()
+#         x = torch.randn(3, 3, requires_grad=True)
+#         x2 = torch.randn(3, 3, requires_grad=True)
+#         x.retain_grad()
+#         x2.retain_grad()
+#         y = F.MinG.apply(x, x2)
+#         y.sum().backward()
+#         assert (x.grad != 0.0).any()
 
 
 class TestMaxOnG:

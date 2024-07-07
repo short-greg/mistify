@@ -33,8 +33,8 @@ class TestConclusion(object):
         )
         
         max_value_acc = _conversion.WeightedMAverageConc(4, 3)
-        assert (
-            max_value_acc(value_weight) == 
+        assert torch.isclose(
+            max_value_acc(value_weight), 
             (torch.sum(value_weight.hypo * value_weight.weight, dim=-1) 
              / torch.sum(value_weight.weight, dim=-1))
         ).all()

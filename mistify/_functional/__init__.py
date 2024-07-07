@@ -10,7 +10,7 @@ from ._m import (
 )
 from ._grad import (
     SignG, BinaryG,
-    MaxG, MinG, ClampG, MaxOnG, MinOnG,
+    ClampG, MaxOnG, MinOnG,
     G, ClipG, AllG, ZeroG, BindG, MulG
 )
 from ._join import (

@@ -6,8 +6,9 @@ from ._m import (
 )
 from ._grad import (
     G,
-    ClampG, MinG, MinOnG, MaxOnG
+    ClampG, MinOnG, MaxOnG
 )
+from ._join import inter_on
 
 
 def differ(m: torch.Tensor, m2: torch.Tensor, g: G=None) -> torch.Tensor:
@@ -67,7 +68,8 @@ def inclusion(m1: torch.Tensor, m2: torch.Tensor, dim: int=None, g: G=None) -> '
     if g is None:
         included = base + torch.min(m2, m1)
     else:
-        included = base + MinG(m2, m1, g)
+        
+        included = base + inter_on(m2, m1, g)
     if dim is None:
         return included.type_as(m1)
     if g is None:
@@ -92,7 +94,7 @@ def exclusion(m1: torch.Tensor, m2: torch.Tensor, dim: int=None, g: G=None) -> '
     if g is None:
         included = base + torch.min(m2, m1)
     else:
-        included = base + MinG(m2, m1, g)
+        included = base + inter_on(m2, m1, g)
     if dim is None:
         return included.type_as(m1)
     if g is None:

@@ -511,6 +511,100 @@ class MinMaxLearner(zenkai.LearningMachine):
         return self.min_max(x.f)
 
 
+class MaxMinLoopLearner(zenkai.LearningMachine):
+
+    def __init__(
+        self, in_features: int, out_features: int,
+        batch_size: int=64, theta_lr: float=1e-1,
+        x_loops: int=1, x_lr: float=1e-1
+    ):
+        super().__init__()
+        self.max_min = MaxMinG(in_features, out_features)
+        self.batch_size = batch_size
+        self.x_loops = x_loops
+        self.theta_optim = torch.optim.Adam(
+            self.max_min.parameters(), lr=theta_lr
+        )
+        self.x_lr = x_lr
+
+    def step(self, x: zenkai.IO, t: zenkai.IO, state: zenkai.State, **kwargs):
+
+        t = zenkai.iou(torch.clamp(t.f, 0, 1))
+        for x_i, t_i in zenkai.io_loop([x, t], True, self.batch_size):
+            y_i = self.max_min(x_i.f)
+            loss = (y_i - t_i.f).pow(2).mean() * 0.5
+
+            self.theta_optim.zero_grad()
+            loss.backward()
+            self.theta_optim.step()
+        
+        zenkai.params.apply_p(
+            self.parameters(), lambda p: torch.clamp(p, 0., 1.)
+        )
+
+    def step_x(self, x: zenkai.IO, t: zenkai.IO, state: zenkai.State, **kwargs) -> zenkai.IO:
+
+        t = zenkai.iou(torch.clamp(t.f, 0, 1))
+        for _ in range(self.x_loops):
+            y = self.max_min(x.f)
+            x.zero_grad()
+            loss = (y - t.f).pow(2).mean() * 0.5
+            loss.backward()
+            x = x.acc_grad(self.x_lr)
+        return x
+
+    def forward_nn(self, x: zenkai.IO, state: zenkai.State, **kwargs) -> typing.Union[Tuple, typing.Any]:
+        
+        return self.max_min(x.f)
+
+
+class MinMaxLoopLearner(zenkai.LearningMachine):
+
+    def __init__(
+        self, in_features: int, out_features: int,
+        batch_size: int=64, theta_lr: float=1e-5,
+        x_loops: int=1, x_lr: float=1e-5
+    ):
+        super().__init__()
+        self.min_max = MinMaxG(in_features, out_features)
+        self.batch_size = batch_size
+        self.x_loops = x_loops
+        self.theta_optim = torch.optim.Adam(
+            self.min_max.parameters(), lr=theta_lr
+        )
+        self.x_lr = x_lr
+
+    def step(self, x: zenkai.IO, t: zenkai.IO, state: zenkai.State, **kwargs):
+
+        t = zenkai.iou(torch.clamp(t.f, 0, 1))
+        for x_i, t_i in zenkai.io_loop([x, t], True, self.batch_size):
+            y_i = self.min_max(x_i.f)
+            loss = (y_i - t_i.f).pow(2).mean() * 0.5
+
+            self.theta_optim.zero_grad()
+            loss.backward()
+            self.theta_optim.step()
+        
+        zenkai.params.apply_p(
+            self.parameters(), lambda p: torch.clamp(p, 0., 1.)
+        )
+
+    def step_x(self, x: zenkai.IO, t: zenkai.IO, state: zenkai.State, **kwargs) -> zenkai.IO:
+
+        t = zenkai.iou(torch.clamp(t.f, 0, 1))
+        for _ in range(self.x_loops):
+            y = self.min_max(x.f)
+            x.zero_grad()
+            loss = (y - t.f).pow(2).mean() * 0.5
+            loss.backward()
+            x = x.acc_grad(self.x_lr)
+        return x
+
+    def forward_nn(self, x: zenkai.IO, state: zenkai.State, **kwargs) -> typing.Union[Tuple, typing.Any]:
+        
+        return self.min_max(x.f)
+
+
 class MinMaxTPLearner(zenkai.LearningMachine):
 
     def __init__(

@@ -4,9 +4,29 @@ import torch
 import torch
 
 from ._grad import (
-    MaxG, MaxOnG, MinG, ClampG,
+    MaxOnG, ClampG,
     MinOnG, G
 )
+
+def equalize_size(x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
+
+    r1 = [1] * x1.dim()
+    r2 = [1] * x2.dim()
+
+    for i, (s1, s2) in enumerate(zip(x1.shape, x2.shape)):
+        if s1 == 1 and s2 != 1:
+            r1[i] = s2
+        elif s1 != 1 and s2 == 1:
+            r2[i] = s1
+        elif s2 == s1:
+            pass
+        else:
+            raise ValueError(
+                f'x1 and x2 have incompatibles sizes {x1.shape} {x2.shape}' 
+                f' dim: {i} s1: {s1} s2: {s2}'
+            )
+        
+    return x1.repeat(r1), x2.repeat(r2)
 
 
 def union(x1: torch.Tensor, x2: torch.Tensor, g: G=None) -> torch.Tensor:
@@ -22,7 +42,13 @@ def union(x1: torch.Tensor, x2: torch.Tensor, g: G=None) -> torch.Tensor:
     """
     if g is None:
         return torch.max(x1, x2)
-    return MaxG.apply(x1, x2, g)
+    
+    # TODO: reconsider this
+    x1, x2 = equalize_size(x1, x2)
+    x_combined = torch.cat(
+        [x1[...,None], x2[...,None]], dim=-1
+    )
+    return MaxOnG.apply(x_combined, -1, False, g)[0]
 
 
 def inter(x1: torch.Tensor, x2: torch.Tensor, g: G=None) -> torch.Tensor:
@@ -38,15 +64,24 @@ def inter(x1: torch.Tensor, x2: torch.Tensor, g: G=None) -> torch.Tensor:
     """
     if g is None:
         return torch.min(x1, x2)
-    return MinG.apply(x1, x2, g)
+    x1, x2 = equalize_size(x1, x2)
+    x_combined = torch.cat(
+        [x1[...,None], x2[...,None]], dim=-1
+    )
+    return MaxOnG.apply(x_combined, -1, False, g)[0]
+    # return MinG.apply(x1, x2, g)
 
-def smooth_union(x: torch.Tensor, x2: torch.Tensor, a: float=None, eps: float=1e-7) -> torch.Tensor:
+
+def smooth_union(
+    x: torch.Tensor, x2: torch.Tensor, 
+    a: float=None, eps: float=1e-7
+) -> torch.Tensor:
     """Smooth approximation to the max function of two tensors
 
     Args:
         x (torch.Tensor): Tensor to take max of
         x2 (torch.Tensor): Other tensor to take max of
-        a (float): Value to 
+        a (float): Smoothing value
 
     Returns:
         torch.Tensor: Tensor containing the maximum of x1 and x2
