@@ -108,7 +108,8 @@ class Or(LogicalNeuron):
     followed by an S-norm for aggregation
     """
 
-    def __init__(self, in_features: int, out_features: int, n_terms: int=None, pop_size: int=None,
+    def __init__(
+        self, in_features: int, out_features: int, n_terms: int=None, pop_size: int=None,
         f: OrF=None, wf: 'WeightF'=None
     ) -> None:
         """Create an Or neuron
@@ -129,11 +130,13 @@ class Or(LogicalNeuron):
             shape.insert(0, n_terms)
         if pop_size is not None:
             shape.insert(0, pop_size)
+        pop = pop_size is not None
+
         self.weight_base = nn.parameter.Parameter(torch.ones(*shape))
         self.wf = wf or NullWeightF()
         if isinstance(f, typing.Tuple):
-            f = OrF(f[0], f[1])
-        self._f = f or OrF('std', 'std')
+            f = OrF(f[0], f[1], pop=pop)
+        self._f = f or OrF('std', 'std', pop=pop)
 
         self._n_terms = n_terms
         self._in_features = in_features
@@ -227,9 +230,10 @@ class And(LogicalNeuron):
             shape.insert(0, pop_size)
 
         self.weight_base = nn.parameter.Parameter(torch.ones(*shape))
+        pop = pop_size is not None
         if isinstance(f, typing.Tuple):
-            f = AndF(f[0], f[1])
-        self._f = f or AndF('std', 'std')
+            f = AndF(f[0], f[1], pop=pop)
+        self._f = f or AndF('std', 'std', pop=pop)
         self.wf = wf or NullWeightF()
         self.sub1 = sub1
 

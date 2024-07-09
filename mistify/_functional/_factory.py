@@ -100,7 +100,7 @@ class LogicalF(ABC):
 
 class AndF(LogicalF):
 
-    def __init__(self, union: BETWEEN_F, inter_on: ON_F):
+    def __init__(self, union: BETWEEN_F, inter_on: ON_F, pop: bool=False):
         """Create a Functor for performing an And operation between
         a tensor and a weight
 
@@ -113,23 +113,32 @@ class AndF(LogicalF):
         if isinstance(inter_on, str):
             inter_on = InterOn[inter_on]
 
+        self.pop = pop
         self.union = union
         self.inter_on = inter_on
 
     def __call__(self, x: torch.Tensor, w: torch.Tensor, dim=-2) -> torch.Tensor:
 
+        if self.pop:
+            w = w[:,None]
+        else:
+            w = w[None]
         return self.inter_on(
-            self.union(x.unsqueeze(-1), w[None]), dim=dim
+            self.union(x.unsqueeze(-1), w), dim=dim
         )
 
     def inner(self, x: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
         
-        return self.union(x.unsqueeze(-1), x2[None])
+        if self.pop:
+            x2 = x2[:,None]
+        else:
+            x2 = x2[None]
+        return self.union(x.unsqueeze(-1), x2)
 
 
 class OrF(LogicalF):
 
-    def __init__(self, inter: BETWEEN_F, union_on: ON_F):
+    def __init__(self, inter: BETWEEN_F, union_on: ON_F, pop: bool=False):
         """Create a Functor for performing an Or operation between
         a tensor and a weight
 
@@ -142,15 +151,24 @@ class OrF(LogicalF):
         if isinstance(union_on, str):
             union_on = UnionOn[union_on]
 
+        self.pop = pop
         self.union_on = union_on
         self.inter = inter
 
     def __call__(self, x: torch.Tensor, w: torch.Tensor, dim=-2) -> torch.Tensor:
 
+        if self.pop:
+            w = w[:,None]
+        else:
+            w = w[None]
         return self.union_on(
-            self.inter(x.unsqueeze(-1), w[None]), dim=dim
+            self.inter(x.unsqueeze(-1), w), dim=dim
         )
 
     def inner(self, x: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
         
-        return self.inter(x.unsqueeze(-1), x2[None])
+        if self.pop:
+            x2 = x2[:,None]
+        else:
+            x2 = x2[None]
+        return self.inter(x.unsqueeze(-1), x2)
