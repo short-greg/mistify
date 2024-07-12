@@ -4,7 +4,7 @@ import torch
 
 # local
 from .._functional import (
-    heaviside, signify, clamp, BindG, G
+    heaviside, sign, clamp, BindG, G
 )
 
 
@@ -58,7 +58,7 @@ class Sign(nn.Module):
         Returns:
             torch.Tensor: _description_
         """
-        return signify(x, self.g)
+        return sign(x, self.g)
 
 
 class Heaviside(nn.Module):

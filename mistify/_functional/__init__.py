@@ -5,11 +5,11 @@ from . import signed
 from . import fuzzy
 
 from ._m import (
-    heaviside, to_boolean, signify, 
+    heaviside, to_boolean, sign, 
     to_signed, clamp, ramp, threshold
 )
 from ._grad import (
-    SignG, BinaryG,
+    SignG, HeavisideG,
     ClampG, MaxOnG, MinOnG,
     G, ClipG, AllG, ZeroG, BindG, MulG
 )

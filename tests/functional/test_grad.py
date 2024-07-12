@@ -92,7 +92,7 @@ class TestBinaryG:
 
         x = torch.randn(3, 3, requires_grad=True)
         x.retain_grad()
-        y = F.BinaryG.apply(x)
+        y = F.HeavisideG.apply(x)
         y.sum().backward()
         assert (x.grad != 0.0).all()
 
@@ -100,7 +100,7 @@ class TestBinaryG:
 
         x = torch.randn(3, 3, requires_grad=True)
         x.retain_grad()
-        y = F.BinaryG.apply(x, ZeroG())
+        y = F.HeavisideG.apply(x, ZeroG())
         y.sum().backward()
         assert (x.grad == 0.0).all()
 
@@ -108,7 +108,7 @@ class TestBinaryG:
 
         x = torch.randn(3, 3, requires_grad=True)
         x.retain_grad()
-        y = F.BinaryG.apply(x, ClipG(0.1))
+        y = F.HeavisideG.apply(x, ClipG(0.1))
         y.sum().backward()
         assert (x.grad != 0.0).all()
 

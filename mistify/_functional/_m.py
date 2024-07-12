@@ -7,7 +7,7 @@ import torch
 TENSOR_FLOAT = typing.Union[torch.Tensor, float]
 
 from ._grad import (
-    BinaryG, ClampG,
+    HeavisideG, ClampG,
     SignG, G
 )
 
@@ -23,10 +23,10 @@ def heaviside(x: torch.Tensor, g: G=None) -> torch.Tensor:
     """
     if g is None:
         return (x >= 0.0).type_as(x)
-    return BinaryG.apply(x, g)
+    return HeavisideG.apply(x, g)
 
 
-def signify(x: torch.Tensor, g: G=None) -> torch.Tensor:
+def sign(x: torch.Tensor, g: G=None) -> torch.Tensor:
     """Convenience function to use the straight through estimator for sign
 
     Args:

@@ -620,7 +620,7 @@ class SignWeightF(WeightF):
         Returns:
             torch.Tensor: The weight
         """
-        return functional.signify(w, self.g)
+        return functional.sign(w, self.g)
 
 
 class NullWeightF(WeightF):

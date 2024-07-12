@@ -146,7 +146,7 @@ class SignG(torch.autograd.Function):
         return ctx.g(x, grad_output, True), None
 
 
-class BinaryG(torch.autograd.Function):
+class HeavisideG(torch.autograd.Function):
     """Use to clip the grad between two values
     Useful for smooth maximum/smooth minimum
     """
