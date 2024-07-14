@@ -185,3 +185,53 @@ mistify.infer
    mistify.infer.Sigmoidal
    mistify.infer.Triangular
    mistify.infer.Hedge
+
+
+mistify.process
+---------------
+
+.. autosummary::
+   :toctree: generated
+
+   mistify.process.Transform
+   mistify.process.GaussianBase
+   mistify.process.CumGaussian
+   mistify.process.StdDev
+   mistify.process.LogisticBase
+   mistify.process.CumLogistic
+   mistify.process.SigmoidParam
+   mistify.process.MinMaxScaler
+   mistify.process.Reverse
+   mistify.process.Compound
+   mistify.process.NullTransform
+   mistify.process.Piecewise
+   mistify.process.PieceRange
+   mistify.process.ColProcessor
+   mistify.process.PandasColProcessor
+   mistify.process.TableProcessor
+   mistify.process.Reversible
+   mistify.process.Softplus
+   mistify.process.Exp
+
+
+mistify.systems
+---------------
+
+.. autosummary::
+   :toctree: generated
+
+   mistify.systems.Sugeno
+
+
+mistify.utils
+---------------
+
+.. autosummary::
+   :toctree: generated
+
+   mistify.process.check_contains
+   mistify.process.resize_dim_to
+   mistify.process.unsqueeze
+   mistify.process.EnumFactory
+   mistify.process.reduce_as
+   mistify.process.resize_to
