@@ -5,7 +5,6 @@ import logging
 import torch
 
 
-
 class PostFit(object):
     """Mixin for fitting a PostProcessor
     """

@@ -9,3 +9,6 @@ from ._table import (
 from ._reverse import (
     Reversible, Softplus, Exp
 )
+from ._fit import (
+    PreFit, PostFit
+)
