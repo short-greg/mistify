@@ -47,13 +47,16 @@ class Conclusion(nn.Module):
 class FlattenConc(Conclusion):
     """Class that defines several hypotheses 
     """
-    def __init__(self, conclusion: 'Conclusion') -> None:
+    def __init__(self, conclusion: 'Conclusion', n_out_vars: typing.Optional[int]=None) -> None:
         if conclusion.n_vars is None:
+            if n_out_vars is not None:
+                raise ValueError(f'n_out_vars must be None if n_vars is None')
             n_vars = None
             n_terms = conclusion.n_terms
         else:
-            n_terms = conclusion.n_terms * conclusion.n_vars
-            n_vars = 1
+            n_out_vars = n_out_vars or 1
+            n_terms = conclusion.n_terms * conclusion.n_vars // n_out_vars
+            n_vars = n_out_vars
         super().__init__(n_terms, n_vars)
         self._conclusion = conclusion
 
@@ -68,7 +71,7 @@ class FlattenConc(Conclusion):
         """
 
         shape = list(hypo_weight.hypo.shape)
-        shape[-2] = 1
+        shape[-2] = self.n_vars
         shape[-1] = -1
         hypo_weight = HypoWeight(
             hypo_weight.hypo.view(shape),
