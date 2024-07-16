@@ -15,7 +15,6 @@ readme = "README.md"
 packages = [
     {include="mistify"},
     {include="mistify/_functional"},
-    {include="mistify/learn"},
     {include="mistify/fuzzify"},
     {include="mistify/infer"},
     {include="mistify/process"},
