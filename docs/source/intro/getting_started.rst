@@ -12,7 +12,7 @@ It is built using PyTorch to allow for easy integration into systems you have bu
 Example
 -------
 
-Here’s an example of a learning machine. The first layer of the network consists of decision trees (instead of a concatenation of dot product operations). The second layer then uses typical matrix multiplication to obtain the output
+Here’s an example of a fuzzy system. 
 
 
 What does it have to offer?

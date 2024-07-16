@@ -109,7 +109,7 @@ class Or(LogicalNeuron):
     """
 
     def __init__(
-        self, in_features: int, out_features: int, n_terms: int=None, pop_size: int=None,
+        self, in_features: int, out_features: int, n_terms: int=None, n_members: int=None,
         f: OrF=None, wf: 'WeightF'=None
     ) -> None:
         """Create an Or neuron
@@ -118,7 +118,7 @@ class Or(LogicalNeuron):
             in_features (int): The number of features into the neuron
             out_features (int): The number of features out of the neuron.
             n_terms (int, optional): The number of terms for the neuron. Defaults to None.
-            pop_size (int, optional): The population size
+            n_members (int, optional): The population size
             f (typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]], optional): The function to use for the neuron. Defaults to "min_max".
             wf (typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]], optional): The weight function to use for the neuron. Defaults to "clamp".
         """
@@ -128,9 +128,9 @@ class Or(LogicalNeuron):
         
         if n_terms is not None:
             shape.insert(0, n_terms)
-        if pop_size is not None:
-            shape.insert(0, pop_size)
-        pop = pop_size is not None
+        if n_members is not None:
+            shape.insert(0, n_members)
+        pop = n_members is not None
 
         self.weight_base = nn.parameter.Parameter(torch.ones(*shape))
         self.wf = wf or NullWeightF()
@@ -206,7 +206,7 @@ class And(LogicalNeuron):
     followed by an T-norm for aggregation. 
     """
 
-    def __init__(self, in_features: int, out_features: int, n_terms: int=None, pop_size: int=None,
+    def __init__(self, in_features: int, out_features: int, n_terms: int=None, n_members: int=None,
         f: typing.Callable[[torch.Tensor, torch.Tensor], torch.Tensor]=None, wf: 'WeightF'=None,
         sub1: bool=False
     ) -> None:
@@ -216,7 +216,7 @@ class And(LogicalNeuron):
             in_features (int): The number of features into the neuron
             out_features (int): The number of features out of the neuron.
             n_terms (int, optional): The number of terms for the neuron. Defaults to None.
-            pop_size (int, optional): The population size
+            n_members (int, optional): The population size
             f (typing.Union[str, typing.Callable[[torch.Tensor, torch.Tensor], torch.Tensor]], optional): The function to use for the neuron. Defaults to "min_max".
             wf (typing.Union[str, typing.Callable[[torch.Tensor], torch.Tensor]], optional): The weight function to use for the neuron. Defaults to "clamp".
         """
@@ -226,11 +226,11 @@ class And(LogicalNeuron):
         
         if n_terms is not None:
             shape.insert(0, n_terms)
-        if pop_size is not None:
-            shape.insert(0, pop_size)
+        if n_members is not None:
+            shape.insert(0, n_members)
 
         self.weight_base = nn.parameter.Parameter(torch.ones(*shape))
-        pop = pop_size is not None
+        pop = n_members is not None
         if isinstance(f, typing.Tuple):
             f = AndF(f[0], f[1], pop=pop)
         self._f = f or AndF('std', 'std', pop=pop)
@@ -307,7 +307,7 @@ class MaxMin(Or):
 
     def __init__(
         self, in_features: int, out_features: int, 
-        n_terms: int = None, pop_size: int=None, wf: 'WeightF'=None,
+        n_terms: int = None, n_members: int=None, wf: 'WeightF'=None,
         g: typing.Union[typing.Tuple[G, G], G]=None
     ) -> None:
         """Create an Or neuron
@@ -316,7 +316,7 @@ class MaxMin(Or):
             in_features (int): The in features
             out_features (int): The out features
             n_terms (int, optional): The number of terms. Defaults to None.
-            pop_size (int, optional): The population size. Defaults to None.
+            n_members (int, optional): The population size. Defaults to None.
             wf (WeightF, optional): The weight function to use. Defaults to None.
             g (typing.Union[typing.Tuple[G, G], G], optional): The g to use, if tuple, will be inner, outer. Defaults to None.
         """
@@ -326,7 +326,7 @@ class MaxMin(Or):
             inner_g, outer_g = g, g
         super().__init__(
             in_features, out_features, 
-            n_terms, pop_size, 
+            n_terms, n_members, 
             (Inter(g=inner_g), UnionOn(dim=-2, g=outer_g)), 
             wf)
 
@@ -335,7 +335,7 @@ class SmoothMaxMin(Or):
 
     def __init__(
         self, in_features: int, out_features: int, 
-        n_terms: int = None, pop_size: int=None, wf: 'WeightF'=None,
+        n_terms: int = None, n_members: int=None, wf: 'WeightF'=None,
         a: float=None
     ) -> None:
         """Create a mooth Or neuron
@@ -344,11 +344,11 @@ class SmoothMaxMin(Or):
             in_features (int): The number of input features
             out_features (int): The number of output features
             n_terms (int, optional): The number of terms. Defaults to None.
-            pop_size (int, optional): The number of individuals to use. Defaults to None.
+            n_members (int, optional): The number of individuals to use. Defaults to None.
             wf (WeightF, optional): The weight function to use. Defaults to None.
             a (float, optional): The degree of hardness (larger values are "harder"). Defaults to None.
         """
-        super().__init__(in_features, out_features, n_terms, pop_size, (SmoothInter(a=a), SmoothUnionOn(dim=-2, a=a)), wf)
+        super().__init__(in_features, out_features, n_terms, n_members, (SmoothInter(a=a), SmoothUnionOn(dim=-2, a=a)), wf)
         self._a = a
 
     @property
@@ -383,7 +383,7 @@ class SmoothMinMax(And):
 
     def __init__(
         self, in_features: int, out_features: int, 
-        n_terms: int = None, pop_size: int=None, wf: 'WeightF'=None,
+        n_terms: int = None, n_members: int=None, wf: 'WeightF'=None,
         a: float=None, sub1: bool=False
     ) -> None:
         """Create a smooth And neuron
@@ -392,13 +392,13 @@ class SmoothMinMax(And):
             in_features (int): The number of input features
             out_features (int): The number of output features
             n_terms (int, optional): The number of terms. Defaults to None.
-            pop_size (int, optional): The number of individuals to use. Defaults to None.
+            n_members (int, optional): The number of individuals to use. Defaults to None.
             wf (WeightF, optional): The weight function to use. Defaults to None.
             a (float, optional): The degree of hardness (larger values are "harder"). Defaults to None.
         """
         super().__init__(
             in_features, out_features, 
-            n_terms, pop_size, (SmoothUnion(a=a), SmoothInterOn(dim=-2, a=a)), 
+            n_terms, n_members, (SmoothUnion(a=a), SmoothInterOn(dim=-2, a=a)), 
             wf, sub1
         )
         self._a = a
@@ -447,7 +447,7 @@ class MaxProd(Or):
 
     def __init__(
         self, in_features: int, out_features: int, 
-        n_terms: int = None, pop_size: int=None, wf: 'WeightF'=None,
+        n_terms: int = None, n_members: int=None, wf: 'WeightF'=None,
         g: G=None
     ) -> None:
         """Create a MaxProd neruon
@@ -456,13 +456,13 @@ class MaxProd(Or):
             in_features (int): The number of input features
             out_features (int): The number of output features
             n_terms (int, optional): The number of terms. Defaults to None.
-            pop_size (int, optional): The number of individuals to use. Defaults to None.
+            n_members (int, optional): The number of individuals to use. Defaults to None.
             wf (WeightF, optional): The weight function to use. Defaults to None.
             g (G, optional): The straight-through-estimator to use. Defaults to None.
         """
         super().__init__(
             in_features, out_features, n_terms, 
-            pop_size, (ProbInter(), UnionOn(dim=-2, g=g)), wf
+            n_members, (ProbInter(), UnionOn(dim=-2, g=g)), wf
         )
 
 
@@ -472,7 +472,7 @@ class MinMax(And):
 
     def __init__(
         self, in_features: int, out_features: int, 
-        n_terms: int = None, pop_size: int=None, wf: 'WeightF'=None,
+        n_terms: int = None, n_members: int=None, wf: 'WeightF'=None,
         g: typing.Union[typing.Tuple[G, G], G]=None, sub1: bool=False
     ) -> None:
         """Create an And neuron
@@ -481,7 +481,7 @@ class MinMax(And):
             in_features (int): The in features
             out_features (int): The out features
             n_terms (int, optional): The number of terms. Defaults to None.
-            pop_size (int, optional): The population size. Defaults to None.
+            n_members (int, optional): The population size. Defaults to None.
             wf (WeightF, optional): The weight function to use. Defaults to None.
             g (typing.Union[typing.Tuple[G, G], G], optional): The g to use, if tuple, will be inner, outer. Defaults to None.
             sub1 (bool, optional): Whether to subtract by one. Defaults to False.
@@ -491,7 +491,7 @@ class MinMax(And):
         else:
             inner_g, outer_g = g, g
         super().__init__(
-            in_features, out_features, n_terms, pop_size, 
+            in_features, out_features, n_terms, n_members, 
             (Union(g=inner_g), InterOn(dim=-2, g=outer_g)), wf, sub1=sub1
         )
 
@@ -501,7 +501,7 @@ class MinSum(And):
     """
     def __init__(
         self, in_features: int, out_features: int, 
-        n_terms: int = None, pop_size: int=None, wf: 'WeightF'=None,
+        n_terms: int = None, n_members: int=None, wf: 'WeightF'=None,
         g: G=None, sub1: bool=False
     ) -> None:
         """Create an And neuron using min and probabilistic sum
@@ -510,13 +510,13 @@ class MinSum(And):
             in_features (int): The input features
             out_features (int): The number of output features
             n_terms (int, optional): The number of terms. Defaults to None.
-            pop_size (int, optional): The population size. Defaults to None.
+            n_members (int, optional): The population size. Defaults to None.
             wf (WeightF, optional): The weight function. Defaults to None.
             g (G, optional): The straight through estimator to use. Defaults to None.
             sub1 (bool, optional): Whether to subtract the weight by one. Defaults to False.
         """
         super().__init__(
-            in_features, out_features, n_terms, pop_size, 
+            in_features, out_features, n_terms, n_members, 
             (ProbUnion(), InterOn(dim=-2, g=g)), wf, sub1
         )
 
